@@ -65,23 +65,20 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfileAndOrg = async (userId: string) => {
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (profileError) throw profileError
-      setProfile(profileData)
-
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', profileData.org_id)
-        .single()
-
-      if (orgError) throw orgError
-      setOrg(orgData)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+  
+      const res = await fetch('/api/me', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+  
+      if (!res.ok) throw new Error('Failed to fetch profile')
+  
+      const { profile, org } = await res.json()
+      setProfile(profile)
+      setOrg(org)
     } catch (err) {
       console.error('Error fetching profile/org:', err)
     } finally {
