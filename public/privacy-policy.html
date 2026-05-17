@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Vox AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --bg2: #ffffff;
+    --ink: #1a1714;
+    --ink2: #4a4540;
+    --ink3: #8a8078;
+    --accent: #2d6a4f;
+    --accent2: #52b788;
+    --border: #e0dbd2;
+    --rule: #d4cfc6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.8;
+    min-height: 100vh;
+  }
+
+  /* Top bar */
+  .topbar {
+    background: var(--accent);
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* Header */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .last-updated {
+    font-size: 12px;
+    color: var(--ink3);
+    letter-spacing: 0.5px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Hero */
+  .hero {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 80px 40px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: 'PRIVACY';
+    position: absolute;
+    font-family: 'Playfair Display', serif;
+    font-size: 180px;
+    font-weight: 700;
+    color: rgba(45,106,79,0.04);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    display: inline-block;
+    background: rgba(45,106,79,0.08);
+    color: var(--accent);
+    border: 1px solid rgba(45,106,79,0.2);
+    padding: 6px 18px;
+    border-radius: 100px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+  }
+
+  .hero p {
+    font-size: 16px;
+    color: var(--ink2);
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  /* Layout */
+  .layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; gap: 32px; padding: 40px 24px; }
+    .sidebar { display: none; }
+    header { padding: 20px 24px; }
+    .hero { padding: 48px 24px 40px; }
+  }
+
+  /* Sidebar TOC */
+  .sidebar {
+    position: sticky;
+    top: 100px;
+  }
+
+  .toc-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ink3);
+    font-weight: 500;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc a {
+    display: block;
+    font-size: 13px;
+    color: var(--ink2);
+    text-decoration: none;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    transition: color 0.2s, padding-left 0.2s;
+    font-weight: 400;
+  }
+
+  .toc a:hover {
+    color: var(--accent);
+    padding-left: 6px;
+  }
+
+  /* Content */
+  .content section {
+    margin-bottom: 56px;
+    padding-bottom: 56px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .content section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .section-num {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    font-weight: 500;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .content h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 20px;
+    line-height: 1.2;
+    letter-spacing: -0.3px;
+  }
+
+  .content p {
+    font-size: 15px;
+    color: var(--ink2);
+    line-height: 1.85;
+    margin-bottom: 16px;
+  }
+
+  .content p:last-child { margin-bottom: 0; }
+
+  .content ul {
+    margin: 16px 0 16px 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .content ul li {
+    font-size: 15px;
+    color: var(--ink2);
+    padding: 8px 0 8px 24px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    line-height: 1.6;
+  }
+
+  .content ul li:last-child { border-bottom: none; }
+
+  .content ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent2);
+    font-size: 13px;
+  }
+
+  /* Info card */
+  .info-card {
+    background: rgba(45,106,79,0.05);
+    border: 1px solid rgba(45,106,79,0.15);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .info-card p {
+    font-size: 14px;
+    color: var(--ink2);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .info-card strong { color: var(--accent); font-weight: 500; }
+
+  /* Contact card */
+  .contact-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-top: 24px;
+  }
+
+  .contact-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    margin-bottom: 16px;
+    color: var(--ink);
+  }
+
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--ink2);
+  }
+
+  .contact-row:last-child { border-bottom: none; }
+
+  .contact-icon {
+    width: 32px; height: 32px;
+    background: rgba(45,106,79,0.08);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .contact-row a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  /* Footer */
+  footer {
+    background: var(--ink);
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    padding: 32px 40px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  footer strong { color: #fff; font-weight: 500; }
+
+  /* Fade in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero, .layout { animation: fadeUp 0.6s ease both; }
+  .layout { animation-delay: 0.1s; }
+</style>
+</head>
+<body>
+
+<div class="topbar">This Privacy Policy is effective as of May 5, 2025</div>
+
+<header>
+  <a href="https://voxai-dashboard-theta.vercel.app/" class="logo">Vox <span>AI</span></a>
+  <span class="last-updated">Last updated: May 5, 2025</span>
+</header>
+
+<div class="hero">
+  <div class="hero-eyebrow">Legal</div>
+  <h1>Privacy Policy</h1>
+  <p>At Vox AI, we take your privacy seriously. This policy explains how we collect, use, and protect your information.</p>
+</div>
+
+<div class="layout">
+
+  <!-- Sidebar TOC -->
+  <aside class="sidebar">
+    <div class="toc-title">Contents</div>
+    <nav class="toc">
+      <a href="#information">Information We Collect</a>
+      <a href="#use">How We Use It</a>
+      <a href="#whatsapp">WhatsApp & Meta Data</a>
+      <a href="#sharing">Data Sharing</a>
+      <a href="#storage">Data Storage</a>
+      <a href="#rights">Your Rights</a>
+      <a href="#security">Security</a>
+      <a href="#children">Children</a>
+      <a href="#changes">Policy Changes</a>
+      <a href="#contact">Contact Us</a>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="content">
+
+    <section id="intro">
+      <span class="section-num">Introduction</span>
+      <h2>Who We Are</h2>
+      <p>Vox AI ("we," "our," or "us") operates a WhatsApp-based AI messaging and CRM platform accessible at <strong>voxai-dashboard-theta.vercel.app</strong>. Our platform enables businesses to manage WhatsApp conversations, automate responses via AI, and communicate with their customers at scale using the Meta WhatsApp Business API.</p>
+      <p>This Privacy Policy explains what information we collect, how we use it, and what rights you have in relation to it. By using Vox AI, you agree to the practices described in this policy.</p>
+      <div class="info-card">
+        <p><strong>Scope:</strong> This policy applies to all users of the Vox AI platform, including business customers who connect their WhatsApp Business accounts, and end users whose messages are processed through our system.</p>
+      </div>
+    </section>
+
+    <section id="information">
+      <span class="section-num">01 — Collection</span>
+      <h2>Information We Collect</h2>
+      <p>We collect the following categories of information when you use Vox AI:</p>
+      <ul>
+        <li><strong>Account Information:</strong> Name, email address, and business details when you register</li>
+        <li><strong>WhatsApp Business Data:</strong> WhatsApp Business Account (WABA) IDs, phone number IDs, and access tokens obtained through Meta's Embedded Signup flow</li>
+        <li><strong>Message Content:</strong> WhatsApp messages sent and received through your connected business number, stored for CRM and conversation management purposes</li>
+        <li><strong>Contact Data:</strong> Phone numbers and names of your WhatsApp contacts and leads</li>
+        <li><strong>Usage Data:</strong> How you interact with our dashboard, features used, and session information</li>
+        <li><strong>Technical Data:</strong> IP address, browser type, device information, and webhook logs</li>
+        <li><strong>Meta API Data:</strong> Data received from Meta's WhatsApp Business API including message statuses, delivery receipts, and template information</li>
+      </ul>
+    </section>
+
+    <section id="use">
+      <span class="section-num">02 — Usage</span>
+      <h2>How We Use Your Information</h2>
+      <p>We use the information we collect for the following purposes:</p>
+      <ul>
+        <li>To provide, operate, and maintain the Vox AI platform and its features</li>
+        <li>To send and receive WhatsApp messages on behalf of connected business accounts</li>
+        <li>To power AI-driven automated responses through our n8n workflow integrations</li>
+        <li>To display conversation history and lead data in the dashboard interface</li>
+        <li>To manage message templates and WhatsApp Business Account settings</li>
+        <li>To monitor platform performance, resolve bugs, and improve our service</li>
+        <li>To communicate with you about your account, updates, or support requests</li>
+        <li>To comply with legal obligations and Meta's platform policies</li>
+      </ul>
+    </section>
+
+    <section id="whatsapp">
+      <span class="section-num">03 — WhatsApp & Meta</span>
+      <h2>WhatsApp & Meta Data</h2>
+      <p>Vox AI integrates with Meta's WhatsApp Business Platform. When you connect your WhatsApp Business Account to our platform:</p>
+      <ul>
+        <li>We receive and store messages via Meta's Cloud API webhooks</li>
+        <li>We access your WABA and phone number data using permissions granted during Embedded Signup</li>
+        <li>We send messages on your behalf using your connected WhatsApp Business number</li>
+        <li>Message data is processed in accordance with both this policy and Meta's own Data Policy</li>
+      </ul>
+      <div class="info-card">
+        <p><strong>Important:</strong> Vox AI uses Meta's official WhatsApp Business API only. We do not use any unofficial or third-party WhatsApp integrations. All data exchanged with Meta is governed by <a href="https://www.whatsapp.com/legal/business-data-processing-terms" style="color:var(--accent)">Meta's Business Data Processing Terms</a>.</p>
+      </div>
+      <p>We use the following Meta permissions: <strong>whatsapp_business_messaging</strong> (to send and receive messages) and <strong>whatsapp_business_management</strong> (to manage WABA settings, templates, and onboard business customers).</p>
+    </section>
+
+    <section id="sharing">
+      <span class="section-num">04 — Sharing</span>
+      <h2>Data Sharing & Third Parties</h2>
+      <p>We do not sell, rent, or trade your personal information. We may share data only in the following limited circumstances:</p>
+      <ul>
+        <li><strong>Meta / WhatsApp:</strong> As required to operate the WhatsApp Business API integration</li>
+        <li><strong>n8n (workflow automation):</strong> Message data is processed through n8n workflows for AI automation; n8n operates under its own privacy policy</li>
+        <li><strong>Vercel (hosting):</strong> Our dashboard is hosted on Vercel's infrastructure</li>
+        <li><strong>Service providers:</strong> Trusted vendors who assist in operating our platform, bound by confidentiality agreements</li>
+        <li><strong>Legal requirements:</strong> When required by law, court order, or to protect our rights and users</li>
+      </ul>
+    </section>
+
+    <section id="storage">
+      <span class="section-num">05 — Storage</span>
+      <h2>Data Storage & Retention</h2>
+      <p>Your data is stored on secure cloud infrastructure. We retain data for as long as your account is active or as needed to provide services. Conversation and message data is retained to power the CRM features of our platform.</p>
+      <p>You may request deletion of your data at any time by contacting us at the email below. Upon verified request, we will delete your personal data within 30 days, except where retention is required by law.</p>
+    </section>
+
+    <section id="rights">
+      <span class="section-num">06 — Your Rights</span>
+      <h2>Your Rights</h2>
+      <p>Depending on your location, you may have the following rights regarding your personal data:</p>
+      <ul>
+        <li><strong>Access:</strong> Request a copy of the personal data we hold about you</li>
+        <li><strong>Correction:</strong> Request correction of inaccurate or incomplete data</li>
+        <li><strong>Deletion:</strong> Request deletion of your personal data ("right to be forgotten")</li>
+        <li><strong>Portability:</strong> Request your data in a portable, machine-readable format</li>
+        <li><strong>Objection:</strong> Object to certain types of data processing</li>
+        <li><strong>Withdrawal:</strong> Withdraw consent at any time where processing is based on consent</li>
+      </ul>
+      <p>To exercise any of these rights, contact us at <strong>voxai4278@gmail.com</strong>. We will respond within 30 days.</p>
+    </section>
+
+    <section id="security">
+      <span class="section-num">07 — Security</span>
+      <h2>Security</h2>
+      <p>We implement appropriate technical and organisational measures to protect your personal data against unauthorised access, loss, or disclosure. These include encrypted data transmission (HTTPS), secure API token storage, and access controls on our infrastructure.</p>
+      <p>However, no method of transmission over the internet is 100% secure. While we strive to protect your data, we cannot guarantee absolute security.</p>
+    </section>
+
+    <section id="children">
+      <span class="section-num">08 — Children</span>
+      <h2>Children's Privacy</h2>
+      <p>Vox AI is a business platform not directed at children under the age of 13. We do not knowingly collect personal information from children. If you believe a child has provided us with personal data, please contact us immediately and we will delete it.</p>
+    </section>
+
+    <section id="changes">
+      <span class="section-num">09 — Updates</span>
+      <h2>Changes to This Policy</h2>
+      <p>We may update this Privacy Policy from time to time. When we make material changes, we will update the "Last updated" date at the top of this page and notify registered users by email where appropriate.</p>
+      <p>Your continued use of Vox AI after any changes constitutes your acceptance of the updated policy.</p>
+    </section>
+
+    <section id="contact">
+      <span class="section-num">10 — Contact</span>
+      <h2>Contact Us</h2>
+      <p>If you have any questions, concerns, or requests regarding this Privacy Policy or how we handle your data, please reach out:</p>
+      <div class="contact-card">
+        <h3>Vox AI</h3>
+        <div class="contact-row">
+          <div class="contact-icon">✉️</div>
+          <div>Email: <a href="mailto:voxai4278@gmail.com">voxai4278@gmail.com</a></div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-icon">🌐</div>
+          <div>Website: <a href="https://voxai-dashboard-theta.vercel.app/" target="_blank">voxai-dashboard-theta.vercel.app</a></div>
+        </div>
+        <div class="contact-row">
+          <div class="contact-icon">📅</div>
+          <div>We respond to all privacy requests within <strong>30 days</strong></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <p><strong>Vox AI</strong> &nbsp;·&nbsp; Privacy Policy &nbsp;·&nbsp; Effective May 5, 2025</p>
+  <p style="margin-top:8px">© 2025 Vox AI. All rights reserved. &nbsp;·&nbsp; <a href="mailto:voxai4278@gmail.com" style="color:rgba(255,255,255,0.5)">voxai4278@gmail.com</a></p>
+</footer>
+
+</body>
+</html>
