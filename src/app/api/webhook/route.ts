@@ -3,6 +3,24 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url)
+    const orgSlug = searchParams.get('org') || ''
+
+    // Get org by slug
+    let orgId: string | null = null
+    if (orgSlug) {
+      const { data: org } = await supabaseAdmin
+        .from('organizations')
+        .select('id')
+        .eq('slug', orgSlug)
+        .single()
+      orgId = org?.id || null
+    }
+
+    if (!orgId) {
+      return NextResponse.json({ error: 'Invalid org' }, { status: 400 })
+    }
+
     const body = await req.json()
     const { phone_number, message, direction, name, media_url, media_type } = body
 
@@ -14,11 +32,17 @@ export async function POST(req: NextRequest) {
     const timestamp   = new Date()
     const msgText     = message || (media_type ? `[${media_type}]` : '')
 
-    // 1. Upsert conversation
+    // 1. Upsert conversation with org_id
     const { data: conversation, error: convError } = await supabaseAdmin
       .from('conversations')
       .upsert(
-        { phone_number, name: contactName, last_message: msgText, updated_at: new Date().toISOString() },
+        {
+          phone_number,
+          name: contactName,
+          last_message: msgText,
+          org_id: orgId,
+          updated_at: new Date().toISOString()
+        },
         { onConflict: 'phone_number' }
       )
       .select()
@@ -26,11 +50,12 @@ export async function POST(req: NextRequest) {
 
     if (convError) throw convError
 
-    // 2. Insert message with media fields
+    // 2. Insert message with org_id
     const { data: msg, error: msgError } = await supabaseAdmin
       .from('messages')
       .insert({
         conversation_id: conversation.id,
+        org_id: orgId,
         phone_number,
         message: msgText,
         direction,
@@ -43,11 +68,11 @@ export async function POST(req: NextRequest) {
 
     if (msgError) throw msgError
 
-    // 3. Upsert lead
+    // 3. Upsert lead with org_id
     await supabaseAdmin
       .from('leads')
       .upsert(
-        { conversation_id: conversation.id, phone_number, name: contactName },
+        { conversation_id: conversation.id, org_id: orgId, phone_number, name: contactName },
         { onConflict: 'conversation_id' }
       )
 
