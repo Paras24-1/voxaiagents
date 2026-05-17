@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signIn(email, password)
-      router.push('/dashboard')
+window.location.href = '/dashboard'
     } catch (err: any) {
       setError(err.message || 'Invalid email or password')
     } finally {
