@@ -1,0 +1,121 @@
+'use client'
+
+import { createContext, useContext, useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { User } from '@supabase/supabase-js'
+
+interface UserProfile {
+  id: string
+  org_id: string
+  email: string
+  name: string
+  role: 'owner' | 'admin' | 'employee'
+}
+
+interface Organization {
+  id: string
+  name: string
+  slug: string
+  logo_url?: string
+  plan: string
+}
+
+interface OrgContextType {
+  user: User | null
+  profile: UserProfile | null
+  org: Organization | null
+  loading: boolean
+  isAdmin: boolean
+  isOwner: boolean
+  signIn: (email: string, password: string) => Promise<void>
+  signOut: () => Promise<void>
+}
+
+const OrgContext = createContext<OrgContextType | undefined>(undefined)
+
+export function OrgProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [org, setOrg] = useState<Organization | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchProfileAndOrg(session.user.id)
+      } else {
+        setLoading(false)
+      }
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchProfileAndOrg(session.user.id)
+      } else {
+        setProfile(null)
+        setOrg(null)
+        setLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const fetchProfileAndOrg = async (userId: string) => {
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (profileError) throw profileError
+      setProfile(profileData)
+
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', profileData.org_id)
+        .single()
+
+      if (orgError) throw orgError
+      setOrg(orgData)
+    } catch (err) {
+      console.error('Error fetching profile/org:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw error
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
+
+  return (
+    <OrgContext.Provider value={{
+      user,
+      profile,
+      org,
+      loading,
+      isAdmin: profile?.role === 'admin' || profile?.role === 'owner',
+      isOwner: profile?.role === 'owner',
+      signIn,
+      signOut,
+    }}>
+      {children}
+    </OrgContext.Provider>
+  )
+}
+
+export function useOrg() {
+  const context = useContext(OrgContext)
+  if (!context) throw new Error('useOrg must be used within OrgProvider')
+  return context
+}
