@@ -20,11 +20,17 @@ export async function middleware(req: NextRequest) {
 
   const publicPaths = ['/login', '/register']
   const isPublic = publicPaths.some(p => req.nextUrl.pathname.startsWith(p))
+  const isApi = req.nextUrl.pathname.startsWith('/api')
 
+  // Skip middleware for API routes
+  if (isApi) return res
+
+  // Not logged in → redirect to login
   if (!session && !isPublic) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
+  // Logged in + on auth page → redirect to dashboard
   if (session && isPublic) {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
@@ -33,5 +39,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
 }
