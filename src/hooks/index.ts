@@ -55,14 +55,16 @@ export function useConversations(filters: {
       //   params.set('assign_filter', filters.assignFilter)
       // }
 
-    const res = await fetch(`/api/conversations?${params}`, {
-      headers: tokenRef.current
-        ? { 'Authorization': `Bearer ${tokenRef.current}` }
-        : {}
-    })
-    const data = await res.json()
-    if (Array.isArray(data)) setConversations(data)
-    setLoading(false)
+      const res = await fetch(`/api/conversations?${params}`, {
+        headers: tokenRef.current
+          ? { 'Authorization': `Bearer ${tokenRef.current}` }
+          : {}
+      })
+      console.log('[conversations] status:', res.status)
+      const data = await res.json()
+      console.log('[conversations] data:', data)
+      if (Array.isArray(data)) setConversations(data)
+      setLoading(false)
   }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
 
   useEffect(() => {
