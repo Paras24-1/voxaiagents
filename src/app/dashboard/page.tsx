@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOrg } from '@/contexts/OrgContext'
 
@@ -51,11 +51,19 @@ export default function DashboardPage() {
     }
   }, [user, loading, router])
 
-  const handleSelect = async (conv: Conversation) => {
+  // ----------------------------------------------------------------
+  // Memoized handlers
+  // ----------------------------------------------------------------
+
+  const handleSelect = useCallback(async (conv: Conversation) => {
     setSelected(conv)
     setMobileView('chat')
+
     try {
-      const res = await fetch(`/api/leads?conversation_id=${conv.id}`)
+      const res = await fetch(
+        `/api/leads?conversation_id=${conv.id}`
+      )
+
       if (res.ok) {
         const data = await res.json()
         setLead(data && data.id ? data : null)
@@ -63,22 +71,28 @@ export default function DashboardPage() {
     } catch {
       setLead(null)
     }
-  }
+  }, [])
 
-  const handleLeadUpdate = (
-    updates: Partial<Lead>
-  ) => {
-    setLead(prev =>
-      prev ? { ...prev, ...updates } : null
-    )
-  }
+  const handleLeadUpdate = useCallback(
+    (updates: Partial<Lead>) => {
+      setLead(prev =>
+        prev
+          ? { ...prev, ...updates }
+          : null
+      )
+    },
+    []
+  )
 
-  const handleDelete = (id: string) => {
-    if (selected?.id === id) {
-      setSelected(null)
-      setMobileView('list')
-    }
-  }
+  const handleDelete = useCallback(
+    (id: string) => {
+      if (selected?.id === id) {
+        setSelected(null)
+        setMobileView('list')
+      }
+    },
+    [selected?.id]
+  )
 
   // Loading screen
   if (loading) {
