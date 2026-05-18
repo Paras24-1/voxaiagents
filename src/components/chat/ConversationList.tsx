@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Conversation, Stage } from '@/types'
 import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
@@ -23,7 +23,7 @@ interface Props {
   onDelete?: (id: string) => void
 }
 
-export default function ConversationList({ selectedId, onSelect, onDelete }: Props) {
+function ConversationList({ selectedId, onSelect, onDelete }: Props) {
   const [search, setSearch]           = useState('')
   const [stage,  setStage]            = useState('')
   const [unread, setUnread]           = useState(false)
@@ -256,3 +256,6 @@ function LoadingSkeleton() {
     </>
   )
 }
+
+
+export default React.memo(ConversationList)

@@ -54,12 +54,8 @@ export default function DashboardPage() {
   const handleSelect = async (conv: Conversation) => {
     setSelected(conv)
     setMobileView('chat')
-
     try {
-      const res = await fetch(
-        `/api/leads?conversation_id=${conv.id}`
-      )
-
+      const res = await fetch(`/api/leads?conversation_id=${conv.id}`)
       if (res.ok) {
         const data = await res.json()
         setLead(data && data.id ? data : null)
