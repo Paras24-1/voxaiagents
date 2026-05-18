@@ -33,42 +33,30 @@ export function useConversations(filters: {
   const [loading, setLoading] = useState(true)
   const tokenRef = useRef<string | null>(null)
 
-  // Get token once on mount
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      tokenRef.current = session?.access_token || null
-    })
-  }, [])
-
   const fetchConversations = useCallback(async (showLoading = true) => {
-    // if (filters.userId && !filters.userRole) return
-
     if (showLoading) setLoading(true)
 
     const params = new URLSearchParams()
     if (filters.search) params.set('search', filters.search)
     if (filters.stage)  params.set('stage',  filters.stage)
     if (filters.unread) params.set('unread', 'true')
-      // if (filters.userRole === 'employee' && filters.userId) {
-      //   params.set('assigned_to', filters.userId)
-      // } else if ((filters.userRole === 'admin' || filters.userRole === 'owner') && filters.assignFilter && filters.assignFilter !== 'all') {
-      //   params.set('assign_filter', filters.assignFilter)
-      // }
 
-      const res = await fetch(`/api/conversations?${params}`, {
-        headers: tokenRef.current
-          ? { 'Authorization': `Bearer ${tokenRef.current}` }
-          : {}
-      })
-      console.log('[conversations] status:', res.status)
-      const data = await res.json()
-      console.log('[conversations] data:', data)
-      if (Array.isArray(data)) setConversations(data)
-      setLoading(false)
-  }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
+    const res = await fetch(`/api/conversations?${params}`, {
+      headers: tokenRef.current
+        ? { 'Authorization': `Bearer ${tokenRef.current}` }
+        : {}
+    })
+    const data = await res.json()
+    if (Array.isArray(data)) setConversations(data)
+    setLoading(false)
+  }, [filters.search, filters.stage, filters.unread])
 
+  // Get token first, then fetch
   useEffect(() => {
-    fetchConversations()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      tokenRef.current = session?.access_token || null
+      fetchConversations()
+    })
   }, [fetchConversations])
 
   useEffect(() => {
@@ -83,7 +71,6 @@ export function useConversations(filters: {
 
   return { conversations, loading, refetch: fetchConversations }
 }
-
 // ----------------------------------------------------------------
 // useMessages — fetches + subscribes to conversation messages
 // ----------------------------------------------------------------
