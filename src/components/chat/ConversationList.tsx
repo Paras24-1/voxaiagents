@@ -1,4 +1,5 @@
 'use client'
+import { useOrg } from '@/contexts/OrgContext'
 
 import React, { useState, useEffect } from 'react'
 import { Conversation, Stage } from '@/types'
@@ -30,7 +31,15 @@ function ConversationList({ selectedId, onSelect, onDelete }: Props) {
   const [confirmId, setConfirmId]     = useState<string | null>(null)
   const [deleting, setDeleting]       = useState(false)
 
-  const { conversations, loading, refetch } = useConversations({ search, stage, unread })
+  const { profile } = useOrg()
+
+const { conversations, loading, refetch } = useConversations({ 
+  search, 
+  stage, 
+  unread,
+  userRole: profile?.role,
+  userId: profile?.id,
+})
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
