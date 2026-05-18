@@ -41,7 +41,7 @@ export function useConversations(filters: {
   }, [])
 
   const fetchConversations = useCallback(async (showLoading = true) => {
-    if (filters.userId && !filters.userRole) return
+    // if (filters.userId && !filters.userRole) return
 
     if (showLoading) setLoading(true)
 
@@ -49,11 +49,11 @@ export function useConversations(filters: {
     if (filters.search) params.set('search', filters.search)
     if (filters.stage)  params.set('stage',  filters.stage)
     if (filters.unread) params.set('unread', 'true')
-      if (filters.userRole === 'employee' && filters.userId) {
-        params.set('assigned_to', filters.userId)
-      } else if ((filters.userRole === 'admin' || filters.userRole === 'owner') && filters.assignFilter && filters.assignFilter !== 'all') {
-        params.set('assign_filter', filters.assignFilter)
-      }
+      // if (filters.userRole === 'employee' && filters.userId) {
+      //   params.set('assigned_to', filters.userId)
+      // } else if ((filters.userRole === 'admin' || filters.userRole === 'owner') && filters.assignFilter && filters.assignFilter !== 'all') {
+      //   params.set('assign_filter', filters.assignFilter)
+      // }
 
     const res = await fetch(`/api/conversations?${params}`, {
       headers: tokenRef.current
