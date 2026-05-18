@@ -19,111 +19,66 @@ type ConversationFilters = {
 // ----------------------------------------------------------------
 // useConversations — fetches + subscribes to all conversations
 // ----------------------------------------------------------------
-export function useConversations(filters: ConversationFilters = {}) {
+export function useConversations(filters: {
+  search?: string
+  stage?: string
+  unread?: boolean
+  assignFilter?: 'all' | 'unassigned' | 'assigned'
+  userId?: string
+  isAdmin?: boolean
+  userRole?: string
+} = {}) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
+  const tokenRef = useRef<string | null>(null)
 
-  const fetchConversations = useCallback(async () => {
-    try {
-      setLoading(true)
+  // Get token once on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      tokenRef.current = session?.access_token || null
+    })
+  }, [])
 
-      const params = new URLSearchParams()
+  const fetchConversations = useCallback(async (showLoading = true) => {
+    if (!filters.userRole || !filters.userId) return
 
-      if (filters.search) {
-        params.set('search', filters.search)
-      }
+    if (showLoading) setLoading(true)
 
-      if (filters.stage) {
-        params.set('stage', filters.stage)
-      }
-
-      if (filters.unread) {
-        params.set('unread', 'true')
-      }
-
-      // Employee → only assigned conversations
-      if (filters.userRole === 'employee' && filters.userId) {
-        params.set('assigned_to', filters.userId)
-      }
-
-      // Admin → assignment filters
-      if (
-        filters.userRole === 'admin' &&
-        filters.assignFilter &&
-        filters.assignFilter !== 'all'
-      ) {
-        params.set('assign_filter', filters.assignFilter)
-      }
-
-      // Get Supabase session token
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      const res = await fetch(`/api/conversations?${params.toString()}`, {
-        headers: session?.access_token
-          ? {
-              Authorization: `Bearer ${session.access_token}`,
-            }
-          : {},
-      })
-
-      const data = await res.json()
-
-      if (Array.isArray(data)) {
-        setConversations(data)
-      } else {
-        console.error('Invalid conversations response:', data)
-        setConversations([])
-      }
-    } catch (error) {
-      console.error('Error fetching conversations:', error)
-      setConversations([])
-    } finally {
-      setLoading(false)
+    const params = new URLSearchParams()
+    if (filters.search) params.set('search', filters.search)
+    if (filters.stage)  params.set('stage',  filters.stage)
+    if (filters.unread) params.set('unread', 'true')
+    if (filters.userRole === 'employee' && filters.userId) {
+      params.set('assigned_to', filters.userId)
+    } else if (filters.userRole === 'admin' && filters.assignFilter && filters.assignFilter !== 'all') {
+      params.set('assign_filter', filters.assignFilter)
     }
-  }, [
-    filters.search,
-    filters.stage,
-    filters.unread,
-    filters.userRole,
-    filters.userId,
-    filters.assignFilter,
-  ])
+
+    const res = await fetch(`/api/conversations?${params}`, {
+      headers: tokenRef.current
+        ? { 'Authorization': `Bearer ${tokenRef.current}` }
+        : {}
+    })
+    const data = await res.json()
+    if (Array.isArray(data)) setConversations(data)
+    setLoading(false)
+  }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
 
   useEffect(() => {
     fetchConversations()
   }, [fetchConversations])
 
-  // ----------------------------------------------------------------
-  // Subscribe to real-time conversation updates
-  // ----------------------------------------------------------------
   useEffect(() => {
     const channel = supabase
       .channel('conversations-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => {
-          fetchConversations()
-        }
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' },
+        () => fetchConversations(false)
       )
       .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [fetchConversations])
 
-  return {
-    conversations,
-    loading,
-    refetch: fetchConversations,
-  }
+  return { conversations, loading, refetch: fetchConversations }
 }
 
 // ----------------------------------------------------------------
