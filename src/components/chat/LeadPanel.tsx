@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Conversation, Lead } from '@/types'
 import { RefreshCw } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   conversation: Conversation | null
@@ -14,17 +15,40 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
   useEffect(() => {
     if (!conversation) return
-    setLoading(true)
-    fetch(`/api/sheets?phone=${conversation.phone_number}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
+  
+    const fetchLeadData = async () => {
+      try {
+        setLoading(true)
+  
+        const {
+          data: { session }
+        } = await supabase.auth.getSession()
+  
+        const res = await fetch(
+          `/api/sheets?phone=${conversation.phone_number}`,
+          {
+            headers: session?.access_token
+              ? {
+                  Authorization: `Bearer ${session.access_token}`
+                }
+              : {}
+          }
+        )
+  
+        const data = res.ok ? await res.json() : null
+  
         if (data && !data.error) {
           setSheetData(data)
           onLeadUpdate(data)
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+  
+    fetchLeadData()
   }, [conversation?.phone_number])
 
   if (!conversation) {
