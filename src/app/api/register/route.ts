@@ -3,7 +3,18 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   try {
-    const { companyName, yourName, email, password, whatsappPhoneId, whatsappToken, n8nWebhookUrl, n8nReplyWebhookUrl } = await req.json()
+    const {
+      companyName,
+      yourName,
+      email,
+      password,
+      whatsappPhoneId,
+      whatsappToken,
+      n8nWebhookUrl,
+      n8nReplyWebhookUrl,
+      googleSheetId,
+      googleSheetName
+    } = await req.json()
 
     if (!companyName || !yourName || !email || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -53,14 +64,17 @@ export async function POST(req: NextRequest) {
 
     // 4. Save org settings
     const { error: settingsError } = await supabaseAdmin
-      .from('organization_settings')
-      .insert({
-        org_id: org.id,
-        whatsapp_phone_id: whatsappPhoneId || null,
-        whatsapp_token: whatsappToken || null,
-        n8n_webhook_url: n8nWebhookUrl || null,
-        n8n_reply_webhook_url: n8nReplyWebhookUrl || null,
-      })
+  .from('organization_settings')
+  .insert({
+    org_id: org.id,
+    whatsapp_phone_id: whatsappPhoneId || null,
+    whatsapp_token: whatsappToken || null,
+    n8n_webhook_url: n8nWebhookUrl || null,
+    n8n_reply_webhook_url: n8nReplyWebhookUrl || null,
+
+    google_sheet_id: googleSheetId || null,
+    google_sheet_name: googleSheetName || 'LEADS',
+  })
     if (settingsError) throw settingsError
 
     return NextResponse.json({ success: true, orgSlug: slug })

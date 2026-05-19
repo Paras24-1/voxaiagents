@@ -18,6 +18,8 @@ export default function RegisterPage() {
     whatsappToken: '',
     n8nWebhookUrl: '',
     n8nReplyWebhookUrl: '',
+    googleSheetId: '',
+    googleSheetName: '',
   })
   const router = useRouter()
 
@@ -168,6 +170,38 @@ export default function RegisterPage() {
                   placeholder="https://your-n8n.com/webhook/reply/..."
                 />
               </div>
+
+              <div>
+  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+    Google Sheet ID (Optional)
+  </label>
+
+  <input
+    type="text"
+    value={form.googleSheetId}
+    onChange={e => update('googleSheetId', e.target.value)}
+    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+    placeholder="1AbCdEfGh123456789"
+  />
+
+  <p className="text-[11px] text-gray-400 mt-1">
+    Paste only the Google Sheet ID, not full URL
+  </p>
+</div>
+
+<div>
+  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+    Google Sheet Tab Name (Optional)
+  </label>
+
+  <input
+    type="text"
+    value={form.googleSheetName}
+    onChange={e => update('googleSheetName', e.target.value)}
+    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+    placeholder="LEADS"
+  />
+</div>
             </>
           )}
 
