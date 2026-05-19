@@ -15,6 +15,7 @@ import {
   Moon,
   Sun,
   ArrowLeft,
+  LogOut ,       // ← add this
   Info,
   Send
 } from 'lucide-react'
@@ -189,6 +190,19 @@ export default function DashboardPage() {
               <Moon className="w-4 h-4" />
             )}
           </button>
+          {/* ADD THIS ↓ */}
+<button
+  onClick={async () => {
+    await signOut()
+    router.push('/login')
+  }}
+  className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors"
+  title="Sign out"
+>
+  <LogOut className="w-4 h-4" />
+</button>
+
+
         </div>
       </header>
 
