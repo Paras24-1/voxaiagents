@@ -54,33 +54,47 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
       </div>
 
       {/* Fields */}
-      <div className="p-4 space-y-4">
-        <Field label="Phone" value={data.Phone} />
-        <Field label="Name" value={data.Name || data.Customer_Name} />
-        <Field label="Intent" value={data.Intent} />
-        <Field label="Previous Qualification" value={data.Previous_Qualification} />
-        <Field label="Year of Passing" value={data.Year_Of_Passing} />
-        <Field label="Course Interest" value={data.Course_Interest} />
-        <Field label="Lead Quality" value={data.Lead_Quality} badge />
-        <Field label="Lead Ready FOR CALLBACK" value={data.Lead_Ready} badge />
+<div className="p-4 space-y-4">
+  {Object.entries(data)
+    .filter(([key, value]) =>
+      value &&
+      key.toLowerCase() !== 'summary'
+    )
+    .map(([key, value]) => (
+      <Field
+        key={key}
+        label={key.replace(/_/g, ' ')}
+        value={String(value)}
+        badge={
+          key.toLowerCase().includes('quality') ||
+          key.toLowerCase().includes('ready') ||
+          key.toLowerCase().includes('status')
+        }
+      />
+    ))}
 
-        {data.Summary && (
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-            <p className="text-xs font-semibold text-gray-900 dark:text-white mb-2">Chat Summary</p>
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                {data.Summary}
-              </p>
-            </div>
-          </div>
-        )}
+  {data.Summary && (
+    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+      <p className="text-xs font-semibold text-gray-900 dark:text-white mb-2">
+        Chat Summary
+      </p>
 
-        {!data.Phone && !loading && (
-          <div className="text-center py-8">
-            <p className="text-xs text-gray-400">No lead data found in Google Sheets</p>
-          </div>
-        )}
+      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+          {data.Summary}
+        </p>
       </div>
+    </div>
+  )}
+
+  {!Object.keys(data).length && !loading && (
+    <div className="text-center py-8">
+      <p className="text-xs text-gray-400">
+        No lead data found in Google Sheets
+      </p>
+    </div>
+  )}
+</div>
     </div>
   )
 }

@@ -1,76 +1,156 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { supabaseAdmin, getOrgId } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
+    // ─────────────────────────────────────
+    // Get org_id from authenticated user
+    // ─────────────────────────────────────
+    const orgId = await getOrgId(req)
+
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // ─────────────────────────────────────
+    // Get phone
+    // ─────────────────────────────────────
     const { searchParams } = new URL(req.url)
+
     const rawPhone = searchParams.get('phone') || ''
     const phone = rawPhone.replace(/\D/g, '').slice(-10)
 
     console.log('🔍 Looking for phone:', rawPhone, '→ normalized:', phone)
 
-    const apiKey    = process.env.GOOGLE_SHEETS_API_KEY
-    const sheetId   = process.env.GOOGLE_SHEET_ID
-    const sheetName = process.env.GOOGLE_SHEET_NAME || 'LEADS'
+    // ─────────────────────────────────────
+    // Get organization sheet settings
+    // ─────────────────────────────────────
+    const { data: settings, error: settingsError } = await supabaseAdmin
+      .from('organization_settings')
+      .select(`
+        google_sheet_id,
+        google_sheet_name,
+        google_sheets_api_key
+      `)
+      .eq('org_id', orgId)
+      .single()
 
-    if (!apiKey || !sheetId) {
-      console.error('❌ Missing config:', { hasKey: !!apiKey, hasId: !!sheetId })
-      return NextResponse.json({ error: 'Missing config' }, { status: 500 })
+    if (settingsError || !settings) {
+      console.error('❌ Organization settings not found')
+
+      return NextResponse.json(
+        { error: 'Organization settings not found' },
+        { status: 404 }
+      )
     }
 
-    const range = `${encodeURIComponent(sheetName)}!A:Z`
-    const url   = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
+    const apiKey =
+      settings.google_sheets_api_key ||
+      process.env.GOOGLE_SHEETS_API_KEY
 
-    const res  = await fetch(url)
+    const sheetId = settings.google_sheet_id
+
+    const sheetName =
+      settings.google_sheet_name || 'LEADS'
+
+    // ─────────────────────────────────────
+    // Validate config
+    // ─────────────────────────────────────
+    if (!apiKey || !sheetId) {
+      console.error('❌ Missing Google Sheets config')
+
+      return NextResponse.json(
+        { error: 'Missing Google Sheets configuration' },
+        { status: 500 }
+      )
+    }
+
+    // ─────────────────────────────────────
+    // Fetch sheet data
+    // ─────────────────────────────────────
+    const range = `${encodeURIComponent(sheetName)}!A:Z`
+
+    const url =
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
+
+    const res = await fetch(url)
+
     const data = await res.json()
 
+    // ─────────────────────────────────────
+    // Google API error
+    // ─────────────────────────────────────
     if (data.error) {
       console.error('❌ Google API error:', data.error)
-      return NextResponse.json({ error: data.error.message }, { status: 500 })
+
+      return NextResponse.json(
+        { error: data.error.message },
+        { status: 500 }
+      )
     }
 
+    // ─────────────────────────────────────
+    // Empty sheet
+    // ─────────────────────────────────────
     if (!data.values || data.values.length < 2) {
-      console.error('❌ No data in sheet')
-      return NextResponse.json({ error: 'No data in sheet' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'No data in sheet' },
+        { status: 404 }
+      )
     }
 
     const headers: string[] = data.values[0]
-    const rows: string[][]  = data.values.slice(1)
 
-    console.log('📋 Headers:', headers)
-    console.log('📊 Total rows:', rows.length)
+    const rows: string[][] = data.values.slice(1)
 
-    const phoneIndex = headers.findIndex((h) => h.toLowerCase().includes('phone'))
-    console.log('📞 Phone column index:', phoneIndex, '→', headers[phoneIndex])
+    // ─────────────────────────────────────
+    // Find phone column
+    // ─────────────────────────────────────
+    const phoneIndex = headers.findIndex((h) =>
+      h.toLowerCase().includes('phone')
+    )
 
     if (phoneIndex === -1) {
-      console.error('❌ No phone column found in headers')
-      return NextResponse.json({ error: 'No phone column in sheet' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'No phone column in sheet' },
+        { status: 500 }
+      )
     }
 
-    // Debug: log first 3 phone numbers
-    rows.slice(0, 3).forEach((row, i) => {
-      const rowPhone = (row[phoneIndex] || '').replace(/\D/g, '').slice(-10)
-      console.log(`Row ${i}: ${row[phoneIndex]} → normalized: ${rowPhone}`)
-    })
-
+    // ─────────────────────────────────────
+    // Match lead
+    // ─────────────────────────────────────
     const matchedRow = rows.find((row) => {
-      const rowPhone = (row[phoneIndex] || '').replace(/\D/g, '').slice(-10)
+      const rowPhone = (row[phoneIndex] || '')
+        .replace(/\D/g, '')
+        .slice(-10)
+
       return rowPhone === phone
     })
 
     if (!matchedRow) {
-      console.error('❌ No match found for:', phone)
-      return NextResponse.json({ 
-        error: 'No matching lead found',
-        debug: { searched: phone, totalRows: rows.length }
-      }, { status: 404 })
+      return NextResponse.json(
+        {
+          error: 'No matching lead found',
+          debug: {
+            searched: phone,
+            totalRows: rows.length
+          }
+        },
+        { status: 404 }
+      )
     }
 
-    console.log('✅ Match found!')
-
+    // ─────────────────────────────────────
+    // Convert row to object
+    // ─────────────────────────────────────
     const lead: Record<string, string> = {}
+
     headers.forEach((header, i) => {
       lead[header] = matchedRow[i] || ''
     })
@@ -79,6 +159,10 @@ export async function GET(req: NextRequest) {
 
   } catch (err) {
     console.error('💥 Exception:', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+
+    return NextResponse.json(
+      { error: String(err) },
+      { status: 500 }
+    )
   }
 }
