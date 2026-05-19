@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from '@/lib/supabase'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOrg } from '@/contexts/OrgContext'
@@ -59,12 +60,13 @@ export default function DashboardPage() {
   const handleSelect = useCallback(async (conv: Conversation) => {
     setSelected(conv)
     setMobileView('chat')
-
     try {
-      const res = await fetch(
-        `/api/leads?conversation_id=${conv.id}`
-      )
-
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/leads?conversation_id=${conv.id}`, {
+        headers: session?.access_token
+          ? { 'Authorization': `Bearer ${session.access_token}` }
+          : {}
+      })
       if (res.ok) {
         const data = await res.json()
         setLead(data && data.id ? data : null)

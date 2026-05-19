@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, getOrgId } from '@/lib/supabase'
 
-// GET /api/campaigns — list all campaigns
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const orgId = await getOrgId(req)
+    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { data, error } = await supabaseAdmin
       .from('campaigns')
       .select('*')
+      .eq('org_id', orgId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -16,29 +19,22 @@ export async function GET() {
   }
 }
 
-// POST /api/campaigns — create new campaign and start sending
 export async function POST(req: NextRequest) {
   try {
+    const orgId = await getOrgId(req)
+    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const body = await req.json()
-    const {
-      name,
-      template_name,
-      template_body,
-      contacts,
-      scheduled_at,
-    } = body
+    const { name, template_name, template_body, contacts, scheduled_at } = body
 
     if (!name || !template_name || !contacts?.length) {
-      return NextResponse.json(
-        { error: 'Missing required fields: name, template_name, contacts' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // 1. Create campaign
     const { data: campaign, error: campError } = await supabaseAdmin
       .from('campaigns')
       .insert({
+        org_id: orgId,
         name,
         template_name,
         template_body,
@@ -52,13 +48,9 @@ export async function POST(req: NextRequest) {
 
     if (campError) throw campError
 
-    // 2. Insert all contacts
-    const contactRows = contacts.map((c: {
-      phone: string
-      name?: string
-      variables?: Record<string, string>
-    }) => ({
+    const contactRows = contacts.map((c: any) => ({
       campaign_id: campaign.id,
+      org_id: orgId,
       phone: c.phone,
       name: c.name || '',
       variables: c.variables || {},
@@ -71,18 +63,20 @@ export async function POST(req: NextRequest) {
 
     if (contactError) throw contactError
 
-    // 3. If not scheduled, trigger n8n to start sending
+    // Get org's n8n bulk webhook
     if (!scheduled_at) {
-      const n8nUrl = process.env.N8N_BULK_WEBHOOK_URL
+      const { data: settings } = await supabaseAdmin
+        .from('organization_settings')
+        .select('n8n_webhook_url')
+        .eq('org_id', orgId)
+        .single()
+
+      const n8nUrl = settings?.n8n_webhook_url || process.env.N8N_BULK_WEBHOOK_URL
       if (n8nUrl) {
         await fetch(n8nUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            campaign_id: campaign.id,
-            template_name,
-            contacts,
-          }),
+          body: JSON.stringify({ campaign_id: campaign.id, template_name, contacts }),
         }).catch(console.error)
       }
     }

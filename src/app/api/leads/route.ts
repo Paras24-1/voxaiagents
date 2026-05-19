@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, getOrgId } from '@/lib/supabase'
 
-// GET /api/leads?conversation_id=xxx
 export async function GET(req: NextRequest) {
   try {
+    const orgId = await getOrgId(req)
+    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { searchParams } = new URL(req.url)
     const conversationId = searchParams.get('conversation_id')
-
-    if (!conversationId) {
-      return NextResponse.json({ error: 'conversation_id is required' }, { status: 400 })
-    }
+    if (!conversationId) return NextResponse.json({ error: 'conversation_id required' }, { status: 400 })
 
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .eq('conversation_id', conversationId)
+      .eq('org_id', orgId)
       .maybeSingle()
 
     if (error) throw error
@@ -25,29 +25,24 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// PATCH /api/leads
-// Body: Partial<Lead> & { conversation_id }
 export async function PATCH(req: NextRequest) {
   try {
-    const { conversation_id, ...updates } = await req.json()
+    const orgId = await getOrgId(req)
+    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    if (!conversation_id) {
-      return NextResponse.json(
-        { error: 'conversation_id is required' },
-        { status: 400 }
-      )
-    }
+    const { conversation_id, ...updates } = await req.json()
+    if (!conversation_id) return NextResponse.json({ error: 'conversation_id required' }, { status: 400 })
 
     const { data, error } = await supabaseAdmin
       .from('leads')
       .update(updates)
       .eq('conversation_id', conversation_id)
+      .eq('org_id', orgId)
       .select()
       .single()
 
     if (error) throw error
 
-    // Sync name and stage back to conversations table
     if (updates.name || updates.stage) {
       await supabaseAdmin
         .from('conversations')
@@ -56,6 +51,7 @@ export async function PATCH(req: NextRequest) {
           ...(updates.stage ? { stage: updates.stage } : {}),
         })
         .eq('id', conversation_id)
+        .eq('org_id', orgId)
     }
 
     return NextResponse.json(data)

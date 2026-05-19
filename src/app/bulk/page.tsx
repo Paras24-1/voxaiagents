@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Papa from 'papaparse'
 import Link from "next/link"
+
 import { ArrowLeft } from "lucide-react"
 import * as XLSX from 'xlsx'
 import {
@@ -88,8 +89,21 @@ export default function BulkMessagingPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
 
   const fetchCampaigns = useCallback(async () => {
-    const res = await fetch('/api/campaigns')
-    if (res.ok) setCampaigns(await res.json())
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
+  
+    const res = await fetch('/api/campaigns', {
+      headers: session?.access_token
+        ? {
+            Authorization: `Bearer ${session.access_token}`
+          }
+        : {}
+    })
+  
+    if (res.ok) {
+      setCampaigns(await res.json())
+    }
   }, [])
 
   useEffect(() => {
@@ -276,30 +290,55 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
 
   const handleSend = async () => {
     if (!campaignName || !templateName || !filteredContacts.length) return
+  
     setSending(true)
+  
     try {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+  
       const res = await fetch('/api/campaigns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token
+            ? {
+                Authorization: `Bearer ${session.access_token}`
+              }
+            : {})
+        },
         body: JSON.stringify({
-          name:          campaignName,
+          name: campaignName,
           template_name: templateName,
           template_body: templateBody,
-          scheduled_at:  scheduledAt || null,
+          scheduled_at: scheduledAt || null,
           variable_mapping: variableMapping,
           contacts: filteredContacts.map((c) => {
-            // Build resolved variables for this contact
             const resolvedVars: Record<string, string> = {}
+  
             Object.entries(variableMapping).forEach(([variable, column]) => {
-              resolvedVars[variable] = column ? (c[column] || '') : ''
+              resolvedVars[variable] = column ? c[column] || '' : ''
             })
-            return { phone: c.phone, name: c.name, variables: resolvedVars, raw: c }
-          }),
-        }),
+  
+            return {
+              phone: c.phone,
+              name: c.name,
+              variables: resolvedVars,
+              raw: c
+            }
+          })
+        })
       })
-      if (res.ok) { onCreated() }
-      else { alert('Failed to create campaign') }
-    } finally { setSending(false) }
+  
+      if (res.ok) {
+        onCreated()
+      } else {
+        alert('Failed to create campaign')
+      }
+    } finally {
+      setSending(false)
+    }
   }
 
   const templateVariables = selectedTemplate ? extractVariables(selectedTemplate.body) : []

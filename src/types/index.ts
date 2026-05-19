@@ -1,20 +1,18 @@
-// =====================
-// Conversation
-// =====================
 export interface Conversation {
   id: string
+  org_id?: string
   phone_number: string
   name?: string
   last_message?: string
   unread_count: number
   ai_mode: boolean
   stage: string
+  assigned_to?: string | null
+  assignment_status?: string
   created_at: string
   updated_at: string
 }
-// =====================
-// Stage (lead/conversation stage)
-// =====================
+
 export type Stage =
   | 'new'
   | 'interested'
@@ -22,12 +20,11 @@ export type Stage =
   | 'confirmed'
   | 'cancelled'
   | 'completed'
-// =====================
-// Message
-// =====================
+
 export interface Message {
   id: string
   conversation_id: string
+  org_id?: string
   phone_number: string
   message?: string
   direction: 'incoming' | 'outgoing'
@@ -37,12 +34,10 @@ export interface Message {
   created_at: string
 }
 
-// =====================
-// Lead
-// =====================
 export interface Lead {
   id?: string
   conversation_id?: string
+  org_id?: string
   phone_number: string
   customer_name?: string
   name?: string
@@ -63,9 +58,6 @@ export interface Lead {
   created_at?: string
 }
 
-// =====================
-// Reply Payload (API)
-// =====================
 export interface ReplyPayload {
   message: string
   conversation_id: string
