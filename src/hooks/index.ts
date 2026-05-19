@@ -1,21 +1,8 @@
 'use client'
 
-
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Conversation, Message } from '@/types'
-
-// ----------------------------------------------------------------
-// Types
-// ----------------------------------------------------------------
-type ConversationFilters = {
-  search?: string
-  stage?: string
-  unread?: boolean
-  userRole?: 'admin' | 'employee'
-  userId?: string
-  assignFilter?: 'all' | 'assigned' | 'unassigned'
-}
 
 // ----------------------------------------------------------------
 // useConversations — fetches + subscribes to all conversations
@@ -31,9 +18,14 @@ export function useConversations(filters: {
 } = {}) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
+  const [orgId, setOrgId] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
 
   const fetchConversations = useCallback(async (showLoading = true) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token || null
+    tokenRef.current = token
+    if (!token) { setLoading(false); return }
     if (showLoading) setLoading(true)
 
     const params = new URLSearchParams()
@@ -42,35 +34,41 @@ export function useConversations(filters: {
     if (filters.unread) params.set('unread', 'true')
 
     const res = await fetch(`/api/conversations?${params}`, {
-      headers: tokenRef.current
-        ? { 'Authorization': `Bearer ${tokenRef.current}` }
-        : {}
+      headers: { 'Authorization': `Bearer ${token}` }
     })
     const data = await res.json()
-    if (Array.isArray(data)) setConversations(data)
+    if (Array.isArray(data)) {
+      setConversations(data)
+      if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
+    }
     setLoading(false)
   }, [filters.search, filters.stage, filters.unread])
 
-  // Get token first, then fetch
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      tokenRef.current = session?.access_token || null
-      fetchConversations()
-    })
+    fetchConversations()
   }, [fetchConversations])
 
+  // Realtime subscription filtered to this org only
   useEffect(() => {
+    if (!orgId) return
+
     const channel = supabase
-      .channel('conversations-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' },
+      .channel(`conversations-changes-${orgId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'conversations',
+        filter: `org_id=eq.${orgId}`
+      },
         () => fetchConversations(false)
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [fetchConversations])
+  }, [orgId, fetchConversations])
 
   return { conversations, loading, refetch: fetchConversations }
 }
+
 // ----------------------------------------------------------------
 // useMessages — fetches + subscribes to conversation messages
 // ----------------------------------------------------------------
@@ -94,18 +92,13 @@ export function useMessages(conversationId: string | null) {
         `/api/messages?conversation_id=${conversationId}`,
         {
           headers: session?.access_token
-            ? {
-                Authorization: `Bearer ${session.access_token}`,
-              }
+            ? { Authorization: `Bearer ${session.access_token}` }
             : {},
         }
       )
 
       const data = await res.json()
-
-      if (Array.isArray(data)) {
-        setMessages(data)
-      }
+      if (Array.isArray(data)) setMessages(data)
     } catch (error) {
       console.error('Error fetching messages:', error)
     } finally {
@@ -118,13 +111,10 @@ export function useMessages(conversationId: string | null) {
       setMessages([])
       return
     }
-
     fetchMessages()
   }, [conversationId, fetchMessages])
 
-  // ----------------------------------------------------------------
   // Real-time message subscription
-  // ----------------------------------------------------------------
   useEffect(() => {
     if (!conversationId) return
 
@@ -139,40 +129,23 @@ export function useMessages(conversationId: string | null) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          setMessages((prev) => [
-            ...prev,
-            payload.new as Message,
-          ])
-
+          setMessages((prev) => [...prev, payload.new as Message])
           setTimeout(() => {
-            bottomRef.current?.scrollIntoView({
-              behavior: 'smooth',
-            })
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
           }, 50)
         }
       )
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [conversationId])
 
-  // ----------------------------------------------------------------
   // Auto-scroll when messages update
-  // ----------------------------------------------------------------
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({
-      behavior: 'smooth',
-    })
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  return {
-    messages,
-    loading,
-    bottomRef,
-    refetch: fetchMessages,
-  }
+  return { messages, loading, bottomRef, refetch: fetchMessages }
 }
 
 // ----------------------------------------------------------------
@@ -182,28 +155,17 @@ export function useSendMessage() {
   const [sending, setSending] = useState(false)
 
   const sendMessage = useCallback(
-    async (
-      conversationId: string,
-      phoneNumber: string,
-      message: string
-    ) => {
+    async (conversationId: string, phoneNumber: string, message: string) => {
       if (!message.trim()) return false
-
       setSending(true)
-
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
+        const { data: { session } } = await supabase.auth.getSession()
         const res = await fetch('/api/reply', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(session?.access_token
-              ? {
-                  Authorization: `Bearer ${session.access_token}`,
-                }
+              ? { Authorization: `Bearer ${session.access_token}` }
               : {}),
           },
           body: JSON.stringify({
@@ -212,7 +174,6 @@ export function useSendMessage() {
             message: message.trim(),
           }),
         })
-
         return res.ok
       } catch (error) {
         console.error('Error sending message:', error)
@@ -224,10 +185,7 @@ export function useSendMessage() {
     []
   )
 
-  return {
-    sendMessage,
-    sending,
-  }
+  return { sendMessage, sending }
 }
 
 // ----------------------------------------------------------------
@@ -237,18 +195,13 @@ export function useToggleAI() {
   const toggleAI = useCallback(
     async (conversationId: string, aiMode: boolean) => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
+        const { data: { session } } = await supabase.auth.getSession()
         await fetch('/api/takeover', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             ...(session?.access_token
-              ? {
-                  Authorization: `Bearer ${session.access_token}`,
-                }
+              ? { Authorization: `Bearer ${session.access_token}` }
               : {}),
           },
           body: JSON.stringify({
@@ -263,7 +216,5 @@ export function useToggleAI() {
     []
   )
 
-  return {
-    toggleAI,
-  }
+  return { toggleAI }
 }
