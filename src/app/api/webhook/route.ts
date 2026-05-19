@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
           org_id: orgId,
           updated_at: new Date().toISOString()
         },
-        { onConflict: 'phone_number' }
+        { onConflict: 'phone_number,org_id' }
+
       )
       .select()
       .single()
