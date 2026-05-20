@@ -5,6 +5,17 @@ import { Conversation, Lead } from '@/types'
 import { RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
+const HIDDEN_FIELDS = [
+  'created_at',
+  'updated_at',
+  'last_incoming_timestamp',
+  'last_outgoing_timestamp',
+  'nudge1_sent',
+  'nudge2_sent',
+  'final_followup_sent',
+]
+
+
 export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   conversation: Conversation | null
   lead: Lead | null
@@ -82,7 +93,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   {Object.entries(data)
     .filter(([key, value]) =>
       value &&
-      key.toLowerCase() !== 'summary'
+      key.toLowerCase() !== 'summary' &&
+      !HIDDEN_FIELDS.includes(key.toLowerCase())
     )
     .map(([key, value]) => (
       <Field
