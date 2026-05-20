@@ -110,19 +110,17 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
       />
     ))}
 
-  {data.Summary && (
-    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-      <p className="text-xs font-semibold text-gray-900 dark:text-white mb-2">
-        Chat Summary
-      </p>
+<div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+  <p className="text-xs font-semibold text-gray-900 dark:text-white mb-2">
+    Chat Summary
+  </p>
 
-      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-          {data.Summary}
-        </p>
-      </div>
-    </div>
-  )}
+  <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg min-h-[80px]">
+    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+      {data.Summary || 'No summary available yet'}
+    </p>
+  </div>
+</div>
 
   {!Object.keys(data).length && !loading && (
     <div className="text-center py-8">
