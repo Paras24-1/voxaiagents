@@ -78,7 +78,9 @@ export async function GET(req: NextRequest) {
     const url =
       `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
 
-    const res = await fetch(url)
+      const res = await fetch(url, {
+        cache: 'no-store'
+      })
 
     const data = await res.json()
 
