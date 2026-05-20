@@ -6,7 +6,7 @@ import { RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 const HIDDEN_FIELDS = [
-  'created_at',
+  'Last_Message',
   'updated_at',
   'last_incoming_timestamp',
   'last_outgoing_timestamp',
