@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useOrg } from '@/contexts/OrgContext'
 
 import ConversationList from '@/components/chat/ConversationList'
+import AdminPanel from '@/components/admin/AdminPanel'
 import ChatWindow from '@/components/chat/ChatWindow'
 import LeadPanel from '@/components/chat/LeadPanel'
 
@@ -16,9 +17,11 @@ import {
   Moon,
   Sun,
   ArrowLeft,
-  LogOut ,       // ← add this
+  LogOut,
   Info,
-  Send
+  Send,
+  Users,
+  BarChart2
 } from 'lucide-react'
 
 import Link from 'next/link'
@@ -41,6 +44,7 @@ export default function DashboardPage() {
   const [dark, setDark] = useState(false)
   const [mobileView, setMobileView] =
     useState<MobileView>('list')
+    const [showAdmin, setShowAdmin] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
@@ -53,9 +57,15 @@ export default function DashboardPage() {
     }
   }, [user, loading, router])
 
+
+
+  const isAdmin =
+  profile?.role === 'admin' ||
+  profile?.role === 'owner'
   // ----------------------------------------------------------------
   // Memoized handlers
   // ----------------------------------------------------------------
+
 
   const handleSelect = useCallback(async (conv: Conversation) => {
     setSelected(conv)
@@ -149,63 +159,72 @@ export default function DashboardPage() {
 
         <div className="flex items-center gap-2">
 
-          {/* Lead info button on mobile */}
-          {mobileView === 'chat' && selected && (
-            <button
-              onClick={() =>
-                setMobileView('lead')
-              }
-              className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 md:hidden"
-              title="View lead info"
-            >
-              <Info className="w-4 h-4" />
-            </button>
-          )}
+  {/* Lead info button on mobile */}
+  {mobileView === 'chat' && selected && (
+    <button
+      onClick={() => setMobileView('lead')}
+      className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 md:hidden"
+      title="View lead info"
+    >
+      <Info className="w-4 h-4" />
+    </button>
+  )}
 
-          <a
-            href="https://voxai-dashboard-theta.vercel.app/privacy-policy.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden md:inline-block px-3 py-1.5 text-emerald-100 hover:text-white text-xs transition-colors"
-          >
-            Privacy Policy
-          </a>
+  {/* Analytics */}
+  {isAdmin && (
+    <Link
+      href="/analytics"
+      className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg transition-colors"
+    >
+      <BarChart2 className="w-3.5 h-3.5" />
+      <span>Analytics</span>
+    </Link>
+  )}
 
-          <Link
-            href="/bulk"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg transition-colors"
-          >
-            <Send className="w-3.5 h-3.5" />
+  {/* Team */}
+  {isAdmin && (
+    <button
+      onClick={() => setShowAdmin(true)}
+      className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg transition-colors"
+    >
+      <Users className="w-3.5 h-3.5" />
+      <span>Team</span>
+    </button>
+  )}
 
-            <span className="hidden md:block">
-              Bulk Message
-            </span>
-          </Link>
+  <Link
+    href="/bulk"
+    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg transition-colors"
+  >
+    <Send className="w-3.5 h-3.5" />
 
-          <button
-            onClick={() => setDark(d => !d)}
-            className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors"
-          >
-            {dark ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </button>
-          {/* ADD THIS ↓ */}
-<button
-  onClick={async () => {
-    await signOut()
-    router.push('/login')
-  }}
-  className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors"
-  title="Sign out"
->
-  <LogOut className="w-4 h-4" />
-</button>
+    <span className="hidden md:block">
+      Bulk Message
+    </span>
+  </Link>
 
+  <button
+    onClick={() => setDark(d => !d)}
+    className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors"
+  >
+    {dark ? (
+      <Sun className="w-4 h-4" />
+    ) : (
+      <Moon className="w-4 h-4" />
+    )}
+  </button>
 
-        </div>
+  <button
+    onClick={async () => {
+      await signOut()
+      router.push('/login')
+    }}
+    className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors"
+    title="Sign out"
+  >
+    <LogOut className="w-4 h-4" />
+  </button>
+</div>
       </header>
 
       {/* Main layout */}
@@ -313,6 +332,11 @@ export default function DashboardPage() {
           </button>
         </div>
       )}
+      {showAdmin && (
+  <AdminPanel
+    onClose={() => setShowAdmin(false)}
+  />
+)}
     </div>
   )
 }
