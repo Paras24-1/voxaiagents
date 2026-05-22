@@ -7,8 +7,11 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'WhatsApp CRM',
-  description: 'Multi-tenant WhatsApp CRM Dashboard',
+  title: 'VOX AI — Intelligent WhatsApp AI Agents',
+  description: 'VOX AI builds intelligent WhatsApp AI agents that qualify leads, automate bookings, drive sales, and support customers 24/7.',
+  icons: {
+    icon: '/favicon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
