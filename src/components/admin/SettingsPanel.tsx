@@ -24,6 +24,11 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // Developer protection states
+  const [isEditable, setIsEditable] = useState(false)
+  const [devPassword, setDevPassword] = useState('')
+  const [showUnlockForm, setShowUnlockForm] = useState(false)
+
   const [formData, setFormData] = useState<SettingsData>({
     whatsapp_token: '',
     whatsapp_phone_id: '',
@@ -69,7 +74,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isAdmin) return
+    if (!isAdmin || !isEditable) return
     setSaving(true)
     setError('')
     setSuccess('')
@@ -91,6 +96,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       }
 
       setSuccess('Settings updated successfully!')
+      setIsEditable(false) // Lock it back after saving
       setTimeout(() => setSuccess(''), 3000)
     } catch (err: any) {
       setError(err.message || 'Failed to save settings')
@@ -180,20 +186,22 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                     <label className="block text-xs font-medium text-gray-500 mb-1">WhatsApp Phone Number ID</label>
                     <input
                       type="text"
+                      disabled={!isEditable}
                       value={formData.whatsapp_phone_id}
                       onChange={e => setFormData({ ...formData, whatsapp_phone_id: e.target.value })}
                       placeholder="e.g. 1065987421356"
-                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Permanent Meta Access Token</label>
                     <input
                       type="password"
+                      disabled={!isEditable}
                       value={formData.whatsapp_token}
                       onChange={e => setFormData({ ...formData, whatsapp_token: e.target.value })}
                       placeholder="EAAGy..."
-                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                     />
                   </div>
                 </div>
@@ -210,20 +218,22 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                     <label className="block text-xs font-medium text-gray-500 mb-1">Google Sheet Spreadsheet ID</label>
                     <input
                       type="text"
+                      disabled={!isEditable}
                       value={formData.google_sheet_id}
                       onChange={e => setFormData({ ...formData, google_sheet_id: e.target.value })}
                       placeholder="e.g. 1aBcDeFgHiJkLmNoP..."
-                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Sheet Tab Name</label>
                     <input
                       type="text"
+                      disabled={!isEditable}
                       value={formData.google_sheet_name}
                       onChange={e => setFormData({ ...formData, google_sheet_name: e.target.value })}
                       placeholder="e.g. LEADS"
-                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                     />
                   </div>
                 </div>
@@ -231,10 +241,11 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   <label className="block text-xs font-medium text-gray-500 mb-1">Google Sheets API Key</label>
                   <input
                     type="password"
+                    disabled={!isEditable}
                     value={formData.google_sheets_api_key}
                     onChange={e => setFormData({ ...formData, google_sheets_api_key: e.target.value })}
                     placeholder="AIzaSy..."
-                    className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -250,46 +261,94 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                     <label className="block text-xs font-medium text-gray-500 mb-1">n8n Inbound Webhook URL</label>
                     <input
                       type="url"
+                      disabled={!isEditable}
                       value={formData.n8n_webhook_url}
                       onChange={e => setFormData({ ...formData, n8n_webhook_url: e.target.value })}
                       placeholder="https://n8n.yourdomain.com/..."
-                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">n8n Reply Webhook URL</label>
                     <input
                       type="url"
+                      disabled={!isEditable}
                       value={formData.n8n_reply_webhook_url}
                       onChange={e => setFormData({ ...formData, n8n_reply_webhook_url: e.target.value })}
                       placeholder="https://n8n.yourdomain.com/..."
-                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 justify-end pt-2 border-t border-gray-150 dark:border-gray-800">
+              <div className="flex gap-3 justify-end items-center pt-3 border-t border-gray-150 dark:border-gray-800 flex-wrap">
                 <button
                   type="button"
                   onClick={onClose}
                   className="px-4 py-2.5 bg-gray-150 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
-                  Cancel
+                  Close
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                >
-                  {saving ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Save className="w-3.5 h-3.5" />
-                  )}
-                  Save Changes
-                </button>
+
+                {isEditable ? (
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Save className="w-3.5 h-3.5" />
+                    )}
+                    Save Changes
+                  </button>
+                ) : showUnlockForm ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="password"
+                      placeholder="Developer Password"
+                      value={devPassword}
+                      onChange={e => setDevPassword(e.target.value)}
+                      className="px-3 py-2 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 w-36"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (devPassword === 'Paras@342') {
+                          setIsEditable(true)
+                          setShowUnlockForm(false)
+                          setDevPassword('')
+                          setError('')
+                        } else {
+                          setError('Incorrect developer password')
+                        }
+                      }}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold"
+                    >
+                      Unlock
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowUnlockForm(false); setDevPassword(''); setError(''); }}
+                      className="px-3.5 py-2 bg-gray-150 dark:bg-gray-800 text-gray-750 dark:text-gray-300 rounded-xl text-xs font-semibold hover:bg-gray-200 dark:hover:bg-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowUnlockForm(true)}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                    Edit Settings
+                  </button>
+                )}
               </div>
             </form>
           )}
