@@ -10,6 +10,7 @@ import ConversationList from '@/components/chat/ConversationList'
 import AdminPanel from '@/components/admin/AdminPanel'
 import ChatWindow from '@/components/chat/ChatWindow'
 import LeadPanel from '@/components/chat/LeadPanel'
+import SettingsPanel from '@/components/admin/SettingsPanel'
 
 import { Conversation, Lead } from '@/types'
 
@@ -22,7 +23,8 @@ import {
   Info,
   Send,
   Users,
-  BarChart2
+  BarChart2,
+  Settings
 } from 'lucide-react'
 
 import Link from 'next/link'
@@ -48,7 +50,8 @@ export default function DashboardPage() {
 
   const [mobileView, setMobileView] =
     useState<MobileView>('list')
-    const [showAdmin, setShowAdmin] = useState(false)
+  const [showAdmin, setShowAdmin] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   // Auth protection
   useEffect(() => {
@@ -215,6 +218,14 @@ export default function DashboardPage() {
   </button>
 
   <button
+    onClick={() => setShowSettings(true)}
+    className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors"
+    title="Settings"
+  >
+    <Settings className="w-4 h-4" />
+  </button>
+
+  <button
     onClick={async () => {
       await signOut()
       router.push('/login')
@@ -333,10 +344,15 @@ export default function DashboardPage() {
         </div>
       )}
       {showAdmin && (
-  <AdminPanel
-    onClose={() => setShowAdmin(false)}
-  />
-)}
+        <AdminPanel
+          onClose={() => setShowAdmin(false)}
+        />
+      )}
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </div>
   )
 }
