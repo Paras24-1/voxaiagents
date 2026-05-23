@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOrg } from '@/contexts/OrgContext'
+import { useTheme } from 'next-themes'
 
 import ConversationList from '@/components/chat/ConversationList'
 import AdminPanel from '@/components/admin/AdminPanel'
@@ -39,17 +40,15 @@ export default function DashboardPage() {
 
   const router = useRouter()
 
+  const { theme, setTheme } = useTheme()
+  const dark = theme === 'dark'
+
   const [selected, setSelected] = useState<Conversation | null>(null)
   const [lead, setLead] = useState<Lead | null>(null)
-  const [dark, setDark] = useState(true)
 
   const [mobileView, setMobileView] =
     useState<MobileView>('list')
     const [showAdmin, setShowAdmin] = useState(false)
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark)
-  }, [dark])
 
   // Auth protection
   useEffect(() => {
@@ -205,7 +204,7 @@ export default function DashboardPage() {
   </Link>
 
   <button
-    onClick={() => setDark(d => !d)}
+    onClick={() => setTheme(dark ? 'light' : 'dark')}
     className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors"
   >
     {dark ? (
