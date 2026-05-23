@@ -99,8 +99,22 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('[OrgContext] SignOut error:', err)
+    }
+    // Clear cookies
+    try {
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+    } catch {}
+    window.location.href = '/login'
   }
+
 
   return (
     <OrgContext.Provider value={{

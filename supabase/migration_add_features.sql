@@ -6,13 +6,20 @@
 -- 
 -- This script safely applies ONLY the missing parts:
 -- 1. Adds the missing 'notes' column to the 'conversations' table.
--- 2. Ensures 'conversation_id' in 'conversation_assignments' has a UNIQUE constraint
+-- 2. Adds the missing 'is_active' column to the 'users' table.
+-- 3. Ensures 'conversation_id' in 'conversation_assignments' has a UNIQUE constraint
 --    (required for the round-robin upsert on conflict).
 -- ============================================================
+
 
 -- 1. Add 'notes' column to 'conversations' table if it doesn't exist
 ALTER TABLE conversations 
 ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- 2. Add 'is_active' column to 'users' table if it doesn't exist
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
 
 -- 2. Ensure 'conversation_id' in 'conversation_assignments' is UNIQUE
 -- We do this safely by first checking if the constraint already exists
