@@ -7,6 +7,7 @@ export interface Conversation {
   unread_count: number
   ai_mode: boolean
   stage: string
+  notes?: string
   assigned_to?: string | null
   assignment_status?: string
   created_at: string
@@ -20,6 +21,11 @@ export type Stage =
   | 'confirmed'
   | 'cancelled'
   | 'completed'
+  | 'followup'
+  | 'not_interested'
+  | 'call_done'
+  | 'low_budget'
+  | 'hot_customer'
 
 export interface Message {
   id: string
@@ -29,8 +35,8 @@ export interface Message {
   message?: string
   direction: 'incoming' | 'outgoing'
   timestamp: string
-  media_url?: string
-  media_type?: string
+  media_url?: string | null
+  media_type?: string | null
   created_at: string
 }
 
@@ -56,10 +62,17 @@ export interface Lead {
   last_message?: string
   updated?: string
   created_at?: string
+  city?: string
+  machine_interest?: string
+  callback_ready?: string
+  conversation_summary?: string
+  lead_score?: string
 }
 
 export interface ReplyPayload {
   message: string
   conversation_id: string
   phone_number?: string
+  media_url?: string | null
+  media_type?: string | null
 }

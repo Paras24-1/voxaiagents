@@ -36,7 +36,11 @@ export async function POST(req: NextRequest) {
     // 2. Update conversation
     await supabaseAdmin
       .from('conversations')
-      .update({ last_message: message || '📸 Image', updated_at: timestamp })
+      .update({ 
+        last_message: message || (media_type?.startsWith('image/') ? '📸 Image' : '📎 Attachment'), 
+        updated_at: timestamp,
+        ai_mode: false
+      })
       .eq('id', conversation_id)
       .eq('org_id', orgId)
 

@@ -1,6 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+async function getNextEmployee(orgId: string): Promise<string | null> {
+  const { data: employees } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('org_id', orgId)
+    .eq('role', 'employee')
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+
+  if (!employees || employees.length === 0) return null
+
+  // Get the last assigned conversation to find who was assigned last
+  const { data: lastAssigned } = await supabaseAdmin
+    .from('conversations')
+    .select('assigned_to')
+    .eq('org_id', orgId)
+    .not('assigned_to', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const lastEmployeeId = lastAssigned?.assigned_to
+  const lastIndex = employees.findIndex(e => e.id === lastEmployeeId)
+  const nextIndex = (lastIndex + 1) % employees.length
+
+  return employees[nextIndex].id
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -32,7 +60,22 @@ export async function POST(req: NextRequest) {
     const timestamp   = new Date()
     const msgText     = message || (media_type ? `[${media_type}]` : '')
 
-    // 1. Upsert conversation with org_id
+    // 1. Check if conversation already exists
+    const { data: existing } = await supabaseAdmin
+      .from('conversations')
+      .select('id, assigned_to')
+      .eq('phone_number', phone_number)
+      .eq('org_id', orgId)
+      .maybeSingle()
+
+    // 2. Get next employee only for NEW conversations
+    let assignedTo = existing?.assigned_to || null
+
+    if (direction === 'incoming' && !assignedTo) {
+      assignedTo = await getNextEmployee(orgId)
+    }
+
+    // 3. Upsert conversation with org_id
     const { data: conversation, error: convError } = await supabaseAdmin
       .from('conversations')
       .upsert(
@@ -41,17 +84,21 @@ export async function POST(req: NextRequest) {
           name: contactName,
           last_message: msgText,
           org_id: orgId,
-          updated_at: new Date().toISOString()
+          ...(direction === 'incoming'
+            ? { updated_at: new Date().toISOString() }
+            : {}),
+          ...(assignedTo
+            ? { assigned_to: assignedTo, assignment_status: 'assigned' }
+            : {})
         },
         { onConflict: 'phone_number,org_id' }
-
       )
       .select()
       .single()
 
     if (convError) throw convError
 
-    // 2. Insert message with org_id
+    // 4. Insert message with org_id
     const { data: msg, error: msgError } = await supabaseAdmin
       .from('messages')
       .insert({
@@ -69,7 +116,7 @@ export async function POST(req: NextRequest) {
 
     if (msgError) throw msgError
 
-    // 3. Upsert lead with org_id
+    // 5. Upsert lead with org_id
     await supabaseAdmin
       .from('leads')
       .upsert(
@@ -77,7 +124,51 @@ export async function POST(req: NextRequest) {
         { onConflict: 'conversation_id' }
       )
 
-    return NextResponse.json({ success: true, conversation_id: conversation.id, message_id: msg.id })
+    // 6. Log assignment if new conversation was assigned
+    if (!existing && assignedTo) {
+      await supabaseAdmin
+        .from('conversation_assignments')
+        .insert({
+          conversation_id: conversation.id,
+          org_id: orgId,
+          assigned_to: assignedTo,
+          assigned_by: null,
+          status: 'active'
+        })
+
+      await supabaseAdmin
+        .from('assignment_logs')
+        .insert({
+          conversation_id: conversation.id,
+          org_id: orgId,
+          user_id: assignedTo,
+          action: 'auto_assigned',
+          details: 'Round-robin auto assignment'
+        })
+    }
+
+    // Fetch employee details if assigned
+    let assignedEmployeeName = null
+    let assignedEmployeePhone = null
+    if (assignedTo) {
+      const { data: empData } = await supabaseAdmin
+        .from('users')
+        .select('name, phone')
+        .eq('id', assignedTo)
+        .eq('org_id', orgId)
+        .maybeSingle()
+      assignedEmployeeName = empData?.name || null
+      assignedEmployeePhone = empData?.phone || null
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      conversation_id: conversation.id, 
+      message_id: msg.id,
+      assigned_to: assignedTo,
+      assigned_employee_name: assignedEmployeeName,
+      assigned_employee_phone: assignedEmployeePhone
+    })
 
   } catch (err) {
     console.error('[webhook]', err)

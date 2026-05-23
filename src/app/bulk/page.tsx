@@ -3,13 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Papa from 'papaparse'
 import Link from "next/link"
-
-import { ArrowLeft } from "lucide-react"
 import * as XLSX from 'xlsx'
 import {
   Upload, Send, Filter, Clock, BarChart2,
   CheckCircle, XCircle, AlertCircle, RefreshCw,
-  Download, Pause, MessageSquare, TrendingUp, X, Plus, Eye
+  Download, Pause, MessageSquare, TrendingUp, X, Plus, Eye,
+  ArrowLeft, Trash2
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -70,15 +69,17 @@ const STATUS_ICONS = {
 
 // ── Helpers ────────────────────────────────────────────────────
 function extractVariables(body: string): string[] {
-  const matches = body.match(/{{\d+}}/g) || []
-  return Array.from(new Set(matches)).sort()
+  const matches = body.match(/{{\s*[\w]+\s*}}/g) || []
+  return Array.from(new Set(matches.map((m) => m.replace(/\s/g, '')))).sort()
 }
 
 function buildPreview(body: string, mapping: Record<string, string>, sampleContact: Contact): string {
   let preview = body
   Object.entries(mapping).forEach(([variable, column]) => {
     const value = column ? (sampleContact[column] || column) : `[${variable}]`
-    preview = preview.replace(new RegExp(variable.replace(/[{}]/g, '\\$&'), 'g'), value)
+    const escaped = variable.replace(/[{}]/g, '\\$&')
+    const pattern = escaped.replace(/\\\{(\\\{)/, '\\{\\{\\s*').replace(/(\\\})\\\}/, '\\s*\\}\\}')
+    preview = preview.replace(new RegExp(pattern, 'g'), value)
   })
   return preview
 }
@@ -89,16 +90,9 @@ export default function BulkMessagingPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
 
   const fetchCampaigns = useCallback(async () => {
-    const {
-      data: { session }
-    } = await supabase.auth.getSession()
-  
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/campaigns', {
-      headers: session?.access_token
-        ? {
-            Authorization: `Bearer ${session.access_token}`
-          }
-        : {}
+      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
     })
   
     if (res.ok) {
@@ -127,7 +121,7 @@ export default function BulkMessagingPage() {
       <div className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 py-4 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+            <Link href="/dashboard" className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Chats</span>
             </Link>
@@ -146,7 +140,6 @@ export default function BulkMessagingPage() {
           </div>
         </div>
       </div>
-
   
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -190,9 +183,12 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
   const [templates, setTemplates]               = useState<Template[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
-  // variableMapping: { '{{1}}': 'Name', '{{2}}': 'City', ... }
   const [variableMapping, setVariableMapping]   = useState<Record<string, string>>({})
+  const [headerImageUrl, setHeaderImageUrl]     = useState('')
+  const [uploadingImage, setUploadingImage]     = useState(false)
+  
   const fileRef = useRef<HTMLInputElement>(null)
+  const imageRef = useRef<HTMLInputElement>(null)
 
   // Fetch templates on step 3
   useEffect(() => {
@@ -212,7 +208,6 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     const vars = extractVariables(selectedTemplate.body)
     const defaultMapping: Record<string, string> = {}
     vars.forEach((v, i) => {
-      // Auto-map {{1}} to 'name' column if it exists, else first column
       if (i === 0) {
         const nameCol = columns.find((c) => c.toLowerCase() === 'name' || c.toLowerCase().includes('name'))
         defaultMapping[v] = nameCol || columns[0] || ''
@@ -283,6 +278,31 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     finally { setLoadingGs(false) }
   }
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingImage(true)
+    try {
+      const filename = `bulk-headers/${Date.now()}-${file.name.replace(/\s/g, '-')}`
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/upload-image?filename=${encodeURIComponent(filename)}`, {
+        method: 'POST',
+        body: file,
+        headers: { 
+          'Content-Type': file.type,
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+      })
+      const data = await res.json()
+      if (data.url) setHeaderImageUrl(data.url)
+      else alert('Failed to upload image')
+    } catch {
+      alert('Upload failed')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const addFilter    = () => setFilters([...filters, { column: '', value: '' }])
   const removeFilter = (i: number) => setFilters(filters.filter((_, idx) => idx !== i))
   const updateFilter = (i: number, key: keyof FilterItem, val: string) =>
@@ -294,19 +314,13 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     setSending(true)
   
     try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase.auth.getSession()
   
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(session?.access_token
-            ? {
-                Authorization: `Bearer ${session.access_token}`
-              }
-            : {})
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
         },
         body: JSON.stringify({
           name: campaignName,
@@ -314,9 +328,9 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
           template_body: templateBody,
           scheduled_at: scheduledAt || null,
           variable_mapping: variableMapping,
+          header_image_url: headerImageUrl || '',
           contacts: filteredContacts.map((c) => {
             const resolvedVars: Record<string, string> = {}
-  
             Object.entries(variableMapping).forEach(([variable, column]) => {
               resolvedVars[variable] = column ? c[column] || '' : ''
             })
@@ -501,12 +515,10 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                   <div className="space-y-2">
                     {templateVariables.map((variable) => (
                       <div key={variable} className="flex items-center gap-3">
-                        {/* Variable pill */}
                         <span className="shrink-0 font-mono text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg min-w-[48px] text-center">
                           {variable}
                         </span>
                         <span className="text-gray-400 text-xs">→</span>
-                        {/* Column dropdown */}
                         <select
                           value={variableMapping[variable] || ''}
                           onChange={(e) => setVariableMapping((prev) => ({ ...prev, [variable]: e.target.value }))}
@@ -517,7 +529,6 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                             <option key={col} value={col}>{col}</option>
                           ))}
                         </select>
-                        {/* Sample value preview */}
                         {variableMapping[variable] && sampleContact[variableMapping[variable]] && (
                           <span className="shrink-0 text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-lg max-w-[80px] truncate">
                             e.g. {sampleContact[variableMapping[variable]]}
@@ -554,6 +565,54 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                 </div>
               )}
 
+              {/* Header Image Upload */}
+              {selectedTemplate && (
+                <div>
+                  <label className="text-xs text-gray-500 font-medium uppercase tracking-wide">
+                    Header Image (if template has image header)
+                  </label>
+                  <div className="mt-1">
+                    {headerImageUrl ? (
+                      <div className="relative">
+                        <img
+                          src={headerImageUrl}
+                          alt="Header"
+                          className="w-full max-h-40 object-cover rounded-xl border border-gray-200 dark:border-gray-700"
+                        />
+                        <button
+                          onClick={() => setHeaderImageUrl('')}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <p className="text-[10px] text-emerald-600 mt-1">✓ Image uploaded</p>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => imageRef.current?.click()}
+                        className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-400 transition-colors"
+                      >
+                        <Upload className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-500">Click to upload header image</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG — max 5MB</p>
+                        <input
+                          ref={imageRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                        />
+                      </div>
+                    )}
+                    {uploadingImage && (
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading image...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Schedule */}
               <div>
                 <label className="text-xs text-gray-500 font-medium uppercase tracking-wide">Schedule (optional)</label>
@@ -584,7 +643,6 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
               <ReviewRow label="Recipients" value={`${filteredContacts.length} contacts`} />
               <ReviewRow label="Schedule"   value={scheduledAt ? new Date(scheduledAt).toLocaleString() : 'Send immediately'} />
 
-              {/* Variable mapping summary */}
               {templateVariables.length > 0 && (
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Variable Mapping</p>
@@ -598,7 +656,6 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                 </div>
               )}
 
-              {/* Preview */}
               {previewText && (
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Message Preview (first contact)</p>
@@ -659,6 +716,26 @@ function CampaignHistory({ campaigns, onRefresh }: { campaigns: Campaign[]; onRe
   const [expanded, setExpanded] = useState<string | null>(null)
   const [contacts, setContacts] = useState<Record<string, any[]>>({})
 
+  const deleteCampaign = async (id: string) => {
+    if (!confirm('Delete this campaign and all its contacts? This cannot be undone.')) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const res = await fetch(`/api/campaigns/${id}`, { 
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      })
+      if (res.ok) {
+        onRefresh()
+      } else {
+        alert('Failed to delete campaign')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Delete failed')
+    }
+  }
+
   const loadContacts = async (id: string) => {
     if (contacts[id]) { setExpanded(expanded === id ? null : id); return }
     const res = await fetch(`/api/campaigns/contacts?campaign_id=${id}`)
@@ -717,6 +794,10 @@ function CampaignHistory({ campaigns, onRefresh }: { campaigns: Campaign[]; onRe
                   <button onClick={() => loadContacts(campaign.id)}
                     className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30" title="View contacts">
                     <Eye className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => deleteCampaign(campaign.id)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30" title="Delete campaign">
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>

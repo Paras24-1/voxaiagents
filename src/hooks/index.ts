@@ -33,6 +33,16 @@ export function useConversations(filters: {
     if (filters.stage)  params.set('stage',  filters.stage)
     if (filters.unread) params.set('unread', 'true')
 
+    if (filters.userRole === 'employee' && filters.userId) {
+      params.set('assigned_to', filters.userId)
+    } else if (
+      (filters.userRole === 'admin' || filters.userRole === 'owner') &&
+      filters.assignFilter &&
+      filters.assignFilter !== 'all'
+    ) {
+      params.set('assign_filter', filters.assignFilter)
+    }
+
     const res = await fetch(`/api/conversations?${params}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -42,7 +52,7 @@ export function useConversations(filters: {
       if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
     }
     setLoading(false)
-  }, [filters.search, filters.stage, filters.unread])
+  }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
 
   useEffect(() => {
     fetchConversations()
@@ -155,8 +165,14 @@ export function useSendMessage() {
   const [sending, setSending] = useState(false)
 
   const sendMessage = useCallback(
-    async (conversationId: string, phoneNumber: string, message: string) => {
-      if (!message.trim()) return false
+    async (
+      conversationId: string,
+      phoneNumber: string,
+      message: string,
+      mediaUrl?: string | null,
+      mediaType?: string | null
+    ) => {
+      if (!message.trim() && !mediaUrl) return false
       setSending(true)
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -172,6 +188,8 @@ export function useSendMessage() {
             conversation_id: conversationId,
             phone_number: phoneNumber,
             message: message.trim(),
+            media_url: mediaUrl,
+            media_type: mediaType,
           }),
         })
         return res.ok
