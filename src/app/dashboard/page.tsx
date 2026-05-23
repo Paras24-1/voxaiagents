@@ -41,7 +41,8 @@ export default function DashboardPage() {
 
   const [selected, setSelected] = useState<Conversation | null>(null)
   const [lead, setLead] = useState<Lead | null>(null)
-  const [dark, setDark] = useState(false)
+  const [dark, setDark] = useState(true)
+
   const [mobileView, setMobileView] =
     useState<MobileView>('list')
     const [showAdmin, setShowAdmin] = useState(false)

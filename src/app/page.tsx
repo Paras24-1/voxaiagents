@@ -249,7 +249,8 @@ export default function HomePage() {
   const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -40])
 
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
+    <div className="dark min-h-screen bg-[#040711] text-foreground">
+
 
       <motion.div className="fixed left-0 top-0 h-1 w-full origin-left bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--primary))]"
         style={{ scaleX: progress }} aria-hidden />
