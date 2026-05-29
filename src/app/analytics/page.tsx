@@ -25,6 +25,11 @@ interface Stats {
     confirmed: number
     completed: number
     cancelled: number
+    followup: number
+    not_interested: number
+    call_done: number
+    low_budget: number
+    hot_customer: number
   }
   total_conversations: number
   total_assigned: number
@@ -68,53 +73,10 @@ function AnalyticsContent() {
       const token = session?.access_token || ''
       const headers = { 'Authorization': `Bearer ${token}` }
 
-      const [convRes, usersRes, assignRes] = await Promise.all([
-        fetch('/api/conversations', { headers }),
-        fetch('/api/users', { headers }),
-        fetch('/api/assignments/list', { headers }),
-      ])
-
-      const conversations = await convRes.json()
-      const employees = await usersRes.json()
-      const assignments = await assignRes.json()
-
-      if (Array.isArray(conversations) && Array.isArray(employees)) {
-        const employeeList = employees.filter((u: any) => u.role === 'employee')
-
-        const employeeStats: EmployeeStats[] = employeeList.map((emp: any) => {
-          const assigned = conversations.filter((c: any) => c.assigned_to === emp.id)
-          const empAssignments = Array.isArray(assignments)
-            ? assignments.filter((a: any) => a.assigned_to === emp.id)
-            : []
-          return {
-            id: emp.id,
-            name: emp.name,
-            email: emp.email,
-            total_assigned: assigned.length,
-            active: empAssignments.filter((a: any) => a.status === 'active').length,
-            completed: empAssignments.filter((a: any) => a.status === 'completed').length,
-          }
-        })
-
-        const stageCounts = {
-          new: conversations.filter((c: any) => (c.stage || 'new') === 'new').length,
-          interested: conversations.filter((c: any) => c.stage === 'interested').length,
-          booking: conversations.filter((c: any) => c.stage === 'booking').length,
-          confirmed: conversations.filter((c: any) => c.stage === 'confirmed').length,
-          completed: conversations.filter((c: any) => c.stage === 'completed').length,
-          cancelled: conversations.filter((c: any) => c.stage === 'cancelled').length,
-        }
-
-        setStats({
-          stage_counts: stageCounts,
-          total_conversations: conversations.length,
-          total_assigned: conversations.filter((c: any) => c.assigned_to).length,
-          total_unassigned: conversations.filter((c: any) => !c.assigned_to).length,
-          total_active: Array.isArray(assignments) ? assignments.filter((a: any) => a.status === 'active').length : 0,
-          total_completed: Array.isArray(assignments) ? assignments.filter((a: any) => a.status === 'completed').length : 0,
-          employees: employeeStats,
-        })
-      }
+      const res = await fetch('/api/analytics', { headers })
+      if (!res.ok) throw new Error('Failed to fetch analytics')
+      const data = await res.json()
+      setStats(data)
     } catch (err) {
       console.error('Failed to fetch stats:', err)
     } finally {
@@ -170,13 +132,18 @@ function AnalyticsContent() {
           <StatCard icon={<Clock className="w-5 h-5" />} label="Unassigned" value={stats.total_unassigned} color="amber" />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-4">
           <StageCard label="New" value={stats.stage_counts.new} color="gray" />
           <StageCard label="Interested" value={stats.stage_counts.interested} color="blue" />
           <StageCard label="Booking" value={stats.stage_counts.booking} color="amber" />
           <StageCard label="Confirmed" value={stats.stage_counts.confirmed} color="green" />
           <StageCard label="Completed" value={stats.stage_counts.completed} color="purple" />
           <StageCard label="Cancelled" value={stats.stage_counts.cancelled} color="red" />
+          <StageCard label="Follow Up" value={stats.stage_counts.followup} color="blue" />
+          <StageCard label="Not Interested" value={stats.stage_counts.not_interested} color="gray" />
+          <StageCard label="Call Done" value={stats.stage_counts.call_done} color="green" />
+          <StageCard label="Low Budget" value={stats.stage_counts.low_budget} color="red" />
+          <StageCard label="Hot Customer" value={stats.stage_counts.hot_customer} color="amber" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
