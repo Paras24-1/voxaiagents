@@ -91,9 +91,8 @@ export default function BulkMessagingPage() {
 
   const fetchCampaigns = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch('/api/campaigns', {
-      headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-    })
+    const headers: HeadersInit = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+    const res = await fetch('/api/campaigns', { headers })
   
     if (res.ok) {
       setCampaigns(await res.json())
@@ -194,11 +193,14 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
   useEffect(() => {
     if (step === 3 && templates.length === 0) {
       setLoadingTemplates(true)
-      fetch('/api/templates')
-        .then((r) => r.json())
-        .then((data) => { if (Array.isArray(data)) setTemplates(data) })
-        .catch(() => {})
-        .finally(() => setLoadingTemplates(false))
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        const headers: HeadersInit = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+        fetch('/api/templates', { headers })
+          .then((r) => r.json())
+          .then((data) => { if (Array.isArray(data)) setTemplates(data) })
+          .catch(() => {})
+          .finally(() => setLoadingTemplates(false))
+      })
     }
   }, [step, templates.length])
 
@@ -285,13 +287,14 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     try {
       const filename = `bulk-headers/${Date.now()}-${file.name.replace(/\s/g, '-')}`
       const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 
+        'Content-Type': file.type,
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+      }
       const res = await fetch(`/api/upload-image?filename=${encodeURIComponent(filename)}`, {
         method: 'POST',
         body: file,
-        headers: { 
-          'Content-Type': file.type,
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-        },
+        headers,
       })
       const data = await res.json()
       if (data.url) setHeaderImageUrl(data.url)
@@ -315,13 +318,13 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
   
     try {
       const { data: { session } } = await supabase.auth.getSession()
-  
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+      }
       const res = await fetch('/api/campaigns', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
-        },
+        headers,
         body: JSON.stringify({
           name: campaignName,
           template_name: templateName,
@@ -721,9 +724,10 @@ function CampaignHistory({ campaigns, onRefresh }: { campaigns: Campaign[]; onRe
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
+      const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {}
       const res = await fetch(`/api/campaigns/${id}`, { 
         method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        headers
       })
       if (res.ok) {
         onRefresh()
@@ -738,7 +742,10 @@ function CampaignHistory({ campaigns, onRefresh }: { campaigns: Campaign[]; onRe
 
   const loadContacts = async (id: string) => {
     if (contacts[id]) { setExpanded(expanded === id ? null : id); return }
-    const res = await fetch(`/api/campaigns/contacts?campaign_id=${id}`)
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token || ''
+    const headers: HeadersInit = token ? { 'Authorization': `Bearer ${token}` } : {}
+    const res = await fetch(`/api/campaigns/contacts?campaign_id=${id}`, { headers })
     if (res.ok) { const data = await res.json(); setContacts((prev) => ({ ...prev, [id]: data })) }
     setExpanded(id)
   }
