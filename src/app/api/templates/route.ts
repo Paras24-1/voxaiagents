@@ -22,23 +22,47 @@ export async function GET(req: NextRequest) {
     const token = settings.whatsapp_token
     const phoneId = settings.whatsapp_phone_id
 
-    // 1. Resolve WABA ID dynamically using Phone Number ID
-    const phoneRes = await fetch(
-      `https://graph.facebook.com/v19.0/${phoneId}?fields=whatsapp_business_account`,
+    // 1. Resolve WABA ID dynamically using owned_whatsapp_business_accounts
+    const wabaRes = await fetch(
+      `https://graph.facebook.com/v19.0/me/owned_whatsapp_business_accounts`,
       {
         headers: { Authorization: `Bearer ${token}` }
       }
     )
-
-    const phoneData = await phoneRes.json()
-    if (phoneData.error) {
-      console.error('[templates] Meta WABA resolution error:', phoneData.error)
-      return NextResponse.json({ error: phoneData.error.message }, { status: 500 })
+    const wabaData = await wabaRes.json()
+    if (wabaData.error) {
+      console.error('[templates] Meta WABA listing error:', wabaData.error)
+      return NextResponse.json({ error: wabaData.error.message }, { status: 500 })
     }
 
-    const wabaId = phoneData.whatsapp_business_account?.id
+    const accounts = wabaData.data || []
+    if (accounts.length === 0) {
+      return NextResponse.json({ error: 'No WhatsApp Business Accounts found for this token.' }, { status: 400 })
+    }
+
+    let wabaId = ''
+
+    if (accounts.length === 1) {
+      wabaId = accounts[0].id
+    } else {
+      // Find which WABA owns the phoneId
+      for (const acc of accounts) {
+        const phoneListRes = await fetch(
+          `https://graph.facebook.com/v19.0/${acc.id}/phone_numbers`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        )
+        const phoneListData = await phoneListRes.json()
+        if (phoneListData.data?.some((p: any) => p.id === phoneId)) {
+          wabaId = acc.id
+          break
+        }
+      }
+    }
+
     if (!wabaId) {
-      return NextResponse.json({ error: 'Failed to resolve WhatsApp Business Account ID' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not find a WhatsApp Business Account matching the configured Phone Number ID.' }, { status: 400 })
     }
 
     // 2. Fetch approved message templates from Meta WABA
