@@ -8,6 +8,7 @@ import { useOrg } from '@/contexts/OrgContext'
 interface SettingsData {
   whatsapp_token: string
   whatsapp_phone_id: string
+  whatsapp_waba_id: string
   n8n_webhook_url: string
   n8n_reply_webhook_url: string
   google_sheet_id: string
@@ -32,6 +33,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [formData, setFormData] = useState<SettingsData>({
     whatsapp_token: '',
     whatsapp_phone_id: '',
+    whatsapp_waba_id: '',
     n8n_webhook_url: '',
     n8n_reply_webhook_url: '',
     google_sheet_id: '',
@@ -51,6 +53,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           setFormData({
             whatsapp_token: data.whatsapp_token || '',
             whatsapp_phone_id: data.whatsapp_phone_id || '',
+            whatsapp_waba_id: data.whatsapp_waba_id || '',
             n8n_webhook_url: data.n8n_webhook_url || '',
             n8n_reply_webhook_url: data.n8n_reply_webhook_url || '',
             google_sheet_id: data.google_sheet_id || '',
@@ -181,7 +184,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   <Key className="w-4 h-4 text-emerald-500" />
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">WhatsApp Channel Setup</h4>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">WhatsApp Phone Number ID</label>
                     <input
@@ -190,6 +193,17 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                       value={formData.whatsapp_phone_id}
                       onChange={e => setFormData({ ...formData, whatsapp_phone_id: e.target.value })}
                       placeholder="e.g. 1065987421356"
+                      className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">WhatsApp Business Account ID (WABA ID)</label>
+                    <input
+                      type="text"
+                      disabled={!isEditable}
+                      value={formData.whatsapp_waba_id}
+                      onChange={e => setFormData({ ...formData, whatsapp_waba_id: e.target.value })}
+                      placeholder="e.g. 1045987421356"
                       className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                     />
                   </div>
