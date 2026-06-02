@@ -184,6 +184,15 @@ export default function DashboardPage() {
     </Link>
   )}
 
+  {/* Lead CRM */}
+  <Link
+    href="/leads"
+    className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg transition-colors"
+  >
+    <Users className="w-3.5 h-3.5" />
+    <span>Lead CRM</span>
+  </Link>
+
   {/* Team */}
   {isAdmin && (
     <button

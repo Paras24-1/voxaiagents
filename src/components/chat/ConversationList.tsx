@@ -79,6 +79,27 @@ function ConversationList({ selectedId, onSelect, onDelete }: Props) {
     }
   }, [profile, isAdmin])
 
+  // Auto-select conversation if "phone" query parameter is present in URL on load
+  const [hasAutoSelected, setHasAutoSelected] = useState(false)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && conversations.length > 0 && !selectedId && !hasAutoSelected) {
+      const params = new URLSearchParams(window.location.search)
+      const phoneParam = params.get('phone')
+      if (phoneParam) {
+        const cleanParam = phoneParam.replace(/\D/g, '').slice(-10)
+        if (cleanParam) {
+          const match = conversations.find(c => 
+            c.phone_number.replace(/\D/g, '').slice(-10) === cleanParam
+          )
+          if (match) {
+            onSelect(match)
+            setHasAutoSelected(true)
+          }
+        }
+      }
+    }
+  }, [conversations, selectedId, onSelect, hasAutoSelected])
+
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     setConfirmId(id)
