@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(templates)
 
   } catch (err) {
-    console.error('[templates]', err)
+    console.error('[templates API error]:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

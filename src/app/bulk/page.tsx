@@ -196,9 +196,25 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         const headers: HeadersInit = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
         fetch('/api/templates', { headers })
-          .then((r) => r.json())
-          .then((data) => { if (Array.isArray(data)) setTemplates(data) })
-          .catch(() => {})
+          .then(async (r) => {
+            const data = await r.json()
+            if (!r.ok) {
+              throw new Error(data.error || 'Failed to fetch templates')
+            }
+            return data
+          })
+          .then((data) => {
+            if (Array.isArray(data)) {
+              setTemplates(data)
+            } else {
+              console.error('Templates response is not an array:', data)
+              alert('Templates error: Invalid format received')
+            }
+          })
+          .catch((err) => {
+            console.error('Fetch templates error:', err)
+            alert(`Failed to load templates: ${err.message || String(err)}`)
+          })
           .finally(() => setLoadingTemplates(false))
       })
     }
