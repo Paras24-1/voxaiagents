@@ -22,81 +22,94 @@ export async function GET(req: NextRequest) {
     const token = settings.whatsapp_token
     const phoneId = settings.whatsapp_phone_id
 
-    // 1. Fetch businesses associated with the token to find the WABAs
-    const businessesRes = await fetch(
-      `https://graph.facebook.com/v19.0/me/businesses`,
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    )
-    const businessesData = await businessesRes.json()
-    if (businessesData.error) {
-      console.error('[templates] Meta businesses fetch error:', businessesData.error)
-      return NextResponse.json({ error: businessesData.error.message }, { status: 500 })
+    // Try fetching whatsapp_waba_id separately to prevent SQL crashes if the column doesn't exist yet
+    let wabaId = ''
+    try {
+      const { data: wabaSetting } = await supabaseAdmin
+        .from('organization_settings')
+        .select('whatsapp_waba_id')
+        .eq('org_id', orgId)
+        .maybeSingle()
+      wabaId = wabaSetting?.whatsapp_waba_id || ''
+    } catch (e) {
+      console.log('[templates] whatsapp_waba_id column may not exist in organization_settings table:', e)
     }
 
-    const businesses = businessesData.data || []
-    if (businesses.length === 0) {
-      return NextResponse.json({ error: 'No Business Portfolios found for this token. Make sure the token is associated with a Meta Business Manager.' }, { status: 400 })
-    }
-
-    const accounts: any[] = []
-
-    // Fetch owned WhatsApp Business Accounts for all businesses
-    for (const biz of businesses) {
-      const wabaRes = await fetch(
-        `https://graph.facebook.com/v19.0/${biz.id}/owned_whatsapp_business_accounts`,
+    if (!wabaId) {
+      // 1. Fetch businesses associated with the token to find the WABAs
+      const businessesRes = await fetch(
+        `https://graph.facebook.com/v19.0/me/businesses`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       )
-      let wabaData = await wabaRes.json()
-      if (wabaData.error) {
-        // Fallback to whatsapp_business_accounts edge
-        const fallbackRes = await fetch(
-          `https://graph.facebook.com/v19.0/${biz.id}/whatsapp_business_accounts`,
+      const businessesData = await businessesRes.json()
+      if (businessesData.error) {
+        console.error('[templates] Meta businesses fetch error:', businessesData.error)
+        return NextResponse.json({ error: businessesData.error.message }, { status: 500 })
+      }
+
+      const businesses = businessesData.data || []
+      if (businesses.length === 0) {
+        return NextResponse.json({ error: 'No Business Portfolios found for this token. Make sure the token is associated with a Meta Business Manager.' }, { status: 400 })
+      }
+
+      const accounts: any[] = []
+
+      // Fetch owned WhatsApp Business Accounts for all businesses
+      for (const biz of businesses) {
+        const wabaRes = await fetch(
+          `https://graph.facebook.com/v19.0/${biz.id}/owned_whatsapp_business_accounts`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }
         )
-        wabaData = await fallbackRes.json()
-      }
+        let wabaData = await wabaRes.json()
+        if (wabaData.error) {
+          // Fallback to whatsapp_business_accounts edge
+          const fallbackRes = await fetch(
+            `https://graph.facebook.com/v19.0/${biz.id}/whatsapp_business_accounts`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          )
+          wabaData = await fallbackRes.json()
+        }
 
-      if (wabaData.data) {
-        accounts.push(...wabaData.data)
-      }
-    }
-
-    if (accounts.length === 0) {
-      return NextResponse.json({ error: 'No WhatsApp Business Accounts found for the associated Business Portfolios.' }, { status: 400 })
-    }
-
-    // Deduplicate accounts just in case
-    const uniqueAccounts = Array.from(new Map(accounts.map((acc) => [acc.id, acc])).values())
-
-    let wabaId = ''
-
-    if (uniqueAccounts.length === 1) {
-      wabaId = uniqueAccounts[0].id
-    } else {
-      // Find which WABA owns the phoneId
-      for (const acc of uniqueAccounts) {
-        const phoneListRes = await fetch(
-          `https://graph.facebook.com/v19.0/${acc.id}/phone_numbers`,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        )
-        const phoneListData = await phoneListRes.json()
-        if (phoneListData.data?.some((p: any) => p.id === phoneId)) {
-          wabaId = acc.id
-          break
+        if (wabaData.data) {
+          accounts.push(...wabaData.data)
         }
       }
-    }
 
-    if (!wabaId) {
-      return NextResponse.json({ error: 'Could not find a WhatsApp Business Account matching the configured Phone Number ID.' }, { status: 400 })
+      if (accounts.length === 0) {
+        return NextResponse.json({ error: 'No WhatsApp Business Accounts found for the associated Business Portfolios.' }, { status: 400 })
+      }
+
+      // Deduplicate accounts just in case
+      const uniqueAccounts = Array.from(new Map(accounts.map((acc) => [acc.id, acc])).values())
+
+      if (uniqueAccounts.length === 1) {
+        wabaId = uniqueAccounts[0].id
+      } else {
+        // Find which WABA owns the phoneId
+        for (const acc of uniqueAccounts) {
+          const phoneListRes = await fetch(
+            `https://graph.facebook.com/v19.0/${acc.id}/phone_numbers`,
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          )
+          const phoneListData = await phoneListRes.json()
+          if (phoneListData.data?.some((p: any) => p.id === phoneId)) {
+            wabaId = acc.id
+            break
+          }
+        }
+      }
+
+      if (!wabaId) {
+        return NextResponse.json({ error: 'Could not find a WhatsApp Business Account matching the configured Phone Number ID.' }, { status: 400 })
+      }
     }
 
     // 2. Fetch approved message templates from Meta WABA
