@@ -36,6 +36,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No matching lead found' }, { status: 404 })
     }
 
+    // Safely parse metadata if it is a JSON string
+    let metadataObj = {}
+    if (data.metadata) {
+      if (typeof data.metadata === 'string') {
+        try {
+          metadataObj = JSON.parse(data.metadata)
+        } catch (e) {
+          console.error('Failed to parse metadata string:', e)
+        }
+      } else if (typeof data.metadata === 'object') {
+        metadataObj = data.metadata
+      }
+    }
+
     // Map database column names to match the exact keys expected by LeadPanel.tsx (which mapped from Google Sheets)
     const lead = {
       Phone: data.phone_number,
@@ -51,7 +65,7 @@ export async function GET(req: NextRequest) {
       followup_notes: data.followup_notes || null,
       followup_notified: data.followup_notified || false,
       stage: data.stage || 'new',
-      ...(data.metadata || {}) // Dynamically unpack all custom columns (e.g. Tehsil, Crop_Requirement)
+      ...(metadataObj || {}) // Dynamically unpack all custom columns (e.g. Tehsil, Crop_Requirement)
     }
 
     return NextResponse.json(lead)
