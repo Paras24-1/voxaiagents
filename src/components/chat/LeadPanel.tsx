@@ -148,7 +148,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           </div>
           <h3 className="text-base font-semibold text-gray-900 dark:text-white">Lead Details</h3>
         </div>
-        <p className="text-xs text-gray-500 ml-10">Synced from Google Sheets</p>
+        <p className="text-xs text-gray-500 ml-10">Live sync from CRM Database</p>
       </div>
 
       {/* Content */}
@@ -198,7 +198,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
               <User className="w-8 h-8 text-gray-400" />
             </div>
             <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">No lead data found</p>
-            <p className="text-xs text-gray-500">Data will appear once synced from Google Sheets</p>
+            <p className="text-xs text-gray-500">Data will appear once synced from CRM Database</p>
           </div>
         )}
 

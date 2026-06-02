@@ -5,9 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
-    // ─────────────────────────────────────
     // Get org_id from authenticated user
-    // ─────────────────────────────────────
     const orgId = await getOrgId(req)
 
     if (!orgId) {
@@ -17,154 +15,48 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // ─────────────────────────────────────
-    // Get phone
-    // ─────────────────────────────────────
     const { searchParams } = new URL(req.url)
-
     const rawPhone = searchParams.get('phone') || ''
     const phone = rawPhone.replace(/\D/g, '').slice(-10)
 
-    console.log('🔍 Looking for phone:', rawPhone, '→ normalized:', phone)
+    if (!phone) {
+      return NextResponse.json({ error: 'phone is required' }, { status: 400 })
+    }
 
-    // ─────────────────────────────────────
-    // Get organization sheet settings
-    // ─────────────────────────────────────
-    const { data: settings, error: settingsError } = await supabaseAdmin
-      .from('organization_settings')
-      .select(`
-        google_sheet_id,
-        google_sheet_name,
-        google_sheets_api_key
-      `)
+    // Query leads table matching the last 10 digits of phone_number and org_id
+    const { data, error } = await supabaseAdmin
+      .from('leads')
+      .select('*')
       .eq('org_id', orgId)
-      .single()
+      .ilike('phone_number', `%${phone}`)
+      .maybeSingle()
 
-    if (settingsError || !settings) {
-      console.error('❌ Organization settings not found')
-
-      return NextResponse.json(
-        { error: 'Organization settings not found' },
-        { status: 404 }
-      )
+    if (error) throw error
+    if (!data) {
+      return NextResponse.json({ error: 'No matching lead found' }, { status: 404 })
     }
 
-    const apiKey =
-      settings.google_sheets_api_key ||
-      process.env.GOOGLE_SHEETS_API_KEY
-
-    const sheetId = settings.google_sheet_id
-
-    const sheetName =
-      settings.google_sheet_name || 'LEADS'
-
-    // ─────────────────────────────────────
-    // Validate config
-    // ─────────────────────────────────────
-    if (!apiKey || !sheetId) {
-      console.error('❌ Missing Google Sheets config')
-
-      return NextResponse.json(
-        { error: 'Missing Google Sheets configuration' },
-        { status: 500 }
-      )
+    // Map database column names to match the exact keys expected by LeadPanel.tsx (which mapped from Google Sheets)
+    const lead = {
+      Phone: data.phone_number,
+      Name: data.name || '',
+      Lead_Type: data.lead_type || '',
+      city: data.city || '',
+      machine_interest: data.machine_interest || '',
+      lead_quality: data.lead_quality || '',
+      lead_score: String(data.lead_score || 0),
+      callback_ready: data.callback_ready || '',
+      conversation_summary: data.conversation_summary || '',
+      followup_date: data.followup_date || null,
+      followup_notes: data.followup_notes || null,
+      followup_notified: data.followup_notified || false,
+      stage: data.stage || 'new',
+      ...(data.metadata || {}) // Dynamically unpack all custom columns (e.g. Tehsil, Crop_Requirement)
     }
-
-    // ─────────────────────────────────────
-    // Fetch sheet data
-    // ─────────────────────────────────────
-    const range = `${encodeURIComponent(sheetName)}!A:Z`
-
-    const url =
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
-
-      const res = await fetch(url, {
-        cache: 'no-store'
-      })
-
-    const data = await res.json()
-
-    // ─────────────────────────────────────
-    // Google API error
-    // ─────────────────────────────────────
-    if (data.error) {
-      console.error('❌ Google API error:', data.error)
-
-      return NextResponse.json(
-        { error: data.error.message },
-        { status: 500 }
-      )
-    }
-
-    // ─────────────────────────────────────
-    // Empty sheet
-    // ─────────────────────────────────────
-    if (!data.values || data.values.length < 2) {
-      return NextResponse.json(
-        { error: 'No data in sheet' },
-        { status: 404 }
-      )
-    }
-
-    const headers: string[] = data.values[0]
-
-    const rows: string[][] = data.values.slice(1)
-
-    // ─────────────────────────────────────
-    // Find phone column
-    // ─────────────────────────────────────
-    const phoneIndex = headers.findIndex((h) =>
-      h.toLowerCase().includes('phone')
-    )
-
-    if (phoneIndex === -1) {
-      return NextResponse.json(
-        { error: 'No phone column in sheet' },
-        { status: 500 }
-      )
-    }
-
-    // ─────────────────────────────────────
-    // Match lead
-    // ─────────────────────────────────────
-    const matchedRow = rows.find((row) => {
-      const rowPhone = (row[phoneIndex] || '')
-        .replace(/\D/g, '')
-        .slice(-10)
-
-      return rowPhone === phone
-    })
-
-    if (!matchedRow) {
-      return NextResponse.json(
-        {
-          error: 'No matching lead found',
-          debug: {
-            searched: phone,
-            totalRows: rows.length
-          }
-        },
-        { status: 404 }
-      )
-    }
-
-    // ─────────────────────────────────────
-    // Convert row to object
-    // ─────────────────────────────────────
-    const lead: Record<string, string> = {}
-
-    headers.forEach((header, i) => {
-      lead[header] = matchedRow[i] || ''
-    })
 
     return NextResponse.json(lead)
-
   } catch (err) {
     console.error('💥 Exception:', err)
-
-    return NextResponse.json(
-      { error: String(err) },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
