@@ -101,8 +101,8 @@ BEGIN
     END;
 
   -- Ensure lead record exists
-  INSERT INTO leads (conversation_id, phone_number, name)
-  SELECT id, phone_number, name FROM conversations WHERE phone_number = NEW.phone_number
+  INSERT INTO leads (conversation_id, phone_number, name, org_id)
+  SELECT id, phone_number, name, org_id FROM conversations WHERE phone_number = NEW.phone_number
   ON CONFLICT (conversation_id) DO NOTHING;
 
   RETURN NEW;
