@@ -71,6 +71,8 @@ const QUALITY_COLORS: Record<string, string> = {
   unknown: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
 }
 
+export const dynamic = 'force-dynamic'
+
 export default function LeadsPage() {
   const { profile, loading: authLoading } = useOrg()
   const router = useRouter()
@@ -79,7 +81,7 @@ export default function LeadsPage() {
     if (!authLoading && !profile) router.push('/login')
   }, [profile, authLoading, router])
 
-  if (authLoading) {
+  if (authLoading || !profile) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />

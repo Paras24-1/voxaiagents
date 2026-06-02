@@ -41,6 +41,8 @@ interface Stats {
 
 const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444']
 
+export const dynamic = 'force-dynamic'
+
 export default function AnalyticsPage() {
   const { profile, loading: authLoading } = useOrg()
   const router = useRouter()
@@ -48,10 +50,10 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (!authLoading && !profile) router.push('/login')
     if (!authLoading && profile?.role === 'employee') router.push('/dashboard')
-  }, [profile, authLoading])
+  }, [profile, authLoading, router])
 
-  if (authLoading) return (
-    <div className="h-screen flex items-center justify-center">
+  if (authLoading || !profile) return (
+    <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )
