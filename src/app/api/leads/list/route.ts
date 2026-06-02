@@ -13,26 +13,43 @@ export async function GET(req: NextRequest) {
     const quality = searchParams.get('quality') || ''
     const search = searchParams.get('search') || ''
 
-    let query = supabaseAdmin
-      .from('leads')
-      .select('*')
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: false })
+    let allLeads: any[] = []
+    let pageNum = 0
+    const pageSize = 1000
+    let hasMore = true
 
-    if (stage) {
-      query = query.eq('stage', stage)
+    while (hasMore) {
+      let query = supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1)
+
+      if (stage) {
+        query = query.eq('stage', stage)
+      }
+      if (quality) {
+        query = query.eq('lead_quality', quality)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      if (!data || data.length === 0) {
+        hasMore = false
+      } else {
+        allLeads = [...allLeads, ...data]
+        if (data.length < pageSize) {
+          hasMore = false
+        } else {
+          pageNum++
+        }
+      }
     }
-    if (quality) {
-      query = query.eq('lead_quality', quality)
-    }
-
-    const { data, error } = await query
-    if (error) throw error
-
-    const leads = data || []
 
     // Safely parse metadata on each lead
-    const parsedLeads = leads.map((lead) => {
+    const parsedLeads = allLeads.map((lead) => {
       let parsedMetadata = {}
       if (lead.metadata) {
         if (typeof lead.metadata === 'string') {
