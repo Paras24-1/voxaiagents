@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
     const conversationId = searchParams.get('conversation_id')
     if (!conversationId) return NextResponse.json({ error: 'conversation_id required' }, { status: 400 })
 
-    const { data, error } = await supabaseAdmin
+    // First, try matching directly by conversation_id
+    let { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .eq('conversation_id', conversationId)
@@ -18,6 +19,39 @@ export async function GET(req: NextRequest) {
       .maybeSingle()
 
     if (error) throw error
+
+    // If not found by conversation_id, fall back to matching by phone number
+    if (!data) {
+      const { data: conv } = await supabaseAdmin
+        .from('conversations')
+        .select('phone_number')
+        .eq('id', conversationId)
+        .eq('org_id', orgId)
+        .maybeSingle()
+
+      if (conv?.phone_number) {
+        const phone = conv.phone_number.replace(/\D/g, '').slice(-10)
+        const { data: leadData, error: leadError } = await supabaseAdmin
+          .from('leads')
+          .select('*')
+          .ilike('phone_number', `%${phone}`)
+          .eq('org_id', orgId)
+          .maybeSingle()
+
+        if (leadError) throw leadError
+        
+        if (leadData) {
+          data = leadData
+          // Auto-heal/link the conversation_id
+          await supabaseAdmin
+            .from('leads')
+            .update({ conversation_id: conversationId })
+            .eq('id', data.id)
+          data.conversation_id = conversationId
+        }
+      }
+    }
+
     return NextResponse.json(data || {})
   } catch (err: unknown) {
     const error = err instanceof Error ? err.message : 'Unknown error'
@@ -33,15 +67,43 @@ export async function PATCH(req: NextRequest) {
     const { conversation_id, ...updates } = await req.json()
     if (!conversation_id) return NextResponse.json({ error: 'conversation_id required' }, { status: 400 })
 
-    const { data, error } = await supabaseAdmin
+    // First try updating by conversation_id
+    let { data, error } = await supabaseAdmin
       .from('leads')
       .update(updates)
       .eq('conversation_id', conversation_id)
       .eq('org_id', orgId)
       .select()
-      .single()
+      .maybeSingle()
 
-    if (error) throw error
+    // If not found by conversation_id, fall back to phone number
+    if (!data) {
+      const { data: conv } = await supabaseAdmin
+        .from('conversations')
+        .select('phone_number')
+        .eq('id', conversation_id)
+        .eq('org_id', orgId)
+        .maybeSingle()
+
+      if (conv?.phone_number) {
+        const phone = conv.phone_number.replace(/\D/g, '').slice(-10)
+        const { data: leadData, error: leadError } = await supabaseAdmin
+          .from('leads')
+          .update({
+            ...updates,
+            conversation_id // auto-link it
+          })
+          .ilike('phone_number', `%${phone}`)
+          .eq('org_id', orgId)
+          .select()
+          .maybeSingle()
+
+        if (leadError) throw leadError
+        data = leadData || null
+      }
+    }
+
+    if (error && !data) throw error
 
     if (updates.name || updates.stage) {
       await supabaseAdmin
@@ -54,7 +116,7 @@ export async function PATCH(req: NextRequest) {
         .eq('org_id', orgId)
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json(data || {})
   } catch (err: unknown) {
     const error = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error }, { status: 500 })
