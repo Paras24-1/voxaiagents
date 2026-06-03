@@ -11,6 +11,19 @@ import {
   MessageSquare, ArrowLeft, Sun, Moon, RefreshCw, AlertCircle 
 } from 'lucide-react'
 
+const getLocalDateString = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getLocalTimeString = (d: Date) => {
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
 interface FollowupReminder {
   id: string
   conversation_id: string
@@ -179,15 +192,15 @@ function FollowupsContent() {
       const existing = new Date(reminder.followup_date)
       setModalDate(existing)
       setCustomMode(true)
-      setCustomDateVal(existing.toISOString().split('T')[0])
-      setCustomTimeVal(existing.toTimeString().split(' ')[0].slice(0, 5))
+      setCustomDateVal(getLocalDateString(existing))
+      setCustomTimeVal(getLocalTimeString(existing))
     } else {
       const defaultDate = new Date()
       defaultDate.setHours(defaultDate.getHours() + 2, 0, 0, 0)
       setModalDate(defaultDate)
       setCustomMode(false)
-      setCustomDateVal(defaultDate.toISOString().split('T')[0])
-      setCustomTimeVal(defaultDate.toTimeString().split(' ')[0].slice(0, 5))
+      setCustomDateVal(getLocalDateString(defaultDate))
+      setCustomTimeVal(getLocalTimeString(defaultDate))
     }
     setShowFollowupModal(true)
   }

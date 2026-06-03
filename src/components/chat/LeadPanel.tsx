@@ -5,6 +5,19 @@ import { Conversation, Lead, LeadActivity } from '@/types'
 import { supabase } from '@/lib/supabase'
 import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2 } from 'lucide-react'
 
+const getLocalDateString = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getLocalTimeString = (d: Date) => {
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
+
 export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   conversation: Conversation | null
   lead: Lead | null
@@ -191,8 +204,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         setModalDate(existing);
         setModalNotes(lead.followup_notes || '');
         setCustomMode(true);
-        setCustomDateVal(existing.toISOString().split('T')[0]);
-        setCustomTimeVal(existing.toTimeString().split(' ')[0].slice(0, 5));
+        setCustomDateVal(getLocalDateString(existing));
+        setCustomTimeVal(getLocalTimeString(existing));
       } else {
         const now = new Date();
         const defaultDate = new Date(now);
@@ -200,8 +213,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         setModalDate(defaultDate);
         setModalNotes('');
         setCustomMode(false);
-        setCustomDateVal(defaultDate.toISOString().split('T')[0]);
-        setCustomTimeVal(defaultDate.toTimeString().split(' ')[0].slice(0, 5));
+        setCustomDateVal(getLocalDateString(defaultDate));
+        setCustomTimeVal(getLocalTimeString(defaultDate));
       }
     }
   }, [showFollowupModal, lead])
@@ -349,7 +362,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
     const loadSheetData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        const res = await fetch(`/api/sheets?phone=${conversation.phone_number}`, {
+        const res = await fetch(`/api/sheets?phone=${conversation.phone_number}&conversation_id=${conversation.id}`, {
           headers: session?.access_token
             ? { 'Authorization': `Bearer ${session.access_token}` }
             : {}

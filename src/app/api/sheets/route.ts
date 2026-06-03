@@ -7,24 +7,41 @@ export async function GET(req: NextRequest) {
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)
+    const conversationId = searchParams.get('conversation_id')
     const rawPhone = searchParams.get('phone') || ''
     const phone = rawPhone.replace(/\D/g, '').slice(-10)
 
-    if (!phone) {
-      return NextResponse.json({ error: 'phone is required' }, { status: 400 })
+    let data = null
+    let error = null
+
+    // First try by conversation_id if provided
+    if (conversationId) {
+      const { data: leadData, error: leadError } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .eq('org_id', orgId)
+        .maybeSingle()
+
+      if (leadError) throw leadError
+      data = leadData
     }
 
-    // Query leads table matching the last 10 digits of phone_number and org_id
-    const { data, error } = await supabaseAdmin
-      .from('leads')
-      .select('*')
-      .ilike('phone_number', `%${phone}`)
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // Fall back to phone number lookup if not found by conversationId
+    if (!data && phone) {
+      const { data: leadData, error: leadError } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .ilike('phone_number', `%${phone}`)
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-    if (error) throw error
+      if (leadError) throw leadError
+      data = leadData
+    }
+
     if (!data) {
       return NextResponse.json({ error: 'No matching lead found' }, { status: 404 })
     }
