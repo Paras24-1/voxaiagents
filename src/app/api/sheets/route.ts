@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, getOrgId } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   try {
+    const orgId = await getOrgId(req)
+    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { searchParams } = new URL(req.url)
     const rawPhone = searchParams.get('phone') || ''
     const phone = rawPhone.replace(/\D/g, '').slice(-10)
@@ -11,11 +14,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'phone is required' }, { status: 400 })
     }
 
-    // Query leads table matching the last 10 digits of phone_number
+    // Query leads table matching the last 10 digits of phone_number and org_id
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
       .ilike('phone_number', `%${phone}`)
+      .eq('org_id', orgId)
       .maybeSingle()
 
     if (error) throw error
