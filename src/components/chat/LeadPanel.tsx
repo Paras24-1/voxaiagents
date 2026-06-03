@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Conversation, Lead, LeadActivity } from '@/types'
+import { supabase } from '@/lib/supabase'
 import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2 } from 'lucide-react'
 
 export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
@@ -144,9 +145,13 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         })
       })
 
+      const { data: { session } } = await supabase.auth.getSession()
       await fetch('/api/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           conversation_id: conversation.id,
           followup_date: null,
@@ -215,9 +220,13 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
     setSavingFollowup(true);
     try {
       const isoString = modalDate.toISOString();
+      const { data: { session } } = await supabase.auth.getSession()
       await fetch('/api/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           conversation_id: conversation.id,
           followup_date: isoString,
@@ -241,9 +250,13 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   const handleClearFollowup = async () => {
     if (!conversation || !lead) return;
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       await fetch('/api/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           conversation_id: conversation.id,
           followup_date: null,
@@ -327,21 +340,35 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   useEffect(() => {
     if (!conversation) return
     setLoading(true)
-    fetch(`/api/sheets?phone=${conversation.phone_number}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data && !data.error) {
-          setSheetData(data)
-          const { 
-            notes, Notes, stage, Stage, 
-            followup_date, followup_notes, followup_notified,
-            ...cleanedData 
-          } = data
-          onLeadUpdate(cleanedData)
+    
+    const loadSheetData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch(`/api/sheets?phone=${conversation.phone_number}`, {
+          headers: session?.access_token
+            ? { 'Authorization': `Bearer ${session.access_token}` }
+            : {}
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data && !data.error) {
+            setSheetData(data)
+            const { 
+              notes, Notes, stage, Stage, 
+              followup_date, followup_notes, followup_notified,
+              ...cleanedData 
+            } = data
+            onLeadUpdate(cleanedData)
+          }
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+      } catch (err) {
+        console.error('Failed to load sheets data:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSheetData()
   }, [conversation?.phone_number])
 
   // Load existing notes when conversation changes
@@ -355,9 +382,13 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
     if (!conversation) return
     setSavingNotes(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       await fetch(`/api/conversations/${conversation.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({ notes })
       })
       setNotesSaved(true)

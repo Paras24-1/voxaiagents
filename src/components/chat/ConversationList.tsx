@@ -269,9 +269,13 @@ function ConversationItem({
     setAssigning(true)
     
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/assignments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           conversation_id: conv.id,
           assigned_to: userId
