@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Conversation } from '@/types'
 import { useMessages, useSendMessage } from '@/hooks'
+import { supabase } from '@/lib/supabase'
 import { formatDistanceToNow } from 'date-fns'
 import { Send, Bot, User, Loader2, Paperclip, X, Tag } from 'lucide-react'
 
@@ -156,13 +157,21 @@ hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
     setSavingStage(true)
     setStage(newStage)
 
-    await fetch(`/api/conversations/${conversation.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stage: newStage })
-    })
-
-    setSavingStage(false)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch(`/api/conversations/${conversation.id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({ stage: newStage })
+      })
+    } catch (err) {
+      console.error('Failed to change stage:', err)
+    } finally {
+      setSavingStage(false)
+    }
   }
 
   if (!conversation) {

@@ -398,7 +398,7 @@ function FollowupsContent() {
     }).length
   }
 
-  const isAdmin = profile?.role === 'admin'
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950">

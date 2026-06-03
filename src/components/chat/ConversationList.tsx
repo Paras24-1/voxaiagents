@@ -46,7 +46,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [deleting, setDeleting] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>([])
   const { profile } = useOrg()
-  const isAdmin = profile?.role === 'admin'
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
   console.log('DEBUG:', { profile, isAdmin, role: profile?.role })
 
 
@@ -62,7 +62,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 })
 
   useEffect(() => {
-    if (profile?.role === 'admin') {
+    if (profile?.role === 'admin' || profile?.role === 'owner') {
       fetchEmployees()
     }
   }, [profile])
