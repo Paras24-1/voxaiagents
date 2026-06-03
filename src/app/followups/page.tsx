@@ -89,7 +89,12 @@ function FollowupsContent() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users')
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/users', {
+        headers: session?.access_token
+          ? { 'Authorization': `Bearer ${session.access_token}` }
+          : {}
+      })
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data)) {
@@ -138,11 +143,15 @@ function FollowupsContent() {
   const handleCancelFollowup = async (reminder: FollowupReminder) => {
     if (!reminder.conversation_id) return
     if (!window.confirm(`Are you sure you want to cancel the followup reminder for ${reminder.conversations.name || reminder.conversations.phone_number}?`)) return
-
+ 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           conversation_id: reminder.conversation_id,
           followup_date: null,
@@ -150,7 +159,7 @@ function FollowupsContent() {
           followup_notified: false
         })
       })
-
+ 
       if (res.ok) {
         // Refresh local list
         setReminders(prev => prev.filter(r => r.id !== reminder.id))
@@ -198,9 +207,13 @@ function FollowupsContent() {
     setSavingFollowup(true)
     try {
       const isoString = modalDate.toISOString()
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           conversation_id: selectedLeadForEdit.conversation_id,
           followup_date: isoString,
@@ -208,7 +221,7 @@ function FollowupsContent() {
           followup_notified: false
         })
       })
-
+ 
       if (res.ok) {
         setShowFollowupModal(false)
         await fetchFollowups()
@@ -247,11 +260,15 @@ function FollowupsContent() {
           notes: activityNotes.trim() || selectedLeadForDone.followup_notes
         })
       })
-
+ 
       // 2. Clear followup dates on lead record
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           conversation_id: selectedLeadForDone.conversation_id,
           followup_date: null,
@@ -259,7 +276,7 @@ function FollowupsContent() {
           followup_notified: false
         })
       })
-
+ 
       if (res.ok) {
         setShowMarkDoneModal(false)
         setActivityNotes('')
