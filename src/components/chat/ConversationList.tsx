@@ -1,27 +1,28 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Conversation, Stage } from '@/types'
 import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
-import { Search, Filter, Wifi, Trash2, X, UserPlus, UserX } from 'lucide-react'
-import { useOrg } from '@/contexts/OrgContext'
+import { Search, Filter, Wifi, Trash2, X, UserPlus } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 
-const STAGES: Stage[] = ['new', 'interested', 'booking', 'confirmed', 'cancelled', 'completed', 'followup', 'not_interested', 'call_done', 'low_budget', 'hot_customer']
+const STAGES: Stage[] = ['new', 'interested', 'booking', 'confirmed', 'cancelled', 'completed', 'followup', 'not_interested', 'call_done', 'low_budget', 'hot_customer', 'not_connected']
 
 const STAGE_COLORS: Record<Stage, string> = {
-  new:            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  interested:     'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  booking:        'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  confirmed:      'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-  cancelled:      'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',
-  completed:      'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-  followup:       'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
-  not_interested: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-  call_done:      'bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-300',
-  low_budget:     'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
-  hot_customer:   'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+  new:        'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  interested: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  booking:    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  confirmed:  'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  cancelled:  'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',
+  completed:  'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  followup:      'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
+  not_interested:'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+    call_done:      'bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-300',
+  low_budget:  'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+not_connected:  'bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-300',
 }
 
 interface Props {
@@ -36,69 +37,45 @@ interface Employee {
   email: string
 }
 
-function ConversationList({ selectedId, onSelect, onDelete }: Props) {
+export default function ConversationList({ selectedId, onSelect, onDelete }: Props) {
   const [search, setSearch] = useState('')
   const [stage, setStage] = useState('')
   const [unread, setUnread] = useState(false)
-  const [assignedFilter, setAssignedFilter] = useState<'all' | 'unassigned' | 'assigned'>('all')
+  const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>([])
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
+  console.log('DEBUG:', { profile, isAdmin, role: profile?.role })
 
-  const { profile } = useOrg()
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+
 
   const { conversations, loading, refetch } = useConversations({ 
-    search, 
-    stage, 
-    unread,
-    assignFilter: assignedFilter,
-    userRole: profile?.role,
-    userId: profile?.id,
-  })
-
-  const fetchEmployees = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token || ''
-      const res = await fetch('/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await res.json()
-      if (Array.isArray(data)) {
-        setEmployees(data.filter(u => u.role === 'employee'))
-      }
-    } catch (err) {
-      console.error('Failed to fetch employees:', err)
-    }
-  }
+  search, 
+  stage, 
+  unread,
+  assignFilter: assignedFilter,
+  userId: profile?.id,
+  isAdmin: !!isAdmin,
+  userRole: profile?.role,
+})
 
   useEffect(() => {
-    if (isAdmin) {
+    if (profile?.role === 'admin') {
       fetchEmployees()
     }
-  }, [profile, isAdmin])
+  }, [profile])
 
-  // Auto-select conversation if "phone" query parameter is present in URL on load
-  const [hasAutoSelected, setHasAutoSelected] = useState(false)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && conversations.length > 0 && !selectedId && !hasAutoSelected) {
-      const params = new URLSearchParams(window.location.search)
-      const phoneParam = params.get('phone')
-      if (phoneParam) {
-        const cleanParam = phoneParam.replace(/\D/g, '').slice(-10)
-        if (cleanParam) {
-          const match = conversations.find(c => 
-            c.phone_number.replace(/\D/g, '').slice(-10) === cleanParam
-          )
-          if (match) {
-            onSelect(match)
-            setHasAutoSelected(true)
-          }
-        }
-      }
-    }
-  }, [conversations, selectedId, onSelect, hasAutoSelected])
+  const fetchEmployees = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, email')
+      .eq('role', 'employee')
+      .order('name')
+    
+    if (data) setEmployees(data)
+  }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
@@ -109,23 +86,17 @@ function ConversationList({ selectedId, onSelect, onDelete }: Props) {
     if (!confirmId) return
     setDeleting(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token || ''
-      const res = await fetch(`/api/conversations/${confirmId}`, { 
-        method: 'DELETE',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      })
+      const res = await fetch(`/api/conversations/${confirmId}`, { method: 'DELETE' })
       if (res.ok) {
         onDelete?.(confirmId)
         refetch()
       }
-    } catch (err) {
-      console.error(err)
     } finally {
       setDeleting(false)
       setConfirmId(null)
     }
   }
+
 
   return (
     <aside className="flex flex-col h-full bg-white dark:bg-gray-950">
@@ -164,21 +135,21 @@ function ConversationList({ selectedId, onSelect, onDelete }: Props) {
       {/* Header */}
       <div className="px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {isAdmin ? 'All Conversations' : 'My Chats'}
-            </h1>
-            {!isAdmin && profile?.name && (
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                👤 {profile.name}
-              </p>
-            )}
-          </div>
-          <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-            <Wifi className="w-3 h-3" />
-            Live
-          </span>
-        </div>
+  <div>
+    <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+      {isAdmin ? 'All Conversations' : 'My Chats'}
+    </h1>
+    {!isAdmin && profile?.name && (
+      <p className="text-xs text-gray-500 dark:text-gray-400">
+        👤 {profile.name}
+      </p>
+    )}
+  </div>
+  <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+    <Wifi className="w-3 h-3" />
+    Live
+  </span>
+</div>
 
         <div className="relative mb-2">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
@@ -194,31 +165,35 @@ function ConversationList({ selectedId, onSelect, onDelete }: Props) {
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
           
-          {/* Assignment Filter (Admin/Owner only) */}
+          {/* Assignment Filter (Admin only) */}
           {isAdmin && (
             <select
               value={assignedFilter}
-              onChange={(e) => setAssignedFilter(e.target.value as 'all' | 'unassigned' | 'assigned')}
-              className="text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
+              onChange={(e) => setAssignedFilter(e.target.value)}
+              className="text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none"
             >
               <option value="all">All chats</option>
               <option value="unassigned">Unassigned</option>
-              <option value="assigned">Assigned</option>
+              <option value="assigned">All Assigned</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name}
+                </option>
+              ))}
             </select>
           )}
-
+          
           <select
             value={stage}
             onChange={(e) => setStage(e.target.value)}
-            className="text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
+            className="text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none"
           >
             <option value="">All stages</option>
             {STAGES.map((s) => (
-              <option key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ')}
-              </option>
+              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
           </select>
+          
           <button
             onClick={() => setUnread((u) => !u)}
             className={`text-xs px-2 py-1 rounded-lg transition-colors ${
@@ -283,25 +258,20 @@ function ConversationItem({
   const [assigning, setAssigning] = useState(false)
 
   const initials = (conv.name || conv.phone_number || 'U')
-    .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+  .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
   const timeAgo = formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true })
 
   const assignedEmployee = employees.find(e => e.id === conv.assigned_to)
 
-  const handleAssign = async (e: React.MouseEvent, userId: string | null) => {
+  const handleAssign = async (e: React.MouseEvent, userId: string) => {
     e.stopPropagation()
     setAssigning(true)
     
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token || ''
       const res = await fetch('/api/assignments', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversation_id: conv.id,
           assigned_to: userId
@@ -328,7 +298,7 @@ function ConversationItem({
       }`}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setShowAssign(false); }}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Avatar */}
       <div className="relative shrink-0">
@@ -354,9 +324,9 @@ function ConversationItem({
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
           {conv.last_message || 'No messages yet'}
         </p>
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+        <div className="flex items-center gap-2 mt-1.5">
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${STAGE_COLORS[conv.stage as Stage] || STAGE_COLORS.new}`}>
-            {conv.stage.replace(/_/g, ' ')}
+            {conv.stage}
           </span>
           
           {/* Assignment Badge */}
@@ -374,9 +344,9 @@ function ConversationItem({
       </div>
 
       {/* Actions */}
-      {hovered && !showAssign && (
+      {hovered && (
         <div className="flex items-center gap-1 shrink-0">
-          {isAdmin && (
+          {isAdmin && !showAssign && (
             <button
               onClick={(e) => { e.stopPropagation(); setShowAssign(true); }}
               className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 hover:bg-blue-100 transition-colors"
@@ -396,7 +366,7 @@ function ConversationItem({
       )}
 
       {/* Unread badge */}
-      {conv.unread_count > 0 && !hovered && !showAssign && (
+      {conv.unread_count > 0 && !hovered && (
         <span className="shrink-0 min-w-[20px] h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
           {conv.unread_count > 99 ? '99+' : conv.unread_count}
         </span>
@@ -404,46 +374,21 @@ function ConversationItem({
 
       {/* Assignment Dropdown */}
       {showAssign && (
-        <div 
-          className="absolute right-2 top-2 z-10 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 min-w-[160px]"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 px-2">Assign to:</p>
-          <div className="max-h-40 overflow-y-auto space-y-0.5">
-            {employees.map((emp) => (
-              <button
-                key={emp.id}
-                onClick={(e) => handleAssign(e, emp.id)}
-                disabled={assigning}
-                className={`w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 flex items-center justify-between ${
-                  conv.assigned_to === emp.id ? 'bg-emerald-50 dark:bg-emerald-950/30 font-medium' : ''
-                }`}
-              >
-                <span>{emp.name}</span>
-                {conv.assigned_to === emp.id && <span className="text-emerald-500 font-bold">✓</span>}
-              </button>
-            ))}
-            {employees.length === 0 && (
-              <p className="px-2 py-1.5 text-[10px] text-gray-400 italic">No employees found</p>
-            )}
-          </div>
-          {conv.assigned_to && (
-            <>
-              <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
-              <button
-                onClick={(e) => handleAssign(e, null)}
-                disabled={assigning}
-                className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors"
-              >
-                <UserX className="w-3.5 h-3.5" />
-                <span>Remove assignee</span>
-              </button>
-            </>
-          )}
-          <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+        <div className="absolute right-2 top-2 z-10 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 min-w-[160px]">
+          <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 px-2">Assign to:</p>
+          {employees.map((emp) => (
+            <button
+              key={emp.id}
+              onClick={(e) => handleAssign(e, emp.id)}
+              disabled={assigning}
+              className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+            >
+              {emp.name}
+            </button>
+          ))}
           <button
-            onClick={() => setShowAssign(false)}
-            className="w-full py-1 text-[10px] text-center text-gray-400 hover:text-gray-600 rounded-lg"
+            onClick={(e) => { e.stopPropagation(); setShowAssign(false); }}
+            className="w-full mt-1 px-3 py-2 text-xs rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
           >
             Cancel
           </button>
@@ -469,5 +414,3 @@ function LoadingSkeleton() {
     </>
   )
 }
-
-export default React.memo(ConversationList)

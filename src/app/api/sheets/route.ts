@@ -1,20 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, getOrgId } from '@/lib/supabase'
-
-export const dynamic = 'force-dynamic'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   try {
-    // Get org_id from authenticated user
-    const orgId = await getOrgId(req)
-
-    if (!orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     const { searchParams } = new URL(req.url)
     const rawPhone = searchParams.get('phone') || ''
     const phone = rawPhone.replace(/\D/g, '').slice(-10)
@@ -23,11 +11,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'phone is required' }, { status: 400 })
     }
 
-    // Query leads table matching the last 10 digits of phone_number and org_id
+    // Query leads table matching the last 10 digits of phone_number
     const { data, error } = await supabaseAdmin
       .from('leads')
       .select('*')
-      .eq('org_id', orgId)
       .ilike('phone_number', `%${phone}`)
       .maybeSingle()
 
@@ -70,7 +57,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(lead)
   } catch (err) {
-    console.error('💥 Exception:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
