@@ -24,7 +24,8 @@ import {
   Send,
   Users,
   BarChart2,
-  Settings
+  Settings,
+  Calendar
 } from 'lucide-react'
 
 import Link from 'next/link'
@@ -183,6 +184,15 @@ export default function DashboardPage() {
       <span>Analytics</span>
     </Link>
   )}
+
+  {/* Followups */}
+  <Link
+    href="/followups"
+    className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-medium rounded-lg transition-colors"
+  >
+    <Calendar className="w-3.5 h-3.5" />
+    <span>Followups</span>
+  </Link>
 
   {/* Lead CRM */}
   <Link
