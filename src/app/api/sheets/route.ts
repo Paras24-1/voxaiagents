@@ -45,6 +45,8 @@ export async function GET(req: NextRequest) {
 
     // Map database column names to match the exact keys expected by LeadPanel.tsx (which mapped from Google Sheets)
     const lead = {
+      id: data.id,
+      conversation_id: data.conversation_id,
       Phone: data.phone_number,
       Name: data.name || '',
       Lead_Type: data.lead_type || '',

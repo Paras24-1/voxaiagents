@@ -103,6 +103,34 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    // If still not found, upsert a new lead row for the conversation
+    if (!data) {
+      const { data: conv } = await supabaseAdmin
+        .from('conversations')
+        .select('phone_number, name')
+        .eq('id', conversation_id)
+        .eq('org_id', orgId)
+        .maybeSingle()
+
+      if (conv) {
+        const { data: upsertData, error: upsertError } = await supabaseAdmin
+          .from('leads')
+          .upsert({
+            ...updates,
+            conversation_id,
+            org_id: orgId,
+            phone_number: conv.phone_number,
+            name: conv.name || '',
+            stage: updates.stage || 'new'
+          }, { onConflict: 'conversation_id' })
+          .select()
+          .maybeSingle()
+
+        if (upsertError) throw upsertError
+        data = upsertData || null
+      }
+    }
+
     if (error && !data) throw error
 
     if (updates.name || updates.stage) {

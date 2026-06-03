@@ -221,7 +221,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
     try {
       const isoString = modalDate.toISOString();
       const { data: { session } } = await supabase.auth.getSession()
-      await fetch('/api/leads', {
+      const res = await fetch('/api/leads', {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -234,11 +234,16 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           followup_notified: false
         })
       });
-      onLeadUpdate({
-        followup_date: isoString,
-        followup_notes: modalNotes,
-        followup_notified: false
-      });
+      if (res.ok) {
+        const savedLead = await res.json();
+        onLeadUpdate(savedLead);
+      } else {
+        onLeadUpdate({
+          followup_date: isoString,
+          followup_notes: modalNotes,
+          followup_notified: false
+        });
+      }
       setShowFollowupModal(false);
     } catch (err) {
       console.error('Failed to save follow-up:', err);
@@ -355,7 +360,6 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
             setSheetData(data)
             const { 
               notes, Notes, stage, Stage, 
-              followup_date, followup_notes, followup_notified,
               ...cleanedData 
             } = data
             onLeadUpdate(cleanedData)

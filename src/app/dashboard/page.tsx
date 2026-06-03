@@ -92,11 +92,7 @@ export default function DashboardPage() {
 
   const handleLeadUpdate = useCallback(
     (updates: Partial<Lead>) => {
-      setLead(prev =>
-        prev
-          ? { ...prev, ...updates }
-          : null
-      )
+      setLead(prev => prev ? { ...prev, ...updates } : (updates as Lead))
     },
     []
   )
