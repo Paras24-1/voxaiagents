@@ -126,21 +126,18 @@ function FollowupsContent() {
   const fetchFollowups = async () => {
     setLoading(true)
     try {
-      // Fetch leads that have active followup_date set
-      let query = supabase
-        .from('leads')
-        .select('*, conversations:conversation_id!inner(id, name, phone_number, assigned_to)')
-        .not('followup_date', 'is', null)
-        .order('followup_date', { ascending: true })
-
-      if (profile?.role !== 'admin') {
-        query = query.eq('conversations.assigned_to', profile?.id)
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/followups', {
+        headers: session?.access_token
+          ? { 'Authorization': `Bearer ${session.access_token}` }
+          : {}
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setReminders(data || [])
+      } else {
+        console.error('Failed to fetch follow-ups:', res.statusText)
       }
-
-      const { data, error } = await query
-
-      if (error) throw error
-      setReminders((data as any) || [])
     } catch (err) {
       console.error('Failed to fetch follow-ups:', err)
     } finally {
@@ -436,7 +433,7 @@ function FollowupsContent() {
       {/* Header bar */}
       <header className="h-12 flex items-center justify-between px-4 bg-emerald-600 shrink-0 z-10 text-white shadow-md">
         <div className="flex items-center gap-2">
-          <Link href="/" className="mr-1 p-1 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors">
+          <Link href="/dashboard" className="mr-1 p-1 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <Calendar className="w-5 h-5 text-white" />
