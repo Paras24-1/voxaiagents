@@ -26,6 +26,7 @@ export type Stage =
   | 'call_done'
   | 'low_budget'
   | 'hot_customer'
+  | 'not_connected'
 
 export interface Message {
   id: string
@@ -67,6 +68,18 @@ export interface Lead {
   callback_ready?: string
   conversation_summary?: string
   lead_score?: string
+  followup_date?: string
+  followup_notes?: string
+  followup_notified?: boolean
+}
+
+export interface LeadActivity {
+  id: string
+  lead_id: string
+  activity_type: string
+  description: string
+  notes?: string
+  created_at: string
 }
 
 export interface ReplyPayload {

@@ -11,7 +11,7 @@ export function useConversations(filters: {
   search?: string
   stage?: string
   unread?: boolean
-  assignFilter?: 'all' | 'unassigned' | 'assigned'
+  assignFilter?: string
   userId?: string
   isAdmin?: boolean
   userRole?: string

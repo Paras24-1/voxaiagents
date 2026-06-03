@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
+import { useOrg } from '@/contexts/OrgContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { 
   X, Search, Calendar, Clock, Trash2, Check, Edit2, 
@@ -37,7 +37,7 @@ export default function FollowupsPage() {
 
 function FollowupsContent() {
   const router = useRouter()
-  const { profile } = useAuth()
+  const { profile } = useOrg()
   
   // Theme state
   const [dark, setDark] = useState(false)

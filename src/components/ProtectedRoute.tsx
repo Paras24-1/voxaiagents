@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { useOrg } from '@/contexts/OrgContext'
 import { Loader2 } from 'lucide-react'
 
 export default function ProtectedRoute({ 
@@ -12,7 +12,7 @@ export default function ProtectedRoute({
   children: React.ReactNode
   requireAdmin?: boolean
 }) {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading } = useOrg()
   const router = useRouter()
 
   useEffect(() => {

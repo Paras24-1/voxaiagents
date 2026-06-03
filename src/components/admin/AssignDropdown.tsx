@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
+import { useOrg } from '@/contexts/OrgContext'
 import { ChevronDown, UserCheck, UserX, Check } from 'lucide-react'
 
 interface Employee {
@@ -29,7 +29,7 @@ export default function AssignDropdown({
   const [loading, setLoading] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const { profile } = useAuth()
+  const { profile } = useOrg()
 
   // Close on outside click
   useEffect(() => {
