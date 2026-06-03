@@ -43,11 +43,13 @@ export default function AssignDropdown({
   }, [])
 
   const fetchEmployees = async () => {
+    if (!profile?.org_id) return
     setLoading(true)
     const { data } = await supabase
       .from('users')
       .select('id, name, email')
       .eq('role', 'employee')
+      .eq('org_id', profile.org_id)
       .order('name')
     setEmployees(data || [])
     setLoading(false)

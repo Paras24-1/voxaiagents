@@ -68,10 +68,12 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   }, [profile])
 
   const fetchEmployees = async () => {
+    if (!profile?.org_id) return
     const { data } = await supabase
       .from('users')
       .select('id, name, email')
       .eq('role', 'employee')
+      .eq('org_id', profile.org_id)
       .order('name')
     
     if (data) setEmployees(data)
