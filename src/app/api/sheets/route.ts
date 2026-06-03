@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
       .select('*')
       .ilike('phone_number', `%${phone}`)
       .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
     if (error) throw error
