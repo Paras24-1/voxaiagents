@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { name, template_name, template_body, contacts, scheduled_at } = body
+    const { name, template_name, template_body, contacts, scheduled_at, header_image_url } = body
 
     if (!name || !template_name || !contacts?.length) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -76,7 +76,12 @@ export async function POST(req: NextRequest) {
         await fetch(n8nUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ campaign_id: campaign.id, template_name, contacts }),
+          body: JSON.stringify({ 
+            campaign_id: campaign.id, 
+            template_name, 
+            contacts,
+            header_image_url: header_image_url || ''
+          }),
         }).catch(console.error)
       }
     }
