@@ -1,7 +1,7 @@
 -- ============================================================
 -- WhatsApp Chat Dashboard - Follow-up and Tenant Columns Migration
 -- Run this inside your Supabase SQL Editor:
--- https://supabase.com/dashboard/project/ybplmzuygurbkqsbqfmn/sql/new
+-- https://supabase.com/dashboard/project/jncmizoejeaclpnfxazg/sql/new
 -- ============================================================
 
 -- 1. Add org_id to conversations table if it doesn't exist
