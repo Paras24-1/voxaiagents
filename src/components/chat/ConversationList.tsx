@@ -44,6 +44,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [showAddLead, setShowAddLead] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>([])
   const { profile } = useOrg()
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
@@ -108,6 +109,19 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
   return (
     <aside className="flex flex-col h-full bg-white dark:bg-gray-950">
+      {/* Add Lead & Initiate Chat Modal */}
+      {showAddLead && (
+        <AddLeadModal
+          onClose={() => setShowAddLead(false)}
+          onSuccess={(newConv) => {
+            refetch()
+            onSelect(newConv)
+            setShowAddLead(false)
+          }}
+          profile={profile}
+        />
+      )}
+
       {/* Confirm Delete Modal */}
       {confirmId && (
         <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -144,8 +158,15 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
       <div className="px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between mb-3">
   <div>
-    <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-      {isAdmin ? 'All Conversations' : 'My Chats'}
+    <h1 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+      <span>{isAdmin ? 'All Conversations' : 'My Chats'}</span>
+      <button
+        onClick={() => setShowAddLead(true)}
+        className="p-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        title="Add New Lead & Start Chat"
+      >
+        <UserPlus className="w-4 h-4" />
+      </button>
     </h1>
     {!isAdmin && profile?.name && (
       <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -424,5 +445,259 @@ function LoadingSkeleton() {
         </div>
       ))}
     </>
+  )
+}
+
+function AddLeadModal({
+  onClose,
+  onSuccess,
+  profile
+}: {
+  onClose: () => void
+  onSuccess: (conv: any) => void
+  profile: any
+}) {
+  const [leadName, setLeadName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [templates, setTemplates] = useState<any[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null)
+  const [variables, setVariables] = useState<string[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function loadTemplates() {
+      setLoadingTemplates(true)
+      setError('')
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch('/api/templates', {
+          headers: session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+        })
+        if (!res.ok) {
+          const errData = await res.json()
+          throw new Error(errData.error || 'Failed to fetch templates')
+        }
+        const data = await res.json()
+        setTemplates(data || [])
+      } catch (err: any) {
+        setError(err.message || 'Error loading templates')
+      } finally {
+        setLoadingTemplates(false)
+      }
+    }
+    loadTemplates()
+  }, [])
+
+  const handleTemplateChange = (templateName: string) => {
+    const template = templates.find(t => t.name === templateName)
+    setSelectedTemplate(template || null)
+    if (template && template.variables) {
+      setVariables(new Array(template.variables.length).fill(''))
+    } else {
+      setVariables([])
+    }
+  }
+
+  const handleVariableChange = (index: number, value: string) => {
+    setVariables(prev => {
+      const next = [...prev]
+      next[index] = value
+      return next
+    })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!leadName || !phone || !selectedTemplate) {
+      setError('Please fill in all required fields.')
+      return
+    }
+    setSubmitting(true)
+    setError('')
+
+    try {
+      // Reconstruct preview message
+      let previewMessage = selectedTemplate.body || ''
+      variables.forEach((val, i) => {
+        previewMessage = previewMessage.replace(`{{${i + 1}}}`, val)
+      })
+
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/conversations/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          phone,
+          name: leadName,
+          template_name: selectedTemplate.name,
+          template_lang: selectedTemplate.language,
+          variables,
+          message_text: previewMessage,
+          userId: profile?.id
+        })
+      })
+
+      const resData = await res.json()
+      if (!res.ok) {
+        throw new Error(resData.error || 'Failed to initiate conversation')
+      }
+
+      onSuccess(resData.conversation)
+    } catch (err: any) {
+      setError(err.message || 'An error occurred')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const getPreviewText = () => {
+    if (!selectedTemplate) return ''
+    let text = selectedTemplate.body || ''
+    variables.forEach((val, i) => {
+      text = text.replace(`{{${i + 1}}}`, val || `[Variable ${i + 1}]`)
+    })
+    return text
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-emerald-600 dark:bg-emerald-700">
+          <h3 className="text-base font-semibold text-white">Add Lead & Initiate Chat</h3>
+          <button type="button" onClick={onClose} className="text-emerald-100 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-medium border border-red-100 dark:border-red-900/40">
+              ⚠️ {error}
+            </div>
+          )}
+
+          {/* Lead Name */}
+          <div>
+            <label className="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1 tracking-wider">
+              LEAD NAME *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. John Doe"
+              value={leadName}
+              onChange={(e) => setLeadName(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <label className="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1 tracking-wider">
+              PHONE NUMBER * (With country code, e.g. 919739755997)
+            </label>
+            <input
+              type="tel"
+              required
+              placeholder="e.g. 919739755997"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          {/* Select Template */}
+          <div>
+            <label className="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1 tracking-wider">
+              SELECT WHATSAPP TEMPLATE *
+            </label>
+            {loadingTemplates ? (
+              <div className="text-xs text-gray-400 animate-pulse py-2">Loading templates from Meta...</div>
+            ) : (
+              <select
+                required
+                value={selectedTemplate?.name || ''}
+                onChange={(e) => handleTemplateChange(e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">-- Choose Template --</option>
+                {templates.map((t) => (
+                  <option key={t.id || t.name} value={t.name}>
+                    {t.name} ({t.language})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Dynamic Variables Inputs */}
+          {selectedTemplate && selectedTemplate.variables?.length > 0 && (
+            <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-850 rounded-2xl border border-gray-105 dark:border-gray-750">
+              <h4 className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Template Variables
+              </h4>
+              {selectedTemplate.variables.map((v: string, i: number) => (
+                <div key={i}>
+                  <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-0.5">
+                    VARIABLE {i + 1}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={`Enter value for ${v}`}
+                    value={variables[i] || ''}
+                    onChange={(e) => handleVariableChange(i, e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-850 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Template Preview */}
+          {selectedTemplate && (
+            <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl">
+              <h4 className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mb-1">
+                Message Preview
+              </h4>
+              <p className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+                {getPreviewText()}
+              </p>
+            </div>
+          )}
+
+          {/* Submit buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
+            >
+              {submitting ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Initiating...</span>
+                </>
+              ) : (
+                <span>Send & Start Chat</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
