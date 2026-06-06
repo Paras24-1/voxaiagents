@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
         org_id: orgId,
         unread_count: 0,
         ai_mode: false,
+        stage: 'new',
         updated_at: new Date().toISOString(),
         ...(userId ? { assigned_to: userId, assignment_status: 'assigned' } : {})
       }, { onConflict: 'phone_number,org_id' })
@@ -103,8 +104,7 @@ export async function POST(req: NextRequest) {
         conversation_id: conv.id,
         org_id: orgId,
         phone_number: cleanPhone,
-        name: name || cleanPhone,
-        stage: 'new'
+        name: name || cleanPhone
       }, { onConflict: 'conversation_id' })
 
     if (leadError) throw leadError
