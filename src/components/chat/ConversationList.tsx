@@ -88,7 +88,13 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     if (!confirmId) return
     setDeleting(true)
     try {
-      const res = await fetch(`/api/conversations/${confirmId}`, { method: 'DELETE' })
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/conversations/${confirmId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        }
+      })
       if (res.ok) {
         onDelete?.(confirmId)
         refetch()

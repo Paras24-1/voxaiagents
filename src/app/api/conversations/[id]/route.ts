@@ -27,7 +27,27 @@ export async function DELETE(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
     }
 
+    // 1. Delete assignment logs associated with this conversation
+    await supabaseAdmin.from('assignment_logs').delete().eq('conversation_id', id)
+
+    // 2. Delete conversation assignments associated with this conversation
+    await supabaseAdmin.from('conversation_assignments').delete().eq('conversation_id', id)
+
+    // 3. Since lead_activities is a child table referencing leads, find lead ID and delete activities first
+    const { data: lead } = await supabaseAdmin
+      .from('leads')
+      .select('id')
+      .eq('conversation_id', id)
+      .maybeSingle()
+
+    if (lead) {
+      await supabaseAdmin.from('lead_activities').delete().eq('lead_id', lead.id)
+    }
+
+    // 4. Delete leads
     await supabaseAdmin.from('leads').delete().eq('conversation_id', id)
+
+    // 5. Delete messages
     await supabaseAdmin.from('messages').delete().eq('conversation_id', id)
 
     const { error } = await supabaseAdmin
