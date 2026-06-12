@@ -633,8 +633,8 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                         </p>
                         <p className="text-[10px] text-gray-400 mt-0.5">
                           {selectedTemplate.header_format === 'DOCUMENT'
-                            ? 'PDF — max 5MB'
-                            : 'JPG, PNG, WEBP — max 5MB'}
+                            ? 'PDF — max 8MB'
+                            : 'JPG, PNG, WEBP — max 8MB'}
                         </p>
                         <input
                           ref={imageRef}

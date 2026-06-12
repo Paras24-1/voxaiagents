@@ -19,10 +19,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid file type. Only images allowed.' }, { status: 400 })
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    // Validate file size (max 8MB)
+    const maxSize = 8 * 1024 * 1024 // 8MB
     if (file.size > maxSize) {
-      return NextResponse.json({ error: 'File too large. Max 5MB.' }, { status: 400 })
+      return NextResponse.json({ error: 'File too large. Max 8MB.' }, { status: 400 })
     }
 
     // Generate unique filename scoped under organization ID
