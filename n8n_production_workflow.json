@@ -1,0 +1,353 @@
+{
+  "name": "Production Multi-Tenant Bulk Messaging",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bulk-send",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        240
+      ],
+      "id": "264e7f04-8b5e-407b-8ec7-9460afcc525f",
+      "webhookId": "0c6cfd06-3666-4f39-a9ad-b3973418f06f"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"received\": true, \"campaign_id\": \"{{ $json.body.campaign_id }}\" }",
+        "options": {}
+      },
+      "name": "Respond Immediately",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        100
+      ],
+      "id": "6e2d8069-2d9d-4c8c-967f-983426a51071"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\n\nif (!body?.campaign_id) {\n  throw new Error('campaign_id missing');\n}\n\nconst supabaseUrl = 'https://jncmizoejeaclpnfxazg.supabase.co';\nconst supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpuY21pem9lamVhY2xwbmZ4YXpnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzEzMTczMiwiZXhwIjoyMDkyNzA3NzMyfQ.A8A4tMGzUFuhH4DOSb77QByuKmNdajZ_kCRvr_yxqFo';\n\ntry {\n  // 1. Mark campaign as sending\n  await this.helpers.request({\n    method: 'PATCH',\n    url: `${supabaseUrl}/rest/v1/campaigns?id=eq.${body.campaign_id}`,\n    headers: {\n      apikey: supabaseKey,\n      Authorization: `Bearer ${supabaseKey}`,\n      'Content-Type': 'application/json'\n    },\n    body: {\n      status: 'sending',\n      started_at: new Date().toISOString()\n    },\n    json: true\n  });\n\n  // 2. Fetch the campaign's org_id\n  const campaigns = await this.helpers.request({\n    method: 'GET',\n    url: `${supabaseUrl}/rest/v1/campaigns?id=eq.${body.campaign_id}&select=org_id`,\n    headers: {\n      apikey: supabaseKey,\n      Authorization: `Bearer ${supabaseKey}`\n    },\n    json: true\n  });\n\n  const orgId = campaigns[0]?.org_id;\n  if (!orgId) {\n    throw new Error('org_id not found for campaign');\n  }\n\n  // 3. Fetch organization settings for this org_id\n  const settingsList = await this.helpers.request({\n    method: 'GET',\n    url: `${supabaseUrl}/rest/v1/organization_settings?org_id=eq.${orgId}`,\n    headers: {\n      apikey: supabaseKey,\n      Authorization: `Bearer ${supabaseKey}`\n    },\n    json: true\n  });\n\n  const settings = settingsList[0];\n  if (!settings?.whatsapp_token || !settings?.whatsapp_phone_id) {\n    throw new Error('WhatsApp settings not configured for this organization');\n  }\n\n  return [{\n    json: {\n      campaign_id: body.campaign_id,\n      template_name: body.template_name,\n      header_image_url: body.header_image_url || '',\n      contacts: body.contacts,\n      whatsapp_token: settings.whatsapp_token,\n      whatsapp_phone_id: settings.whatsapp_phone_id,\n      whatsapp_waba_id: settings.whatsapp_waba_id || '',\n      supabase_url: supabaseUrl,\n      supabase_key: supabaseKey\n    }\n  }];\n} catch (error) {\n  throw new Error(`Mark campaign sending failed: ${error.message}`);\n}"
+      },
+      "name": "Mark Campaign Sending",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        240
+      ],
+      "id": "e86a2806-eb63-4e7c-a0af-a7aacf09ed05"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "contacts",
+        "options": {}
+      },
+      "name": "Split Contacts1",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        400,
+        240
+      ],
+      "id": "a19ee5a3-1406-410d-b0b2-1dd675b4d1c0"
+    },
+    {
+      "parameters": {
+        "jsCode": "const contact = $json;\nconst settings = $('Mark Campaign Sending').first().json;\n\nlet metaMediaId = null;\ntry {\n  metaMediaId = $('Upload to Meta').first().json.id;\n} catch (e) {\n  // Upload to Meta node was skipped (no media)\n}\n\nconst components = [];\n\nif (settings.header_image_url && settings.header_image_url.trim() !== '') {\n  const url = settings.header_image_url.trim();\n  const isPdf = url.toLowerCase().includes('.pdf');\n  \n  if (metaMediaId) {\n    if (isPdf) {\n      components.push({\n        type: 'header',\n        parameters: [\n          {\n            type: 'document',\n            document: {\n              id: metaMediaId,\n              filename: url.split('/').pop() || 'document.pdf'\n            }\n          }\n        ]\n      });\n    } else {\n      components.push({\n        type: 'header',\n        parameters: [\n          {\n            type: 'image',\n            image: {\n              id: metaMediaId\n            }\n          }\n        ]\n      });\n    }\n  } else {\n    if (isPdf) {\n      components.push({\n        type: 'header',\n        parameters: [\n          {\n            type: 'document',\n            document: {\n              link: url,\n              filename: url.split('/').pop() || 'document.pdf'\n            }\n          }\n        ]\n      });\n    } else {\n      components.push({\n        type: 'header',\n        parameters: [\n          {\n            type: 'image',\n            image: {\n              link: url\n            }\n          }\n        ]\n      });\n    }\n  }\n}\n\nif (contact.variables && typeof contact.variables === 'object') {\n  const params = [];\n  const keys = Object.keys(contact.variables).sort((a, b) => {\n    const numA = parseInt(a.replace(/\\D/g, '')) || 0;\n    const numB = parseInt(b.replace(/\\D/g, '')) || 0;\n    return numA - numB;\n  });\n\n  for (const k of keys) {\n    params.push({\n      type: 'text',\n      text: String(contact.variables[k])\n    });\n  }\n\n  if (params.length > 0) {\n    components.push({\n      type: 'body',\n      parameters: params\n    });\n  }\n}\n\nconst payload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: contact.phone,\n  type: 'template',\n  template: {\n    name: settings.template_name,\n    language: {\n      code: 'en'\n    }\n  }\n};\n\nif (components.length > 0) {\n  payload.template.components = components;\n}\n\nreturn {\n  json: {\n    contact_phone: contact.phone,\n    contact_name: contact.name,\n    campaign_id: settings.campaign_id,\n    whatsapp_token: settings.whatsapp_token,\n    whatsapp_phone_id: settings.whatsapp_phone_id,\n    supabase_url: settings.supabase_url,\n    supabase_key: settings.supabase_key,\n    payload: payload\n  }\n};"
+      },
+      "name": "Build Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        240
+      ],
+      "id": "build-payload-node"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $json.whatsapp_phone_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.whatsapp_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "failOnHttpStatusError": false,
+          "responseFormat": "json"
+        }
+      },
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        800,
+        240
+      ],
+      "id": "send-whatsapp-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json;\nconst buildPayloadNode = $('Build Payload').item;\nconst contactPhone = buildPayloadNode.json.contact_phone;\nconst campaignId = buildPayloadNode.json.campaign_id;\n\nlet status = 'failed';\nlet wamid = null;\nlet errorMsg = null;\n\nconst responseBody = response.body || {};\nconst statusCode = response.statusCode || 500;\n\nif (statusCode >= 200 && statusCode < 300 && responseBody.messages?.[0]?.id) {\n  status = 'sent';\n  wamid = responseBody.messages[0].id;\n} else {\n  status = 'failed';\n  errorMsg = responseBody.error?.message || 'Unknown Meta API error';\n}\n\nreturn {\n  json: {\n    campaign_id: campaignId,\n    phone: contactPhone,\n    status: status,\n    wamid: wamid,\n    error: errorMsg,\n    sent_at: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Collect Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        240
+      ],
+      "id": "collect-result-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length === 0) return [];\n\nconst settings = $('Mark Campaign Sending').first().json;\nconst supabaseUrl = settings.supabase_url;\nconst supabaseKey = settings.supabase_key;\nconst campaignId = settings.campaign_id;\n\nconst rows = items.map(item => ({\n  campaign_id: item.json.campaign_id,\n  phone: item.json.phone,\n  status: item.json.status,\n  wamid: item.json.wamid,\n  error: item.json.error,\n  sent_at: item.json.sent_at\n}));\n\nconst chunks = [];\nfor (let i = 0; i < rows.length; i += 100) {\n  chunks.push(rows.slice(i, i + 100));\n}\n\nlet sent = 0;\nlet failed = 0;\nconst total = rows.length;\n\nfor (const chunk of chunks) {\n  try {\n    await this.helpers.request({\n      method: 'POST',\n      url: `${supabaseUrl}/rest/v1/campaign_contacts?on_conflict=campaign_id,phone`,\n      headers: {\n        apikey: supabaseKey,\n        Authorization: `Bearer ${supabaseKey}`,\n        'Content-Type': 'application/json',\n        Prefer: 'resolution=merge-duplicates'\n      },\n      body: chunk,\n      json: true\n    });\n    \n    for (const r of chunk) {\n      if (r.status === 'sent') sent++;\n      else failed++;\n    }\n  } catch (error) {\n    console.error('Supabase batch upsert failed for chunk:', error);\n    failed += chunk.length;\n  }\n}\n\ntry {\n  const countsRes = await this.helpers.request({\n    method: 'GET',\n    url: `${supabaseUrl}/rest/v1/campaign_contacts?campaign_id=eq.${campaignId}&select=status`,\n    headers: {\n      apikey: supabaseKey,\n      Authorization: `Bearer ${supabaseKey}`\n    },\n    json: true\n  });\n  \n  const currentSent = countsRes.filter(c => c.status === 'sent').length;\n  const currentDelivered = countsRes.filter(c => c.status === 'delivered').length;\n  const currentFailed = countsRes.filter(c => c.status === 'failed').length;\n  const currentPending = countsRes.filter(c => c.status === 'pending').length;\n  \n  const isCompleted = currentPending === 0;\n  \n  await this.helpers.request({\n    method: 'PATCH',\n    url: `${supabaseUrl}/rest/v1/campaigns?id=eq.${campaignId}`,\n    headers: {\n      apikey: supabaseKey,\n      Authorization: `Bearer ${supabaseKey}`,\n      'Content-Type': 'application/json'\n    },\n    body: {\n      sent: currentSent,\n      delivered: currentDelivered,\n      failed: currentFailed,\n      status: isCompleted ? 'completed' : 'sending',\n      completed_at: isCompleted ? new Date().toISOString() : null\n    },\n    json: true\n  });\n} catch (error) { \n  console.error('Failed to recalculate campaign status:', error);\n}\n\nreturn [{ \n  json: {\n    success: true,\n    campaign_id: campaignId,\n    sent,\n    failed,\n    total\n  }\n}];"
+      },
+      "name": "Batch Update Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        240
+      ],
+      "id": "7459d1b2-19c7-4067-b165-27d84d9c5299"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.header_image_url }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "name": "Has Header Media?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        400,
+        240
+      ],
+      "id": "if-has-media-node"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.header_image_url }}",
+        "responseFormat": "file",
+        "options": {}
+      },
+      "name": "Download Media",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        600,
+        100
+      ],
+      "id": "download-media-node"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $node[\"Mark Campaign Sending\"].json.whatsapp_phone_id }}/media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Mark Campaign Sending\"].json.whatsapp_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyType": "multipart",
+        "multipartData": {
+          "properties": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "file",
+              "parameterType": "formBinaryData",
+              "value": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Upload to Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        800,
+        100
+      ],
+      "id": "upload-to-meta-node"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: $('Mark Campaign Sending').first().json\n}];"
+      },
+      "name": "Restore Settings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        100
+      ],
+      "id": "restore-settings-node"
+    }
+  ],
+  "connections": {
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Respond Immediately",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mark Campaign Sending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Campaign Sending": {
+      "main": [
+        [
+          {
+            "node": "Has Header Media?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Header Media?": {
+      "main": [
+        [
+          {
+            "node": "Download Media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split Contacts1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Media": {
+      "main": [
+        [
+          {
+            "node": "Upload to Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Meta": {
+      "main": [
+        [
+          {
+            "node": "Restore Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Settings": {
+      "main": [
+        [
+          {
+            "node": "Split Contacts1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Contacts1": {
+      "main": [
+        [
+          {
+            "node": "Build Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payload": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Collect Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Result": {
+      "main": [
+        [
+          {
+            "node": "Batch Update Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "db29c62c5f3d0c3a8dce6536e89ed89e76fc143cbb0996a55c48576b2a5b53f2"
+  }
+}
