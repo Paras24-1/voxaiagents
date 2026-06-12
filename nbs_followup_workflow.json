@@ -1,0 +1,183 @@
+{
+  "name": "NBS Auto Follow-up (12 Hours No Reply)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-node",
+      "name": "Every Hour Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jncmizoejeaclpnfxazg.supabase.co/rest/v1/rpc/get_pending_auto_followups",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpuY21pem9lamVhY2xwbmZ4YXpnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzEzMTczMiwiZXhwIjoyMDkyNzA3NzMyfQ.A8A4tMGzUFuhH4DOSb77QByuKmNdajZ_kCRvr_yxqFo"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpuY21pem9lamVhY2xwbmZ4YXpnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzEzMTczMiwiZXhwIjoyMDkyNzA3NzMyfQ.A8A4tMGzUFuhH4DOSb77QByuKmNdajZ_kCRvr_yxqFo"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"org_uuid\": \"41411069-0d94-4370-90a6-f2720c2a7c3c\"\n}",
+        "options": {}
+      },
+      "id": "get-pending-followups-node",
+      "name": "Get Pending Followups",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        420,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "={{ $json }}",
+        "options": {}
+      },
+      "id": "split-contacts-node",
+      "name": "Split Contacts",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        640,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1133137593218597",
+        "recipientPhoneNumber": "={{ $json.phone_number }}",
+        "textBody": "=Hi {{ $json.name || '' }}! 👋 Just checking in to see if you have any questions about Nelson Business School? We'd love to help you get started! 🎓",
+        "additionalFields": {}
+      },
+      "id": "send-whatsapp-followup-node",
+      "name": "Send WhatsApp Followup",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        860,
+        240
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "40CAwEaHqcvtQPqE",
+          "name": "nbs-vox"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://voxaiagents.com/api/webhook?org=nelson-business-school-",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "={{ $('Split Contacts').item.json.phone_number }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $('Split Contacts').item.json.name || '' }}"
+            },
+            {
+              "name": "message",
+              "value": "=Hi {{ $('Split Contacts').item.json.name || '' }}! 👋 Just checking in to see if you have any questions about Nelson Business School? We'd love to help you get started! 🎓"
+            },
+            {
+              "name": "direction",
+              "value": "outgoing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "save-message-to-db-node",
+      "name": "Save Message to DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1080,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Every Hour Schedule": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Followups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Followups": {
+      "main": [
+        [
+          {
+            "node": "Split Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Contacts": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Followup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Followup": {
+      "main": [
+        [
+          {
+            "node": "Save Message to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "db29c62c5f3d0c3a8dce6536e89ed89e76fc143cbb0996a55c48576b2a5b53f2"
+  }
+}
