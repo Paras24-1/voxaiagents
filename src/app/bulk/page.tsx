@@ -8,7 +8,7 @@ import {
   Upload, Send, Filter, Clock, BarChart2,
   CheckCircle, XCircle, AlertCircle, RefreshCw,
   Download, Pause, MessageSquare, TrendingUp, X, Plus, Eye,
-  ArrowLeft, Trash2
+  ArrowLeft, Trash2, FileText
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -47,6 +47,7 @@ interface Template {
   category: string
   body: string
   header: string
+  header_format?: string | null
   footer: string
   variables: string[]
 }
@@ -584,27 +585,40 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                 </div>
               )}
 
-              {/* Header Image Upload */}
-              {selectedTemplate && (
+              {/* Header Media Upload (Only show if template expects IMAGE or DOCUMENT) */}
+              {selectedTemplate && (selectedTemplate.header_format === 'IMAGE' || selectedTemplate.header_format === 'DOCUMENT') && (
                 <div>
                   <label className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-                    Header Image (if template has image header)
+                    {selectedTemplate.header_format === 'DOCUMENT' ? 'Header Document (PDF)' : 'Header Image'}
                   </label>
                   <div className="mt-1">
                     {headerImageUrl ? (
                       <div className="relative">
-                        <img
-                          src={headerImageUrl}
-                          alt="Header"
-                          className="w-full max-h-40 object-cover rounded-xl border border-gray-200 dark:border-gray-700"
-                        />
+                        {headerImageUrl.toLowerCase().includes('.pdf') ? (
+                          <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <FileText className="w-8 h-8 text-red-500 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">
+                                {headerImageUrl.split('/').pop()}
+                              </p>
+                              <p className="text-[10px] text-gray-400">PDF Document</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <img
+                            src={headerImageUrl}
+                            alt="Header"
+                            className="w-full max-h-40 object-cover rounded-xl border border-gray-200 dark:border-gray-700"
+                          />
+                        )}
                         <button
+                          type="button"
                           onClick={() => setHeaderImageUrl('')}
                           className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
                         >
                           <X className="w-3 h-3" />
                         </button>
-                        <p className="text-[10px] text-emerald-600 mt-1">✓ Image uploaded</p>
+                        <p className="text-[10px] text-emerald-600 mt-1">✓ File uploaded</p>
                       </div>
                     ) : (
                       <div
@@ -612,12 +626,24 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                         className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 text-center cursor-pointer hover:border-emerald-400 transition-colors"
                       >
                         <Upload className="w-5 h-5 text-gray-400 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500">Click to upload header image</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG — max 5MB</p>
+                        <p className="text-xs text-gray-500">
+                          {selectedTemplate.header_format === 'DOCUMENT'
+                            ? 'Click to upload header PDF'
+                            : 'Click to upload header image'}
+                        </p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          {selectedTemplate.header_format === 'DOCUMENT'
+                            ? 'PDF — max 5MB'
+                            : 'JPG, PNG, WEBP — max 5MB'}
+                        </p>
                         <input
                           ref={imageRef}
                           type="file"
-                          accept="image/*"
+                          accept={
+                            selectedTemplate.header_format === 'DOCUMENT'
+                              ? 'application/pdf'
+                              : 'image/*'
+                          }
                           className="hidden"
                           onChange={handleImageUpload}
                         />
@@ -625,7 +651,7 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                     )}
                     {uploadingImage && (
                       <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading image...
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading file...
                       </div>
                     )}
                   </div>

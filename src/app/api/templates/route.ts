@@ -136,6 +136,7 @@ export async function GET(req: NextRequest) {
       category: t.category,
       body:     t.components?.find((c: any) => c.type === 'BODY')?.text || '',
       header:   t.components?.find((c: any) => c.type === 'HEADER')?.text || '',
+      header_format: t.components?.find((c: any) => c.type === 'HEADER')?.format || null,
       footer:   t.components?.find((c: any) => c.type === 'FOOTER')?.text || '',
       variables: (t.components?.find((c: any) => c.type === 'BODY')?.text || '')
         .match(/{{\d+}}/g) || []
