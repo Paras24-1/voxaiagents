@@ -187,6 +187,7 @@
           "properties": [
             {
               "name": "messaging_product",
+              "parameterType": "formData",
               "value": "whatsapp"
             },
             {
