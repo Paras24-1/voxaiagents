@@ -27,8 +27,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { name, template_name, template_body, contacts, scheduled_at, header_image_url } = body
 
-    if (!name || !template_name || !contacts?.length) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    // Deduplicate contacts by phone number to prevent constraint errors
+    const uniqueContactsMap = new Map<string, any>()
+    contacts.forEach((c: any) => {
+      const cleanPhone = String(c.phone || '').replace(/\D/g, '')
+      if (cleanPhone.length >= 10) {
+        uniqueContactsMap.set(cleanPhone, { ...c, phone: cleanPhone })
+      }
+    })
+    const uniqueContacts = Array.from(uniqueContactsMap.values())
+
+    if (uniqueContacts.length === 0) {
+      return NextResponse.json({ error: 'No valid contacts provided' }, { status: 400 })
     }
 
     const { data: campaign, error: campError } = await supabaseAdmin
@@ -38,7 +48,7 @@ export async function POST(req: NextRequest) {
         name,
         template_name,
         template_body,
-        total: contacts.length,
+        total: uniqueContacts.length,
         status: scheduled_at ? 'draft' : 'sending',
         scheduled_at: scheduled_at || null,
         started_at: scheduled_at ? null : new Date().toISOString(),
@@ -48,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     if (campError) throw campError
 
-    const contactRows = contacts.map((c: any) => ({
+    const contactRows = uniqueContacts.map((c: any) => ({
       campaign_id: campaign.id,
       org_id: orgId,
       phone: c.phone,
@@ -79,7 +89,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({ 
             campaign_id: campaign.id, 
             template_name, 
-            contacts,
+            contacts: uniqueContacts,
             header_image_url: header_image_url || ''
           }),
         }).catch(console.error)

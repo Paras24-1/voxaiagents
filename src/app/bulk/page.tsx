@@ -276,7 +276,17 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
       const nameKey  = cols.find((c) => c.toLowerCase().includes('name'))  || cols[1]
       return { ...row, phone: String(row[phoneKey] || '').replace(/\D/g, ''), name: String(row[nameKey] || '') }
     }).filter((c) => c.phone.length >= 10)
-    setAllContacts(normalized)
+
+    // Deduplicate by phone number to prevent database unique constraint violations
+    const uniqueMap = new Map<string, Contact>()
+    normalized.forEach((c) => {
+      if (!uniqueMap.has(c.phone)) {
+        uniqueMap.set(c.phone, c)
+      }
+    })
+    const uniqueContacts = Array.from(uniqueMap.values())
+
+    setAllContacts(uniqueContacts)
     setStep(2)
   }
 
@@ -389,8 +399,11 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
       if (res.ok) {
         onCreated()
       } else {
-        alert('Failed to create campaign')
+        const errorData = await res.json().catch(() => ({}))
+        alert(`Failed to create campaign: ${errorData.error || 'Unknown server error'}`)
       }
+    } catch (err: any) {
+      alert(`Failed to create campaign: ${err.message || String(err)}`)
     } finally {
       setSending(false)
     }
