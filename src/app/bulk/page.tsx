@@ -302,7 +302,12 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     if (!file) return
     setUploadingImage(true)
     try {
-      const filename = `bulk-headers/${Date.now()}-${file.name.replace(/\s/g, '-')}`
+      const extension = file.name.split('.').pop() || ''
+      const baseName = file.name
+        .substring(0, file.name.lastIndexOf('.'))
+        .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace anything except alphanumeric, dash, and underscore
+      const filename = `bulk-headers/${Date.now()}-${baseName}.${extension}`
+
       const { data: { session } } = await supabase.auth.getSession()
       const headers: HeadersInit = { 
         'Content-Type': file.type,
@@ -314,10 +319,13 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
         headers,
       })
       const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload media file')
+      }
       if (data.url) setHeaderImageUrl(data.url)
-      else alert('Failed to upload image')
-    } catch {
-      alert('Upload failed')
+      else alert('Failed to upload media file')
+    } catch (err: any) {
+      alert(`Upload failed: ${err.message || String(err)}`)
     } finally {
       setUploadingImage(false)
     }
