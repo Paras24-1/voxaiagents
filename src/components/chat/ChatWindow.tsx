@@ -57,11 +57,7 @@ hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
       return
     }
 
-    // Validate file size (8MB)
-    if (file.size > 8 * 1024 * 1024) {
-      alert('Image too large. Max 8MB.')
-      return
-    }
+    // File size limit removed temporarily
 
     setImageFile(file)
     
