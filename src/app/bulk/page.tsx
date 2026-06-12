@@ -11,6 +11,7 @@ import {
   ArrowLeft, Trash2, FileText
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useOrg } from '@/contexts/OrgContext'
 
 interface Contact {
   phone: string
@@ -168,6 +169,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 
 // ── New Campaign ───────────────────────────────────────────────
 function NewCampaign({ onCreated }: { onCreated: () => void }) {
+  const { profile } = useOrg()
   const [step, setStep]                         = useState(1)
   const [allContacts, setAllContacts]           = useState<Contact[]>([])
   const [columns, setColumns]                   = useState<string[]>([])
@@ -302,28 +304,39 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     if (!file) return
     setUploadingImage(true)
     try {
+      const orgId = profile?.org_id
+      if (!orgId) {
+        throw new Error('User organization not found')
+      }
+
       const extension = file.name.split('.').pop() || ''
       const baseName = file.name
         .substring(0, file.name.lastIndexOf('.'))
         .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace anything except alphanumeric, dash, and underscore
-      const filename = `bulk-headers/${Date.now()}-${baseName}.${extension}`
+      const baseFilename = `bulk-headers/${Date.now()}-${baseName}.${extension}`
+      const filename = `${orgId}/${baseFilename}`
 
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 
-        'Content-Type': file.type,
-        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+      const { data, error } = await supabase.storage
+        .from('chat-media')
+        .upload(filename, file, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: true,
+        })
+
+      if (error) {
+        throw error
       }
-      const res = await fetch(`/api/upload-image?filename=${encodeURIComponent(filename)}`, {
-        method: 'POST',
-        body: file,
-        headers,
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to upload media file')
+
+      const { data: urlData } = supabase.storage
+        .from('chat-media')
+        .getPublicUrl(filename)
+
+      if (urlData?.publicUrl) {
+        setHeaderImageUrl(urlData.publicUrl)
+      } else {
+        alert('Failed to upload media file')
       }
-      if (data.url) setHeaderImageUrl(data.url)
-      else alert('Failed to upload media file')
     } catch (err: any) {
       alert(`Upload failed: ${err.message || String(err)}`)
     } finally {

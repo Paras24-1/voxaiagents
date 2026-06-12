@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Conversation } from '@/types'
 import { useMessages, useSendMessage } from '@/hooks'
 import { supabase } from '@/lib/supabase'
+import { useOrg } from '@/contexts/OrgContext'
 import { formatDistanceToNow } from 'date-fns'
 import { Send, Bot, User, Loader2, Paperclip, X, Tag } from 'lucide-react'
 
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function ChatWindow({ conversation, onAIToggle }: Props) {
+  const { profile } = useOrg()
   const [input, setInput] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -87,21 +89,33 @@ hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
     if (imageFile) {
       setUploading(true)
       try {
-        const formData = new FormData()
-        formData.append('file', imageFile)
-
-        const uploadRes = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        })
-
-        if (!uploadRes.ok) {
-          const error = await uploadRes.json()
-          throw new Error(error.error || 'Upload failed')
+        const orgId = profile?.org_id
+        if (!orgId) {
+          throw new Error('User organization not found')
         }
 
-        const uploadData = await uploadRes.json()
-        mediaUrl = uploadData.url
+        const timestamp = Date.now()
+        const randomStr = Math.random().toString(36).substring(7)
+        const extension = imageFile.name.split('.').pop()
+        const filename = `${orgId}/${timestamp}-${randomStr}.${extension}`
+
+        const { data, error } = await supabase.storage
+          .from('chat-media')
+          .upload(filename, imageFile, {
+            contentType: imageFile.type,
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (error) {
+          throw error
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('chat-media')
+          .getPublicUrl(filename)
+
+        mediaUrl = urlData?.publicUrl || null
         mediaType = imageFile.type
 
         // Clear image after upload
