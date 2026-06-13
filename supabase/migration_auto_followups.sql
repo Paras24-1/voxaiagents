@@ -26,8 +26,8 @@ BEGIN
     AND m.direction = 'outgoing'
     -- Last message was sent > 12 hours ago
     AND m.timestamp < NOW() - INTERVAL '12 hours'
-    -- Sanity check: Don't follow up with leads older than 3 days
-    AND m.timestamp > NOW() - INTERVAL '72 hours'
+    -- Sanity check: Don't follow up with leads older than 24 hours
+    AND m.timestamp > NOW() - INTERVAL '24 hours'
     -- Verify the student only sent 1 message (the initial greeting trigger) and never replied since
     AND (
       SELECT COUNT(*)::INTEGER

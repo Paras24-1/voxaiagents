@@ -84,9 +84,7 @@ export async function POST(req: NextRequest) {
           name: contactName,
           last_message: msgText,
           org_id: orgId,
-          ...(direction === 'incoming'
-            ? { updated_at: new Date().toISOString() }
-            : {}),
+          updated_at: new Date().toISOString(),
           ...(assignedTo
             ? { assigned_to: assignedTo, assignment_status: 'assigned' }
             : {})

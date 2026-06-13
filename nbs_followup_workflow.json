@@ -57,20 +57,6 @@
     },
     {
       "parameters": {
-        "fieldToSplitOut": "={{ $json }}",
-        "options": {}
-      },
-      "id": "split-contacts-node",
-      "name": "Split Contacts",
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        640,
-        240
-      ]
-    },
-    {
-      "parameters": {
         "operation": "send",
         "phoneNumberId": "1133137593218597",
         "recipientPhoneNumber": "={{ $json.phone_number }}",
@@ -82,7 +68,7 @@
       "type": "n8n-nodes-base.whatsApp",
       "typeVersion": 1.1,
       "position": [
-        860,
+        640,
         240
       ],
       "credentials": {
@@ -101,15 +87,15 @@
           "parameters": [
             {
               "name": "phone_number",
-              "value": "={{ $('Split Contacts').item.json.phone_number }}"
+              "value": "={{ $json.phone_number }}"
             },
             {
               "name": "name",
-              "value": "={{ $('Split Contacts').item.json.name || '' }}"
+              "value": "={{ $json.name || '' }}"
             },
             {
               "name": "message",
-              "value": "=Hi {{ $('Split Contacts').item.json.name || '' }}! 👋 Just checking in to see if you have any questions about Nelson Business School? We'd love to help you get started! 🎓"
+              "value": "=Hi {{ $json.name || '' }}! 👋 Just checking in to see if you have any questions about Nelson Business School? We'd love to help you get started! 🎓"
             },
             {
               "name": "direction",
@@ -124,7 +110,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1080,
+        860,
         240
       ]
     }
@@ -142,17 +128,6 @@
       ]
     },
     "Get Pending Followups": {
-      "main": [
-        [
-          {
-            "node": "Split Contacts",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split Contacts": {
       "main": [
         [
           {
