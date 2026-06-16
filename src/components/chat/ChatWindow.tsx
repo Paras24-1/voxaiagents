@@ -270,7 +270,7 @@ hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white'
                   }`}
                 >
-                  {msg.media_url && msg.media_type?.startsWith('image/') && (
+                  {msg.media_url && msg.media_type?.startsWith('image') && (
                     <img
                       src={msg.media_url}
                       alt="Sent image"

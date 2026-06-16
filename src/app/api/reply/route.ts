@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin
       .from('conversations')
       .update({ 
-        last_message: message || (media_type?.startsWith('image/') ? '📸 Image' : '📎 Attachment'), 
+        last_message: message || (media_type?.startsWith('image') ? '📸 Image' : '📎 Attachment'), 
         updated_at: timestamp,
         ai_mode: false
       })
