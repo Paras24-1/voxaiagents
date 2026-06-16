@@ -13,6 +13,7 @@ import Link from "next/link"
 import { useOrg } from "@/contexts/OrgContext"
 
 const WHATSAPP_DEMO = "wa.me/917889019602?text=Hi%20I%20want%20to%20test%20Vox%20AI"
+const VOICE_DEMO = "tel:+918071583309"
 const CALENDLY = "https://calendly.com/voxai4278/30min"
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -424,10 +425,14 @@ export default function HomePage() {
                   ))}
                 </div>
 
-                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <a href={`https://${WHATSAPP_DEMO}`} target="_blank" rel="noreferrer"
                     className="inline-flex items-center justify-center h-11 bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-white px-6 rounded-xl font-medium text-sm hover:opacity-95 transition-opacity">
                     Test WhatsApp AI <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                  <a href={VOICE_DEMO}
+                    className="inline-flex items-center justify-center h-11 border border-white/10 bg-white/5 hover:bg-white/10 text-white px-6 rounded-xl font-medium text-sm transition-colors">
+                    <PhoneCall className="mr-2 h-4 w-4 text-purple-400 animate-pulse" /> Test Voice AI
                   </a>
                   <a href={CALENDLY} target="_blank" rel="noreferrer"
                     className="inline-flex items-center justify-center h-11 border border-white/10 bg-white/5 text-foreground hover:bg-white/10 px-6 rounded-xl font-medium text-sm transition-colors">
@@ -512,9 +517,9 @@ export default function HomePage() {
                     </li>
                   ))}
                 </ul>
-                <div className="mt-5 inline-flex items-center gap-1 text-xs text-purple-400 font-medium group-hover:gap-2 transition-all">
-                  Learn more <ArrowRight className="h-3.5 w-3.5" />
-                </div>
+                <a href={VOICE_DEMO} className="mt-5 inline-flex items-center gap-1.5 text-xs text-purple-400 font-medium group-hover:gap-2 transition-all">
+                  Test Voice Agent <PhoneCall className="h-3.5 w-3.5 animate-pulse" />
+                </a>
               </motion.div>
 
               {/* Automation */}
@@ -790,7 +795,7 @@ export default function HomePage() {
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                     Tell us your business, your goals, and what you want automated. We'll design an AI system that ships fast and performs like your best team member — around the clock.
                   </p>
-                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <a href={CALENDLY} target="_blank" rel="noreferrer"
                       className="inline-flex items-center justify-center h-11 bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-white px-6 rounded-xl font-medium text-sm hover:opacity-95 transition-opacity">
                       Book Strategy Call <ArrowRight className="ml-2 h-4 w-4" />
@@ -798,6 +803,10 @@ export default function HomePage() {
                     <a href={`https://${WHATSAPP_DEMO}`} target="_blank" rel="noreferrer"
                       className="inline-flex items-center justify-center h-11 border border-white/10 bg-white/5 text-foreground hover:bg-white/10 px-4 rounded-xl text-sm transition-colors">
                       Test AI on WhatsApp
+                    </a>
+                    <a href={VOICE_DEMO}
+                      className="inline-flex items-center justify-center h-11 border border-white/10 bg-white/5 text-foreground hover:bg-white/10 px-4 rounded-xl text-sm transition-colors">
+                      <PhoneCall className="mr-2 h-4 w-4 text-purple-400 animate-pulse" /> Test Voice AI
                     </a>
                   </div>
                 </div>
