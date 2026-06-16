@@ -130,52 +130,6 @@ function NeuralField() {
 
 function HeroDemoPanel() {
   const [activeTab, setActiveTab] = useState<'whatsapp' | 'voice' | 'automation'>('whatsapp')
-  const [isPlayingVoice, setIsPlayingVoice] = useState(false)
-
-  useEffect(() => {
-    return () => {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel()
-      }
-    }
-  }, [])
-
-  const handlePlayVoice = () => {
-    if (isPlayingVoice) {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel()
-      }
-      setIsPlayingVoice(false)
-      return
-    }
-
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      const utteranceText = "Hello! You've reached VoxAI dental clinic. Are you calling to book an appointment?"
-      const utterance = new SpeechSynthesisUtterance(utteranceText)
-      utterance.rate = 0.95
-      utterance.pitch = 1.0
-
-      const voices = window.speechSynthesis.getVoices()
-      const preferredVoice = voices.find(v => 
-        (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Samantha")) && 
-        v.lang.startsWith("en")
-      ) || voices.find(v => v.lang.startsWith("en"))
-
-      if (preferredVoice) utterance.voice = preferredVoice
-
-      utterance.onend = () => setIsPlayingVoice(false)
-      utterance.onerror = () => setIsPlayingVoice(false)
-
-      setIsPlayingVoice(true)
-      window.speechSynthesis.speak(utterance)
-    } else {
-      setIsPlayingVoice(true)
-      setTimeout(() => {
-        setIsPlayingVoice(false)
-      }, 5000)
-    }
-  }
 
   const whatsappMessages = useMemo(() => [
     { from: "lead", text: "Hi, I'm interested in your MBA program.", t: "10:14" },
@@ -210,13 +164,7 @@ function HeroDemoPanel() {
           { key: 'automation', label: 'Automation', icon: <Workflow className="h-3.5 w-3.5" /> },
         ].map(tab => (
           <button key={tab.key}
-            onClick={() => {
-              setActiveTab(tab.key as typeof activeTab)
-              if (typeof window !== 'undefined' && window.speechSynthesis) {
-                window.speechSynthesis.cancel()
-              }
-              setIsPlayingVoice(false)
-            }}
+            onClick={() => setActiveTab(tab.key as typeof activeTab)}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-all duration-200 ${activeTab === tab.key
               ? 'bg-gradient-to-r from-[hsl(var(--primary)/.8)] to-[hsl(var(--accent)/.7)] text-white shadow'
               : 'text-muted-foreground hover:text-foreground'
@@ -281,42 +229,14 @@ function HeroDemoPanel() {
               <span className="text-[10px] text-muted-foreground">LIVE CALL</span>
             </div>
           </div>
-          {/* Waveform visual with Play Button */}
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/25 px-4 py-2">
-            <button
-              onClick={handlePlayVoice}
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-purple-500/30 transition-all duration-300 ${
-                isPlayingVoice 
-                  ? 'bg-purple-600/30 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-95' 
-                  : 'bg-white/5 text-purple-400 hover:bg-purple-600/20 hover:scale-105'
-              }`}
-              title={isPlayingVoice ? "Stop Audio" : "Play Voice AI Demo"}
-            >
-              {isPlayingVoice ? (
-                <Square className="h-3 w-3 fill-purple-400 stroke-none animate-pulse" />
-              ) : (
-                <Play className="ml-0.5 h-3.5 w-3.5 fill-purple-400 stroke-none" />
-              )}
-            </button>
-            <div className="flex-1 flex items-center justify-center gap-[3px] h-8">
-              {Array.from({ length: 28 }).map((_, i) => (
-                <motion.div key={i}
-                  className="w-[3px] rounded-full bg-gradient-to-t from-purple-600 to-blue-400"
-                  animate={{ 
-                    height: isPlayingVoice 
-                      ? [8, Math.random() * 26 + 8, 8] 
-                      : [6, 6] 
-                  }}
-                  transition={{ 
-                    duration: 0.5 + Math.random() * 0.5, 
-                    repeat: isPlayingVoice ? Infinity : 0, 
-                    delay: i * 0.03 
-                  }} />
-              ))}
-            </div>
-            <span className="text-[10px] text-muted-foreground select-none shrink-0 font-medium">
-              {isPlayingVoice ? "Playing..." : "Click to Play Demo"}
-            </span>
+          {/* Waveform visual */}
+          <div className="mb-4 flex items-center justify-center gap-[3px] h-10">
+            {Array.from({ length: 32 }).map((_, i) => (
+              <motion.div key={i}
+                className="w-[3px] rounded-full bg-gradient-to-t from-purple-600 to-blue-400"
+                animate={{ height: [8, Math.random() * 32 + 8, 8] }}
+                transition={{ duration: 0.5 + Math.random() * 0.5, repeat: Infinity, delay: i * 0.03 }} />
+            ))}
           </div>
           <div className="space-y-2">
             {voiceLogs.map((log, i) => (
