@@ -86,6 +86,62 @@ function buildPreview(body: string, mapping: Record<string, string>, sampleConta
   return preview
 }
 
+function cleanPhoneNumber(val: any): string {
+  if (val === null || val === undefined) return ''
+  
+  if (typeof val === 'number') {
+    return String(Math.floor(val))
+  }
+  
+  let str = String(val).trim()
+  
+  if (/^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(str)) {
+    const num = Number(str)
+    if (!isNaN(num)) {
+      return String(Math.floor(num))
+    }
+  }
+  
+  if (str.includes('.')) {
+    const parts = str.split('.')
+    if (/^0+$/.test(parts[1])) {
+      str = parts[0]
+    } else {
+      const num = Number(str)
+      if (!isNaN(num)) {
+        return String(Math.floor(num))
+      }
+    }
+  }
+  
+  return str.replace(/\D/g, '')
+}
+
+function findPhoneKey(cols: string[]): string {
+  const firstPriority = cols.find(c => {
+    const l = c.toLowerCase()
+    return l.includes('phone') || l.includes('mobile') || l.includes('contact') || l.includes('whatsapp') || l.includes('tele')
+  })
+  if (firstPriority) return firstPriority
+
+  const secondPriority = cols.find(c => {
+    const l = c.toLowerCase()
+    return l.includes('number') && !l.includes('sr') && !l.includes('serial') && !l.includes('id') && !l.includes('no')
+  })
+  if (secondPriority) return secondPriority
+
+  return cols[0]
+}
+
+function findNameKey(cols: string[], phoneKey: string): string {
+  const nameCol = cols.find(c => c.toLowerCase().includes('name'))
+  if (nameCol) return nameCol
+
+  const fallback = cols.find(c => c !== phoneKey)
+  return fallback || cols[1] || cols[0]
+}
+
+
 // ── Main Page ──────────────────────────────────────────────────
 export default function BulkMessagingPage() {
   const [tab, setTab]             = useState<'new' | 'history'>('history')
@@ -260,10 +316,13 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     } else if (ext === 'xlsx' || ext === 'xls') {
       const reader = new FileReader()
       reader.onload = (e) => {
-        const wb = XLSX.read(e.target?.result, { type: 'binary' })
-        loadContacts(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]) as Contact[])
+        const data = e.target?.result
+        if (data) {
+          const wb = XLSX.read(data, { type: 'array' })
+          loadContacts(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]) as Contact[])
+        }
       }
-      reader.readAsBinaryString(file)
+      reader.readAsArrayBuffer(file)
     }
   }
 
@@ -271,10 +330,15 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     if (!data.length) return
     const cols = Object.keys(data[0])
     setColumns(cols)
+    const phoneKey = findPhoneKey(cols)
+    const nameKey  = findNameKey(cols, phoneKey)
+
     const normalized = data.map((row) => {
-      const phoneKey = cols.find((c) => c.toLowerCase().includes('phone')) || cols[0]
-      const nameKey  = cols.find((c) => c.toLowerCase().includes('name'))  || cols[1]
-      return { ...row, phone: String(row[phoneKey] || '').replace(/\D/g, ''), name: String(row[nameKey] || '') }
+      return { 
+        ...row, 
+        phone: cleanPhoneNumber(row[phoneKey]), 
+        name: String(row[nameKey] || '') 
+      }
     }).filter((c) => c.phone.length >= 10)
 
     // Deduplicate by phone number to prevent database unique constraint violations
