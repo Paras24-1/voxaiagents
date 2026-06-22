@@ -155,39 +155,39 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
       )}
 
       {/* Header */}
-      <div className="px-4 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800">
-        <div className="flex items-center justify-between mb-3">
-  <div>
-    <h1 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-      <span>{isAdmin ? 'All Conversations' : 'My Chats'}</span>
-      <button
-        onClick={() => setShowAddLead(true)}
-        className="p-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        title="Add New Lead & Start Chat"
-      >
-        <UserPlus className="w-4 h-4" />
-      </button>
-    </h1>
-    {!isAdmin && profile?.name && (
-      <p className="text-xs text-gray-500 dark:text-gray-400">
-        👤 {profile.name}
-      </p>
-    )}
-  </div>
-  <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-    <Wifi className="w-3 h-3" />
-    Live
-  </span>
-</div>
+      <div className="p-4 border-b border-gray-150 dark:border-gray-800">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2 tracking-tight">
+              <span>{isAdmin ? 'All Conversations' : 'My Chats'}</span>
+              <button
+                onClick={() => setShowAddLead(true)}
+                className="p-1.5 rounded-xl text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100/30 hover:bg-emerald-100 transition-colors"
+                title="Add New Lead & Start Chat"
+              >
+                <UserPlus className="w-4 h-4" />
+              </button>
+            </h2>
+            {!isAdmin && profile?.name && (
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                👤 {profile.name}
+              </p>
+            )}
+          </div>
+          <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-full border border-emerald-100/20 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Live
+          </span>
+        </div>
 
-        <div className="relative mb-2">
+        <div className="relative mb-3">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by name or number..."
+            placeholder="Search name or number..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
           />
         </div>
 
@@ -199,7 +199,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             <select
               value={assignedFilter}
               onChange={(e) => setAssignedFilter(e.target.value)}
-              className="text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none"
+              className="text-xs px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
               <option value="all">All chats</option>
               <option value="unassigned">Unassigned</option>
@@ -215,7 +215,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           <select
             value={stage}
             onChange={(e) => setStage(e.target.value)}
-            className="text-xs px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none"
+            className="text-xs px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
           >
             <option value="">All stages</option>
             {STAGES.map((s) => (
@@ -225,10 +225,10 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           
           <button
             onClick={() => setUnread((u) => !u)}
-            className={`text-xs px-2 py-1 rounded-lg transition-colors ${
+            className={`text-xs px-2.5 py-1.5 rounded-xl font-medium border transition-all duration-200 shadow-sm ${
               unread
-                ? 'bg-emerald-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/10'
+                : 'bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-50'
             }`}
           >
             Unread
@@ -237,7 +237,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1.5 bg-gray-50/40 dark:bg-gray-950/20">
         {loading ? (
           <LoadingSkeleton />
         ) : conversations.length === 0 ? (
@@ -324,52 +324,52 @@ function ConversationItem({
 
   return (
     <div
-      className={`relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors border-b border-gray-50 dark:border-gray-900 ${
+      className={`relative flex items-start gap-3 px-3 py-3 cursor-pointer transition-all duration-200 rounded-xl ${
         isSelected
-          ? 'bg-emerald-50 dark:bg-emerald-950/30 border-l-2 border-l-emerald-500'
-          : 'hover:bg-gray-50 dark:hover:bg-gray-900'
+          ? 'bg-emerald-50 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 shadow-sm'
+          : 'hover:bg-gray-100/70 dark:hover:bg-gray-900/50'
       }`}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       {/* Avatar */}
-      <div className="relative shrink-0">
-        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-sm font-semibold">
+      <div className="relative shrink-0 select-none">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-md border border-emerald-400/20">
           {initials}
         </div>
         {!conv.ai_mode && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-orange-400 border-2 border-white dark:border-gray-950" />
+          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-orange-400 border-2 border-white dark:border-gray-950 shadow-sm" />
         )}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <span className={`text-sm font-medium truncate ${isSelected ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-900 dark:text-white'}`}>
+          <span className={`text-xs font-bold truncate ${isSelected ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-900 dark:text-white'}`}>
             {conv.name}
           </span>
-          <span className="text-xs text-gray-400 shrink-0 ml-2">{timeAgo}</span>
+          <span className="text-[9px] text-gray-400 font-semibold shrink-0 ml-2">{timeAgo}</span>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">
+        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mb-1">
           {conv.phone_number}
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate leading-relaxed">
           {conv.last_message || 'No messages yet'}
         </p>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${STAGE_COLORS[conv.stage as Stage] || STAGE_COLORS.new}`}>
+        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${STAGE_COLORS[conv.stage as Stage] || STAGE_COLORS.new}`}>
             {conv.stage}
           </span>
           
           {/* Assignment Badge */}
           {assignedEmployee && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400">
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-100/10">
               → {assignedEmployee.name.split(' ')[0]}
             </span>
           )}
           {!assignedEmployee && isAdmin && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-amber-55 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-100/10">
               Unassigned
             </span>
           )}
@@ -378,11 +378,11 @@ function ConversationItem({
 
       {/* Actions */}
       {hovered && (
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0 select-none">
           {isAdmin && !showAssign && (
             <button
               onClick={(e) => { e.stopPropagation(); setShowAssign(true); }}
-              className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 hover:bg-blue-100 transition-colors"
+              className="p-1 rounded-lg bg-blue-55 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100/20"
               title="Assign to employee"
             >
               <UserPlus className="w-3.5 h-3.5" />
@@ -390,7 +390,7 @@ function ConversationItem({
           )}
           <button
             onClick={onDelete}
-            className="p-1.5 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+            className="p-1 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-400 hover:bg-red-100 hover:text-red-650 transition-colors border border-red-100/20"
             title="Delete conversation"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -400,28 +400,28 @@ function ConversationItem({
 
       {/* Unread badge */}
       {conv.unread_count > 0 && !hovered && (
-        <span className="shrink-0 min-w-[20px] h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+        <span className="shrink-0 min-w-[18px] h-4.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center px-1 shadow-md animate-pulse">
           {conv.unread_count > 99 ? '99+' : conv.unread_count}
         </span>
       )}
 
       {/* Assignment Dropdown */}
       {showAssign && (
-        <div className="absolute right-2 top-2 z-10 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 min-w-[160px]">
-          <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 px-2">Assign to:</p>
+        <div className="absolute right-2 top-2 z-10 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 min-w-[160px]">
+          <p className="text-[10px] font-extrabold uppercase text-gray-400 mb-2 px-2">Assign to:</p>
           {employees.map((emp) => (
             <button
               key={emp.id}
               onClick={(e) => handleAssign(e, emp.id)}
               disabled={assigning}
-              className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+              className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
             >
               {emp.name}
             </button>
           ))}
           <button
             onClick={(e) => { e.stopPropagation(); setShowAssign(false); }}
-            className="w-full mt-1 px-3 py-2 text-xs rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+            className="w-full mt-1 px-3 py-2 text-xs rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
           >
             Cancel
           </button>
@@ -433,18 +433,18 @@ function ConversationItem({
 
 function LoadingSkeleton() {
   return (
-    <>
+    <div className="space-y-2">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="flex items-start gap-3 px-4 py-3.5 border-b border-gray-50 dark:border-gray-900">
-          <div className="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse shrink-0" />
+        <div key={i} className="flex items-start gap-3 px-3.5 py-3 rounded-xl border border-gray-100 dark:border-gray-900 bg-white dark:bg-gray-900/40">
+          <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-850 animate-pulse shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-3/4" />
-            <div className="h-2.5 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-full" />
-            <div className="h-2.5 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-1/2" />
+            <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-3/4" />
+            <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-full" />
+            <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse w-1/2" />
           </div>
         </div>
       ))}
-    </>
+    </div>
   )
 }
 

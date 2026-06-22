@@ -439,27 +439,27 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   const data = sheetData || {}
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 relative">
+    <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-gray-50/50 to-white dark:from-gray-900/40 dark:to-gray-950/20 relative border-l border-gray-150 dark:border-gray-800">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center">
+      <div className="px-5 py-4 border-b border-gray-150 dark:border-gray-800/85 bg-white dark:bg-gray-900 shadow-sm shrink-0 z-10">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-md">
             <User className="w-4 h-4 text-white" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Lead Details</h3>
+          <h3 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">Lead Details</h3>
         </div>
-        <p className="text-xs text-gray-500 ml-10">Live sync from CRM Database</p>
+        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 ml-10.5 uppercase tracking-wider">Live CRM Database Sync</p>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-3">
+      <div className="flex-1 overflow-y-auto p-5 space-y-4">
         {data.Phone ? (
           <>
             {/* Quick Actions (Call Button) */}
-            <div className="flex gap-2 mb-2">
+            <div className="flex gap-2">
               <a
                 href={`tel:${data.Phone}`}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all duration-200 hover:shadow"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md transition-all hover:shadow"
               >
                 <Phone className="w-3.5 h-3.5" />
                 Call Lead
@@ -472,7 +472,28 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
             <InfoCard icon={MapPin} label="City" value={data.city} />
             <InfoCard icon={Wrench} label="Machine Interest" value={data.machine_interest} />
             <InfoCard icon={Star} label="Lead Quality" value={data.lead_quality} badge colored />
-            <InfoCard icon={TrendingUp} label="Lead Score" value={data.lead_score} badge colored />
+            
+            {/* Lead Score Gauge Card */}
+            {data.lead_score && (
+              <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 hover:shadow-sm transition-all duration-200 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-emerald-500 border border-gray-150 dark:border-gray-700/55 shadow-inner shrink-0">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-bold text-gray-500 dark:text-gray-400">Lead Score</span>
+                  </div>
+                  <span className="font-extrabold text-gray-950 dark:text-white">{data.lead_score}/100</span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-150/10">
+                  <div 
+                    className="h-full bg-gradient-to-r from-orange-400 via-amber-450 to-emerald-500 rounded-full transition-all duration-700" 
+                    style={{ width: `${Math.min(100, Math.max(0, parseInt(data.lead_score) || 0))}%` }} 
+                  />
+                </div>
+              </div>
+            )}
+
             <InfoCard icon={CheckCircle} label="Callback Ready" value={data.callback_ready} badge />
 
             {/* Dynamically render all other client-specific custom columns */}
@@ -484,7 +505,6 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
               ]
               if (standardKeys.includes(key) || !value) return null
               
-              // Format label: e.g. "crop_requirement" -> "Crop Requirement"
               const formattedLabel = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
               
               return (
@@ -498,14 +518,14 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
             })}
 
             {data.conversation_summary && (
-              <div className="mt-5 p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+              <div className="p-4 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-2xl border border-gray-150 dark:border-gray-800 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center border border-blue-100/10">
                     <MessageSquare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <p className="text-xs font-semibold text-gray-900 dark:text-white">Conversation Summary</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white">Conversation Summary</p>
                 </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
+                <p className="text-xs text-gray-600 dark:text-gray-405 leading-relaxed whitespace-pre-wrap font-medium">
                   {data.conversation_summary}
                 </p>
               </div>
@@ -513,42 +533,42 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-              <User className="w-8 h-8 text-gray-400" />
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-150 dark:border-gray-850 flex items-center justify-center mb-4">
+              <User className="w-8 h-8 text-gray-400 animate-pulse" />
             </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">No lead data found</p>
+            <p className="text-sm font-extrabold text-gray-900 dark:text-white mb-1">No lead data found</p>
             <p className="text-xs text-gray-500">Data will appear once synced from CRM Database</p>
           </div>
         )}
 
         {/* Follow-up Reminder Section */}
-        <div className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="p-4 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-2xl border border-gray-250 dark:border-gray-800/80 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center border border-emerald-100/10">
                 <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <p className="text-xs font-semibold text-gray-900 dark:text-white">Follow-up Reminder</p>
+              <p className="text-xs font-bold text-gray-900 dark:text-white">Follow-up Reminder</p>
             </div>
             <button
               onClick={() => setShowFollowupModal(true)}
-              className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
+              className="text-xs font-bold text-emerald-605 dark:text-emerald-400 hover:underline"
             >
               {hasFollowup ? 'Edit' : 'Set Followup'}
             </button>
           </div>
           
           {hasFollowup ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800/80">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-350 bg-gray-50 dark:bg-gray-800/40 p-2.5 rounded-xl border border-gray-150 dark:border-gray-800/60">
                 <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="font-extrabold text-emerald-650 dark:text-emerald-450">
                   {formatFollowupDate(lead.followup_date)}
                 </span>
               </div>
               {lead.followup_notes && (
-                <div className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800/80">
-                  <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Follow-up Notes</p>
+                <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/40 p-2.5 rounded-xl border border-gray-150 dark:border-gray-800/60 leading-relaxed font-medium">
+                  <p className="text-[9px] uppercase font-extrabold text-gray-450 tracking-wider mb-1">Follow-up Notes</p>
                   <p className="whitespace-pre-wrap">{lead.followup_notes}</p>
                 </div>
               )}
@@ -560,14 +580,14 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                     setActivityNotes(lead.followup_notes || '')
                     setShowMarkDoneModal(true)
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md"
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
                   Mark Done
                 </button>
                 <button
                   onClick={handleClearFollowup}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 border border-dashed border-red-200 dark:border-red-950 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-500 rounded-xl text-xs font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 border border-dashed border-red-200 dark:border-red-900/60 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-xl text-xs font-semibold transition-colors"
                 >
                   <Trash2 className="w-3 h-3" />
                   Cancel
@@ -575,11 +595,11 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
               </div>
             </div>
           ) : (
-            <div className="text-center py-4 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
+            <div className="text-center py-4 bg-gray-50/50 dark:bg-gray-850/10 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
               <p className="text-xs text-gray-500 mb-2">No active follow-up reminder</p>
               <button
                 onClick={() => setShowFollowupModal(true)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-400 dark:hover:bg-emerald-950 rounded-lg text-xs font-medium transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-900 rounded-xl text-xs font-bold transition-colors border border-emerald-100/10 shadow-sm"
               >
                 <Calendar className="w-3 h-3" />
                 Schedule Reminder
@@ -589,13 +609,13 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         </div>
 
         {/* Timeline Section */}
-        <div className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col space-y-4">
+        <div className="p-4 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-2xl border border-gray-250 dark:border-gray-800/80 shadow-sm flex flex-col space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center border border-emerald-100/10">
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <p className="text-xs font-semibold text-gray-900 dark:text-white">Timeline</p>
+              <p className="text-xs font-bold text-gray-900 dark:text-white">Activity Timeline</p>
             </div>
             <button
               onClick={() => {
@@ -604,64 +624,72 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 setActivityNotes('')
                 setShowAddActivityModal(true)
               }}
-              className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
+              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
             >
-              <Plus className="w-3 h-3" /> Add
+              <Plus className="w-3.5 h-3.5" /> Log
             </button>
           </div>
 
-          <div className="relative pl-4 border-l border-gray-100 dark:border-gray-800 space-y-4 ml-2 py-1">
+          <div className="relative pl-4 border-l-2 border-gray-200 dark:border-gray-850 space-y-5 ml-2 py-1 select-none">
             {loadingActivities ? (
               <div className="flex justify-center py-4">
                 <RefreshCw className="w-4 h-4 text-emerald-500 animate-spin" />
               </div>
             ) : activities.length > 0 ? (
-              activities.map((act) => (
-                <div key={act.id} className="relative group">
-                  {/* Timeline Dot */}
-                  <div className="absolute -left-[21.5px] top-1.5 w-2 h-2 rounded-full bg-emerald-500 border border-white dark:border-gray-900 shadow-sm" />
-                  
-                  <div className="flex flex-col space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">
-                        {formatActivityDate(act.created_at)}
-                      </span>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => {
-                            setEditingActivity(act)
-                            setActivityType(act.activity_type)
-                            setActivityDesc(act.description)
-                            setActivityNotes(act.notes || '')
-                            setShowAddActivityModal(true)
-                          }}
-                          className="p-0.5 rounded text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                          title="Edit Activity"
-                        >
-                          <Edit2 className="w-2.5 h-2.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteActivity(act.id)}
-                          className="p-0.5 rounded text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                          title="Delete Activity"
-                        >
-                          <Trash2 className="w-2.5 h-2.5" />
-                        </button>
+              activities.map((act) => {
+                const dotColor = act.activity_type.startsWith('followup')
+                  ? 'bg-amber-500 ring-amber-500/20'
+                  : act.activity_type.startsWith('stage')
+                  ? 'bg-blue-500 ring-blue-500/20'
+                  : 'bg-emerald-500 ring-emerald-500/20'
+
+                return (
+                  <div key={act.id} className="relative group">
+                    {/* Timeline Dot with ring */}
+                    <div className={`absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full ${dotColor} border border-white dark:border-gray-900 ring-4 shadow-sm`} />
+                    
+                    <div className="flex flex-col space-y-1 bg-gray-50/50 dark:bg-gray-850/30 p-2.5 rounded-xl border border-gray-150 dark:border-gray-800/40 hover:bg-gray-100/50 dark:hover:bg-gray-850/50 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
+                          {formatActivityDate(act.created_at)}
+                        </span>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity animate-fade-in">
+                          <button
+                            onClick={() => {
+                              setEditingActivity(act)
+                              setActivityType(act.activity_type)
+                              setActivityDesc(act.description)
+                              setActivityNotes(act.notes || '')
+                              setShowAddActivityModal(true)
+                            }}
+                            className="p-1 rounded bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-700 text-gray-400 hover:text-emerald-500 transition-colors shadow-sm"
+                            title="Edit Activity"
+                          >
+                            <Edit2 className="w-2.5 h-2.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteActivity(act.id)}
+                            className="p-1 rounded bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-700 text-gray-400 hover:text-red-505 transition-colors shadow-sm"
+                            title="Delete Activity"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                      {act.description}
-                    </p>
-                    {act.notes && (
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-normal bg-gray-50 dark:bg-gray-800/40 p-2 rounded-lg mt-1 border border-gray-100 dark:border-gray-800/30 whitespace-pre-wrap">
-                        {act.notes}
+                      <p className="text-xs font-extrabold text-gray-805 dark:text-gray-250">
+                        {act.description}
                       </p>
-                    )}
+                      {act.notes && (
+                        <p className="text-[10px] text-gray-505 dark:text-gray-400 leading-relaxed bg-white dark:bg-gray-900/60 p-2 rounded-lg mt-1 border border-gray-150 dark:border-gray-800/55 whitespace-pre-wrap font-medium">
+                          {act.notes}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             ) : (
-              <div className="text-center py-2 text-xs text-gray-400 border border-dashed border-gray-100 dark:border-gray-800 rounded-xl">
+              <div className="text-center py-4 text-xs text-gray-450 border border-dashed border-gray-250 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-850/10">
                 No activities logged yet
               </div>
             )}
@@ -669,21 +697,21 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         </div>
 
         {/* Notes Section */}
-        <div className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="p-4 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-2xl border border-gray-250 dark:border-gray-800/80 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center border border-amber-100/10">
                 <StickyNote className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               </div>
-              <p className="text-xs font-semibold text-gray-900 dark:text-white">Notes</p>
+              <p className="text-xs font-bold text-gray-900 dark:text-white">Internal Notes</p>
             </div>
             <button
               onClick={handleSaveNotes}
               disabled={savingNotes}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all shadow-sm ${
                 notesSaved
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
-                  : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-emerald-100 hover:text-emerald-700'
+                  ? 'bg-emerald-50 border border-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-450'
+                  : 'bg-gray-50 border border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 hover:bg-emerald-50 hover:text-emerald-700'
               }`}
             >
               {savingNotes ? (
@@ -697,9 +725,9 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           <textarea
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            placeholder="Add notes about this lead..."
+            placeholder="Add internal operator notes about this lead..."
             rows={4}
-            className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 border border-gray-200 dark:border-gray-700"
+            className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-55/50 dark:bg-gray-800 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 border border-gray-150 dark:border-gray-700 leading-relaxed font-medium"
           />
         </div>
       </div>
@@ -709,20 +737,20 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         <div className="absolute inset-0 bg-black/40 z-20 transition-opacity duration-300">
           <div className="absolute inset-0" onClick={() => setShowFollowupModal(false)} />
           
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4">
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4 animate-slide-up">
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowFollowupModal(false)}
-                  className="p-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="p-1 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-150"
                 >
                   <X className="w-4 h-4" />
                 </button>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Set follow up date</h4>
+                <h4 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">Set Follow-up Date</h4>
               </div>
               {modalDate && (
-                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full">
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-100/10 uppercase tracking-wider">
                   {formatFollowupDate(modalDate.toISOString())}
                 </span>
               )}
@@ -742,12 +770,12 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                     }}
                     className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
                       isSelected && !customMode
-                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-medium'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-bold shadow-sm'
                         : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800/80'
                     }`}
                   >
-                    <span className="text-xs font-semibold">{preset.label}</span>
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{preset.sublabel}</span>
+                    <span className="text-xs font-bold">{preset.label}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 font-semibold">{preset.sublabel}</span>
                   </button>
                 );
               })}
@@ -759,12 +787,12 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 }}
                 className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
                   customMode
-                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-medium'
+                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-bold shadow-sm'
                     : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800/80'
                 }`}
               >
-                <span className="text-xs font-semibold">Custom Date</span>
-                <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Choose Date/Time</span>
+                <span className="text-xs font-bold">Custom Date</span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 font-semibold">Choose Date/Time</span>
               </button>
             </div>
 
@@ -772,7 +800,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
             {customMode && (
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-semibold mb-1 uppercase tracking-wider">Date</label>
+                  <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-bold mb-1 uppercase tracking-wider">Date</label>
                   <input
                     type="date"
                     value={customDateVal}
@@ -780,11 +808,11 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                       setCustomDateVal(e.target.value);
                       updateCustomDateTime(e.target.value, customTimeVal);
                     }}
-                    className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-850 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-semibold mb-1 uppercase tracking-wider">Time</label>
+                  <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-bold mb-1 uppercase tracking-wider">Time</label>
                   <input
                     type="time"
                     value={customTimeVal}
@@ -792,7 +820,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                       setCustomTimeVal(e.target.value);
                       updateCustomDateTime(customDateVal, e.target.value);
                     }}
-                    className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-850 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -800,18 +828,18 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
             {/* Follow-up Notes */}
             <div className="flex flex-col space-y-1">
-              <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">Add Notes</label>
+              <label className="block text-[10px] text-gray-550 dark:text-gray-400 font-bold uppercase tracking-wider">Add Notes</label>
               <textarea
                 value={modalNotes}
                 onChange={(e) => setModalNotes(e.target.value)}
                 placeholder="Enter notes about this follow-up..."
                 rows={3}
-                className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400"
+                className="w-full text-xs text-gray-750 dark:text-gray-300 bg-gray-55/50 dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-850 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 font-medium leading-relaxed"
               />
             </div>
 
             {/* Save Button */}
-            <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex gap-2 pt-2 border-t border-gray-150 dark:border-gray-850">
               <button
                 type="button"
                 onClick={() => setShowFollowupModal(false)}
@@ -823,7 +851,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 type="button"
                 onClick={handleSaveFollowup}
                 disabled={savingFollowup || !modalDate}
-                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-bold text-xs transition-colors shadow-md flex items-center justify-center gap-1.5"
               >
                 {savingFollowup ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -841,16 +869,16 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         <div className="absolute inset-0 bg-black/40 z-20 transition-opacity duration-300">
           <div className="absolute inset-0" onClick={closeActivityModal} />
           
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4 animate-slide-up">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
               <div className="flex items-center gap-2">
                 <button
                   onClick={closeActivityModal}
-                  className="p-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="p-1 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-150"
                 >
                   <X className="w-4 h-4" />
                 </button>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">{editingActivity ? 'Edit Activity' : 'Log Activity'}</h4>
+                <h4 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">{editingActivity ? 'Edit Activity' : 'Log Activity'}</h4>
               </div>
             </div>
 
@@ -870,9 +898,9 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                       setActivityType(item.type)
                       setActivityDesc(item.desc)
                     }}
-                    className={`p-2.5 rounded-xl border text-xs font-semibold text-center transition-all ${
+                    className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all ${
                       isSelected
-                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-medium'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-bold shadow-sm'
                         : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800/80'
                     }`}
                   >
@@ -884,30 +912,30 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
             {/* Custom Description Input */}
             <div className="flex flex-col space-y-1">
-              <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">Description</label>
+              <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-bold mb-1 uppercase tracking-wider">Description</label>
               <input
                 type="text"
                 value={activityDesc}
                 onChange={(e) => setActivityDesc(e.target.value)}
                 placeholder="e.g. Followup via Call"
-                className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full text-xs font-bold text-gray-700 dark:text-gray-350 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-850 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-505"
               />
             </div>
 
             {/* Notes Textarea */}
             <div className="flex flex-col space-y-1">
-              <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">Notes</label>
+              <label className="block text-[10px] text-gray-550 dark:text-gray-400 font-bold uppercase tracking-wider">Notes</label>
               <textarea
                 value={activityNotes}
                 onChange={(e) => setActivityNotes(e.target.value)}
                 placeholder="Enter notes/summary of the activity..."
                 rows={3}
-                className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400"
+                className="w-full text-xs text-gray-750 dark:text-gray-300 bg-gray-55/50 dark:bg-gray-905 rounded-xl p-3 border border-gray-200 dark:border-gray-850 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 font-medium leading-relaxed"
               />
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex gap-2 pt-2 border-t border-gray-150 dark:border-gray-850">
               <button
                 type="button"
                 onClick={closeActivityModal}
@@ -919,7 +947,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 type="button"
                 onClick={editingActivity ? handleUpdateActivity : handleAddManualActivity}
                 disabled={savingActivity || !activityDesc.trim()}
-                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-bold text-xs transition-colors shadow-md flex items-center justify-center gap-1.5"
               >
                 {savingActivity ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -938,20 +966,20 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         <div className="absolute inset-0 bg-black/40 z-20 transition-opacity duration-300">
           <div className="absolute inset-0" onClick={() => setShowMarkDoneModal(false)} />
           
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-800">
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4 animate-slide-up">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowMarkDoneModal(false)}
-                  className="p-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="p-1 rounded-xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-150"
                 >
                   <X className="w-4 h-4" />
                 </button>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Complete Followup</h4>
+                <h4 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">Complete Followup</h4>
               </div>
             </div>
 
-            <p className="text-xs text-gray-500 leading-normal">
+            <p className="text-xs text-gray-500 leading-normal font-semibold">
               Marking this reminder as done will log it to the lead timeline and clear the active alert.
             </p>
 
@@ -970,9 +998,9 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                       setActivityType(item.type)
                       setActivityDesc(item.desc)
                     }}
-                    className={`p-3 rounded-2xl border text-xs font-semibold text-center transition-all ${
+                    className={`p-3 rounded-2xl border text-xs font-bold text-center transition-all ${
                       isSelected
-                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-medium'
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-bold shadow-sm'
                         : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800/80'
                     }`}
                   >
@@ -984,18 +1012,18 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
             {/* Custom Notes Textarea */}
             <div className="flex flex-col space-y-1">
-              <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">Followup Summary / Notes</label>
+              <label className="block text-[10px] text-gray-550 dark:text-gray-400 font-bold uppercase tracking-wider">Followup Summary / Notes</label>
               <textarea
                 value={activityNotes}
                 onChange={(e) => setActivityNotes(e.target.value)}
                 placeholder="Describe how the follow-up went..."
                 rows={3}
-                className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-xl p-3 border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400"
+                className="w-full text-xs text-gray-750 dark:text-gray-300 bg-gray-55/50 dark:bg-gray-905 rounded-xl p-3 border border-gray-200 dark:border-gray-850 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 font-medium leading-relaxed"
               />
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex gap-2 pt-2 border-t border-gray-150 dark:border-gray-850">
               <button
                 type="button"
                 onClick={() => setShowMarkDoneModal(false)}
@@ -1007,7 +1035,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 type="button"
                 onClick={handleMarkFollowupDone}
                 disabled={savingActivity}
-                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded-xl font-bold text-xs transition-colors shadow-md flex items-center justify-center gap-1.5"
               >
                 {savingActivity ? (
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -1034,29 +1062,29 @@ function InfoCard({ icon: Icon, label, value, badge, colored }: {
   if (!value) return null
 
   return (
-    <div className="p-3.5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-emerald-200 dark:hover:border-emerald-900 transition-colors">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="w-6 h-6 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400">
-          <Icon className="w-3 h-3" />
+    <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 hover:shadow-sm transition-all duration-200 flex justify-between items-center gap-3">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 shadow-inner shrink-0">
+          <Icon className="w-3.5 h-3.5" />
         </div>
-        <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">{label}</p>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-tight truncate">{label}</p>
       </div>
       {badge ? (
-        <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-semibold ${
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
           colored
             ? value.toLowerCase() === 'high' || parseInt(value) >= 80
-              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100/10'
               : value.toLowerCase() === 'medium' || (parseInt(value) >= 50 && parseInt(value) < 80)
-              ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400'
-              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-            : value.toLowerCase() === 'yes'
-            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
-            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-100/10'
+              : 'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+            : value.toLowerCase() === 'yes' || value.toLowerCase() === 'hot'
+            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100/10'
+            : 'bg-gray-100 text-gray-650 dark:bg-gray-800 dark:text-gray-400'
         }`}>
           {value}
         </span>
       ) : (
-        <p className="text-sm text-gray-900 dark:text-white font-medium break-words">{value}</p>
+        <p className="text-xs text-gray-900 dark:text-white font-bold break-all text-right">{value}</p>
       )}
     </div>
   )

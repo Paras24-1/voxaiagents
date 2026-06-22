@@ -101,14 +101,9 @@ export default function ChatsPage() {
     <div className="h-screen flex flex-col overflow-hidden bg-white dark:bg-gray-950">
 
       {/* Top bar */}
-      <header className="h-12 flex items-center justify-between px-4 bg-emerald-600 shrink-0 z-10">
-
-        <div className="flex items-center gap-2">
-          
-          {/* Hamburger Menu Sidebar */}
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0 shadow-sm z-10 flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <Sidebar />
-
-          {/* Back button on mobile */}
           {mobileView !== 'list' && (
             <button
               onClick={() =>
@@ -118,33 +113,28 @@ export default function ChatsPage() {
                     : 'list'
                 )
               }
-              className="mr-1 p-1 rounded-lg text-emerald-100 hover:bg-emerald-700 md:hidden"
+              className="p-2 rounded-xl bg-gray-50 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 md:hidden transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
           )}
-
-          <MessageSquare className="w-5 h-5 text-white ml-1" />
-
-          <span className="text-white font-semibold text-sm">
-            {mobileView === 'list' &&
-              (org?.name || 'Inbox Chats')}
-
-            {mobileView === 'chat' &&
-              (selected?.name || 'Chat')}
-
-            {mobileView === 'lead' &&
-              'Lead Info'}
-          </span>
+          
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-emerald-500 shrink-0" />
+            <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">
+              {mobileView === 'list' && (org?.name || 'Inbox Chats')}
+              {mobileView === 'chat' && (selected?.name || 'Chat')}
+              {mobileView === 'lead' && 'Lead Info'}
+            </h1>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-
           {/* Lead info button on mobile */}
           {mobileView === 'chat' && selected && (
             <button
               onClick={() => setMobileView('lead')}
-              className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 md:hidden"
+              className="p-2 rounded-xl bg-gray-50 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 md:hidden transition-colors"
               title="View lead info"
             >
               <Info className="w-4 h-4" />
@@ -153,7 +143,7 @@ export default function ChatsPage() {
 
           <button
             onClick={() => setTheme(dark ? 'light' : 'dark')}
-            className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors"
+            className="p-2 rounded-xl bg-gray-50 dark:bg-gray-850 hover:bg-gray-150 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 transition-colors"
           >
             {dark ? (
               <Sun className="w-4 h-4" />
