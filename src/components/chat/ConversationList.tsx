@@ -108,7 +108,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
 
   return (
-    <aside className="flex flex-col h-full bg-white dark:bg-gray-950">
+    <aside className="flex flex-col h-full bg-gray-50/50 dark:bg-gray-950">
       {/* Add Lead & Initiate Chat Modal */}
       {showAddLead && (
         <AddLeadModal

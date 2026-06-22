@@ -98,7 +98,7 @@ export default function ChatsPage() {
   if (!user) return null
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white dark:bg-gray-950">
+    <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
 
       {/* Top bar */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0 shadow-sm z-10 flex items-center justify-between">

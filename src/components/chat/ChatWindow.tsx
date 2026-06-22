@@ -199,7 +199,7 @@ hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-gray-950 min-h-0">
+    <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 min-h-0">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-150 dark:border-gray-800/85 bg-white dark:bg-gray-900 flex items-center justify-between shrink-0 shadow-sm">
         <div>

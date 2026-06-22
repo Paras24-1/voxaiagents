@@ -439,7 +439,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   const data = sheetData || {}
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-gray-50/50 to-white dark:from-gray-900/40 dark:to-gray-950/20 relative border-l border-gray-150 dark:border-gray-800">
+    <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950/20 relative border-l border-gray-150 dark:border-gray-800">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-150 dark:border-gray-800/85 bg-white dark:bg-gray-900 shadow-sm shrink-0 z-10">
         <div className="flex items-center gap-2.5 mb-1">
