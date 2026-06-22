@@ -1,12 +1,32 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import { Conversation } from '@/types'
 import { useMessages, useSendMessage } from '@/hooks'
 import { supabase } from '@/lib/supabase'
 import { useOrg } from '@/contexts/OrgContext'
 import { formatDistanceToNow } from 'date-fns'
 import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare } from 'lucide-react'
+
+function formatMessageDateSeparator(dateString: string): string {
+  const date = new Date(dateString)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+
+  const isSameDay = (d1: Date, d2: Date) =>
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+
+  if (isSameDay(date, today)) {
+    return 'Today'
+  } else if (isSameDay(date, yesterday)) {
+    return 'Yesterday'
+  } else {
+    return date.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })
+  }
+}
 
 interface Props {
   conversation: Conversation | null
@@ -261,38 +281,56 @@ hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
             <p>No messages yet in this pipeline</p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-[72%] ${msg.direction === 'outgoing' ? 'order-2' : 'order-1'}`}>
-                <div
-                  className={`px-4 py-2.5 shadow-sm text-sm leading-relaxed ${
-                    msg.direction === 'outgoing'
-                      ? 'bg-emerald-500 text-white rounded-2xl rounded-tr-none'
-                      : 'bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 text-gray-850 dark:text-gray-100 rounded-2xl rounded-tl-none'
-                  }`}
-                >
-                  {msg.media_url && msg.media_type?.startsWith('image') && (
-                    <img
-                      src={msg.media_url}
-                      alt="Media attachment"
-                      className="rounded-xl mb-2 max-w-full h-auto border border-gray-100 dark:border-gray-800"
-                    />
-                  )}
+          (() => {
+            let lastDateStr = ''
+            return messages.map((msg) => {
+              const msgDate = new Date(msg.timestamp)
+              const dateStr = msgDate.toDateString()
+              const showSeparator = dateStr !== lastDateStr
+              lastDateStr = dateStr
 
-                  {msg.message && (
-                    <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+              return (
+                <Fragment key={msg.id}>
+                  {showSeparator && (
+                    <div className="flex justify-center my-3 select-none">
+                      <span className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 rounded-full shadow-sm">
+                        {formatMessageDateSeparator(msg.timestamp)}
+                      </span>
+                    </div>
                   )}
-                </div>
+                  <div
+                    className={`flex ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[72%] ${msg.direction === 'outgoing' ? 'order-2' : 'order-1'}`}>
+                      <div
+                        className={`px-4 py-2.5 shadow-sm text-sm leading-relaxed ${
+                          msg.direction === 'outgoing'
+                            ? 'bg-emerald-500 text-white rounded-2xl rounded-tr-none'
+                            : 'bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 text-gray-850 dark:text-gray-100 rounded-2xl rounded-tl-none'
+                        }`}
+                      >
+                        {msg.media_url && msg.media_type?.startsWith('image') && (
+                          <img
+                            src={msg.media_url}
+                            alt="Media attachment"
+                            className="rounded-xl mb-2 max-w-full h-auto border border-gray-100 dark:border-gray-800"
+                          />
+                        )}
 
-                <p className={`text-[10px] text-gray-400 mt-1.5 px-1 font-semibold tracking-wide ${msg.direction === 'outgoing' ? 'text-right' : 'text-left'}`}>
-                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            </div>
-          ))
+                        {msg.message && (
+                          <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+                        )}
+                      </div>
+
+                      <p className={`text-[10px] text-gray-400 mt-1.5 px-1 font-semibold tracking-wide ${msg.direction === 'outgoing' ? 'text-right' : 'text-left'}`}>
+                        {msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                </Fragment>
+              )
+            })
+          })()
         )}
 
         <div ref={bottomRef} />
