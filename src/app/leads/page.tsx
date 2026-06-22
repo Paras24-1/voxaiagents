@@ -379,7 +379,6 @@ function LeadsContent() {
                       <th className="px-6 py-3">Lead Contact</th>
                       <th className="px-6 py-3">Lead Stage</th>
                       <th className="px-6 py-3">Lead Quality</th>
-                      <th className="px-6 py-3">Lead Score</th>
                       <th className="px-6 py-3">Key Custom Fields</th>
                       <th className="px-6 py-3">Date Added</th>
                       <th className="px-6 py-3 text-right">Actions</th>
@@ -424,9 +423,6 @@ function LeadsContent() {
                             <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${QUALITY_COLORS[computedQuality || 'unknown'] || 'bg-gray-100 text-gray-600'}`}>
                               {computedQuality || 'unknown'}
                             </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap font-semibold text-emerald-600 dark:text-emerald-400">
-                            {computedScore} pts
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-xs max-w-[200px] truncate space-y-0.5">
@@ -549,20 +545,6 @@ function LeadsContent() {
                         <option value="warm">WARM</option>
                         <option value="cold">COLD</option>
                       </select>
-                    </div>
-
-                    {/* Lead Score */}
-                    <div>
-                      <label className="text-xs text-gray-500 block mb-1">Lead Score (Points)</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          value={editScore}
-                          onChange={(e) => setEditScore(Number(e.target.value))}
-                          className="w-24 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-1.5 rounded-lg text-sm text-center font-semibold"
-                        />
-                        <span className="text-xs text-gray-400">Higher indicates closer to conversion</span>
-                      </div>
                     </div>
                   </div>
 
