@@ -270,7 +270,7 @@ hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
                 <div
                   className={`px-4 py-2.5 shadow-sm text-sm leading-relaxed ${
                     msg.direction === 'outgoing'
-                      ? 'bg-gradient-to-tr from-emerald-500 to-teal-650 text-white rounded-2xl rounded-tr-none'
+                      ? 'bg-emerald-500 text-white rounded-2xl rounded-tr-none'
                       : 'bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 text-gray-850 dark:text-gray-100 rounded-2xl rounded-tl-none'
                   }`}
                 >
