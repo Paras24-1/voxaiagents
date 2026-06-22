@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
-  ArrowLeft, 
   Search, 
   Filter, 
   Download, 
@@ -21,6 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
+import Sidebar from '@/components/Sidebar'
 import { useOrg } from '@/contexts/OrgContext'
 import { useRouter } from 'next/navigation'
 
@@ -259,12 +259,7 @@ function LeadsContent() {
       {/* Header Banner */}
       <header className="h-14 bg-emerald-600 dark:bg-emerald-800 shrink-0 flex items-center justify-between px-6 z-10 shadow-md">
         <div className="flex items-center gap-3">
-          <Link 
-            href="/dashboard"
-            className="p-1.5 rounded-lg text-emerald-100 hover:bg-emerald-700 dark:hover:bg-emerald-900 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <Sidebar />
           <span className="text-white font-semibold text-lg flex items-center gap-2">
             <MessageSquare className="w-5 h-5 opacity-90" />
             Lead CRM Portal

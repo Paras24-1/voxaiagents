@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Users, MessageSquare, Clock } from 'lucide-react'
+import { Users, MessageSquare, Clock } from 'lucide-react'
+import Sidebar from '@/components/Sidebar'
 import Link from 'next/link'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useOrg } from '@/contexts/OrgContext'
@@ -49,7 +50,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (!authLoading && !profile) router.push('/login')
-    if (!authLoading && profile?.role === 'employee') router.push('/dashboard')
+    if (!authLoading && profile?.role === 'employee') router.push('/chats')
   }, [profile, authLoading, router])
 
   if (authLoading || !profile) return (
@@ -117,9 +118,7 @@ function AnalyticsContent() {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950">
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </Link>
+          <Sidebar />
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h1>
             <p className="text-sm text-gray-500">{org?.name} — Team performance and conversation insights</p>

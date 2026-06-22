@@ -8,8 +8,9 @@ import {
   Upload, Send, Filter, Clock, BarChart2,
   CheckCircle, XCircle, AlertCircle, RefreshCw,
   Download, Pause, MessageSquare, TrendingUp, X, Plus, Eye,
-  ArrowLeft, Trash2, FileText
+  Trash2, FileText
 } from 'lucide-react'
+import Sidebar from '@/components/Sidebar'
 import { supabase } from '@/lib/supabase'
 import { useOrg } from '@/contexts/OrgContext'
 
@@ -178,10 +179,7 @@ export default function BulkMessagingPage() {
       <div className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 py-4 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Chats</span>
-            </Link>
+            <Sidebar />
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">Bulk Messaging</h1>
               <p className="text-sm text-gray-500 mt-0.5">Send WhatsApp template messages to multiple contacts</p>

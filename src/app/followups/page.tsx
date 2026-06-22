@@ -8,8 +8,9 @@ import { useOrg } from '@/contexts/OrgContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { 
   X, Search, Calendar, Clock, Trash2, Check, Edit2, 
-  MessageSquare, ArrowLeft, Sun, Moon, RefreshCw, AlertCircle 
+  MessageSquare, Sun, Moon, RefreshCw, AlertCircle 
 } from 'lucide-react'
+import Sidebar from '@/components/Sidebar'
 
 const getLocalDateString = (d: Date) => {
   const year = d.getFullYear();
@@ -433,10 +434,8 @@ function FollowupsContent() {
       {/* Header bar */}
       <header className="h-12 flex items-center justify-between px-4 bg-emerald-600 shrink-0 z-10 text-white shadow-md">
         <div className="flex items-center gap-2">
-          <Link href="/dashboard" className="mr-1 p-1 rounded-lg text-emerald-100 hover:bg-emerald-700 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <Calendar className="w-5 h-5 text-white" />
+          <Sidebar />
+          <Calendar className="w-5 h-5 text-white ml-1" />
           <span className="font-semibold text-sm">Followups Control Panel</span>
         </div>
         <div className="flex items-center gap-2">
