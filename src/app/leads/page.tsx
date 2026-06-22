@@ -387,10 +387,20 @@ function LeadsContent() {
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
                     {leads.map((lead) => {
-                      // Grab key metadata preview fields
+                                            // Grab key metadata preview fields
                       const crop = lead.metadata?.crop_requirement || lead.metadata?.cropRequirement || lead.metadata?.crop || '';
                       const tehsil = lead.metadata?.tehsil || lead.metadata?.taluka || '';
                       const product = lead.metadata?.product_interest || lead.metadata?.model_name || '';
+
+                      // Fallback for educational/general templates
+                      const course = lead.metadata?.course_interest || lead.metadata?.course || '';
+                      const location = lead.metadata?.location || lead.metadata?.city || '';
+                      const qualification = lead.metadata?.previous_qualification || '';
+
+                      // Quality, stage, score fallbacks from metadata if null on root
+                      const computedStage = lead.stage || (lead.metadata?.lead_ready === 'yes' ? 'interested' : 'new');
+                      const computedQuality = lead.lead_quality || lead.metadata?.lead_quality || 'unknown';
+                      const computedScore = lead.lead_score || (lead.metadata?.lead_score || 0);
 
                       return (
                         <tr 
@@ -406,24 +416,29 @@ function LeadsContent() {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase ${STAGE_COLORS[lead.stage || 'new'] || 'bg-gray-100 text-gray-700'}`}>
-                              {(lead.stage || 'new').replace(/_/g, ' ')}
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase ${STAGE_COLORS[computedStage || 'new'] || 'bg-gray-100 text-gray-700'}`}>
+                              {(computedStage || 'new').replace(/_/g, ' ')}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${QUALITY_COLORS[lead.lead_quality || 'unknown']}`}>
-                              {lead.lead_quality || 'unknown'}
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${QUALITY_COLORS[computedQuality || 'unknown'] || 'bg-gray-100 text-gray-600'}`}>
+                              {computedQuality || 'unknown'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap font-semibold text-emerald-600 dark:text-emerald-400">
-                            {lead.lead_score} pts
+                            {computedScore} pts
                           </td>
                           <td className="px-6 py-4">
                             <div className="text-xs max-w-[200px] truncate space-y-0.5">
                               {crop && <div className="text-gray-700 dark:text-gray-300">🌾 <span className="font-semibold">{crop}</span></div>}
                               {tehsil && <div className="text-gray-500">📍 Tehsil: {tehsil}</div>}
                               {product && <div className="text-gray-500">⚙️ Product: {product}</div>}
-                              {!crop && !tehsil && !product && <span className="text-gray-400 italic">No custom data</span>}
+                              
+                              {course && <div className="text-gray-700 dark:text-gray-300">📚 <span className="font-semibold">{course}</span></div>}
+                              {location && <div className="text-gray-500">📍 Location: {location}</div>}
+                              {qualification && <div className="text-gray-500">🎓 Qual: {qualification}</div>}
+                              
+                              {!crop && !tehsil && !product && !course && !location && !qualification && <span className="text-gray-400 italic">No custom data</span>}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
