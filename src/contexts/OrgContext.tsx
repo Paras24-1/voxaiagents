@@ -18,6 +18,7 @@ interface Organization {
   slug: string
   logo_url?: string
   plan: string
+  has_voice_ai?: boolean
 }
 
 interface OrgContextType {

@@ -9,7 +9,7 @@ import AdminPanel from '@/components/admin/AdminPanel'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 import { 
   Menu, X, BarChart2, MessageSquare, Calendar, Users, 
-  Send, Sun, Moon, Settings, LogOut, Package 
+  Send, Sun, Moon, Settings, LogOut, Package, PhoneCall 
 } from 'lucide-react'
 
 export default function Sidebar() {
@@ -62,6 +62,12 @@ export default function Sidebar() {
       name: 'Products',
       href: '/products',
       icon: Package,
+      visible: true
+    },
+    {
+      name: 'Voice AI',
+      href: '/voice',
+      icon: PhoneCall,
       visible: true
     },
     {

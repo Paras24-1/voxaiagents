@@ -74,3 +74,17 @@ export async function getOrgId(req: Request): Promise<string | null> {
     return null
   }
 }
+
+const voiceSupabaseUrl = process.env.NEXT_PUBLIC_VOICE_SUPABASE_URL
+const voiceSupabaseAnonKey = process.env.NEXT_PUBLIC_VOICE_SUPABASE_ANON_KEY
+const voiceSupabaseServiceKey = process.env.VOICE_SUPABASE_SERVICE_ROLE_KEY || voiceSupabaseAnonKey
+
+export const supabaseVoice = voiceSupabaseUrl && voiceSupabaseAnonKey
+  ? createClient(voiceSupabaseUrl, voiceSupabaseAnonKey, {
+      realtime: { params: { eventsPerSecond: 10 } },
+    })
+  : null
+
+export const supabaseVoiceAdmin = voiceSupabaseUrl && voiceSupabaseServiceKey
+  ? createClient(voiceSupabaseUrl, voiceSupabaseServiceKey)
+  : null
