@@ -685,7 +685,11 @@ function VoiceCampaignsTab() {
   // Fetch agents
   const fetchAgents = useCallback(async () => {
     try {
-      const res = await fetch('/api/voice/agents');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+      const res = await fetch('/api/voice/agents', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setAgents(data || []);
@@ -700,7 +704,11 @@ function VoiceCampaignsTab() {
   // Fetch campaigns
   const fetchCampaigns = useCallback(async () => {
     try {
-      const res = await fetch('/api/voice/campaigns');
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+      const res = await fetch('/api/voice/campaigns', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setCampaigns(data || []);
@@ -714,7 +722,11 @@ function VoiceCampaignsTab() {
   // Fetch contacts for expanded campaign
   const fetchCampaignContacts = useCallback(async (campaignId: string) => {
     try {
-      const res = await fetch(`/api/voice/campaigns/contacts?campaignId=${campaignId}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+      const res = await fetch(`/api/voice/campaigns/contacts?campaignId=${campaignId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setCampaignContacts(prev => ({
@@ -911,9 +923,14 @@ function VoiceCampaignsTab() {
 
     setCreating(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
       const res = await fetch('/api/voice/campaigns', {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           name: newCampaignName,
           agentId: selectedAgentId,
@@ -939,9 +956,14 @@ function VoiceCampaignsTab() {
   const handleStartCampaign = async (campaignId: string) => {
     setActionLoading(campaignId);
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
       const response = await fetch("/api/voice/campaigns/start", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ campaignId })
       });
 
@@ -962,9 +984,14 @@ function VoiceCampaignsTab() {
   const handlePauseCampaign = async (campaignId: string) => {
     setActionLoading(campaignId);
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
       const response = await fetch("/api/voice/campaigns/pause", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ campaignId })
       });
 
@@ -989,8 +1016,13 @@ function VoiceCampaignsTab() {
 
     setActionLoading(campaignId);
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
       const response = await fetch(`/api/voice/campaigns?id=${campaignId}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
       });
       const data = await response.json();
       if (!response.ok || data.error) {
