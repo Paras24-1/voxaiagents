@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase } from '@/lib/supabase'
+import WebRTCCallModal from '@/components/WebRTCCallModal'
 import { 
   PhoneCall, 
   Activity, 
@@ -22,7 +23,16 @@ import {
   ExternalLink,
   ChevronRight,
   ChevronDown,
-  X
+  X,
+  Plus,
+  Play,
+  Pause,
+  Trash2,
+  Users,
+  Phone,
+  Upload,
+  FileText,
+  ChevronUp
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -45,6 +55,52 @@ interface Stats {
   minutesLimit: number
   avgDuration: number
   totalCost: number
+}
+
+interface Agent {
+  id: string
+  name: string
+}
+
+interface Campaign {
+  id: string
+  name: string
+  status: string
+  total_contacts: number
+  completed_contacts: number
+  agent_id: string
+  agents?: { name: string } | null
+}
+
+interface Contact {
+  id: string
+  name: string
+  phone_number: string
+  status: string
+  duration_seconds: number
+}
+
+interface ActiveSimulation {
+  agentId: string
+  agentName: string
+  contactId: string
+}
+
+interface VoiceOverviewTabProps {
+  loading: boolean
+  stats: Stats | null
+  percentUsed: number
+  timeRange: string
+  setTimeRange: (range: string) => void
+  search: string
+  setSearch: (search: string) => void
+  filteredLogs: CallLog[]
+  expandedLogId: string | null
+  setExpandedLogId: (id: string | null) => void
+  logs: CallLog[]
+  formatDuration: (seconds: number) => string
+  getStatusBadge: (status: string) => React.ReactNode
+  fetchDashboardData: () => Promise<void>
 }
 
 export default function VoicePage() {
@@ -204,6 +260,7 @@ function VoiceUpgradePaywall({ orgName }: { orgName: string }) {
 
 /* Unlocked Voice AI Dashboard Content */
 function VoiceDashboardContent() {
+  const [activeTab, setActiveTab] = useState('overview')
   const [timeRange, setTimeRange] = useState('7d')
   const [search, setSearch] = useState('')
   const [stats, setStats] = useState<Stats | null>(null)
@@ -233,7 +290,7 @@ function VoiceDashboardContent() {
       if (logsData.error) throw new Error(logsData.error)
       setLogs(logsData)
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to fetch Voice Dashboard data:', err)
     } finally {
       setLoading(false)
@@ -244,7 +301,7 @@ function VoiceDashboardContent() {
     fetchDashboardData()
   }, [fetchDashboardData])
 
-  const filteredLogs = logs.filter(l =>
+  const filteredLogs = logs.filter((l: CallLog) =>
     (l.agents?.name || '').toLowerCase().includes(search.toLowerCase()) ||
     l.id.toLowerCase().includes(search.toLowerCase()) ||
     (l.transcript || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -286,9 +343,8 @@ function VoiceDashboardContent() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      
       {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 select-none">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 select-none">
         <div>
           <span className="text-[10px] font-extrabold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-100/20">
             Realtime Analytics Node
@@ -300,32 +356,76 @@ function VoiceDashboardContent() {
             Live metrics and transcripts synced from your telecommunication servers.
           </p>
         </div>
-        
-        <div className="flex items-center gap-3 self-start sm:self-auto">
-          <div className="flex rounded-xl bg-white dark:bg-gray-900 p-1 border border-gray-150 dark:border-gray-800 shadow-sm">
-            {['24h', '7d', '30d'].map((r) => (
-              <button
-                key={r}
-                onClick={() => setTimeRange(r)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${timeRange === r ? 'bg-gray-50 dark:bg-gray-800 text-emerald-500 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
+
+        {/* Tabs Bar */}
+        <div className="flex rounded-xl bg-white dark:bg-gray-900 p-1 border border-gray-150 dark:border-gray-850 shadow-sm self-start md:self-auto">
           <button
-            onClick={fetchDashboardData}
-            className="p-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 hover:border-gray-250 dark:hover:border-gray-700 text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-all flex items-center gap-2 text-xs font-bold shadow-sm"
+            onClick={() => setActiveTab('overview')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+              activeTab === 'overview'
+                ? 'bg-gray-50 dark:bg-gray-800 text-emerald-500 shadow-sm'
+                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-205'
+            }`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="hidden md:inline">Refresh</span>
+            Overview & Logs
+          </button>
+          <button
+            onClick={() => setActiveTab('campaigns')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+              activeTab === 'campaigns'
+                ? 'bg-gray-50 dark:bg-gray-800 text-emerald-500 shadow-sm'
+                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-205'
+            }`}
+          >
+            Campaigns
           </button>
         </div>
       </div>
 
+      {activeTab === 'overview' ? (
+        <VoiceOverviewTab
+          loading={loading}
+          stats={stats}
+          percentUsed={percentUsed}
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          search={search}
+          setSearch={setSearch}
+          filteredLogs={filteredLogs}
+          expandedLogId={expandedLogId}
+          setExpandedLogId={setExpandedLogId}
+          logs={logs}
+          formatDuration={formatDuration}
+          getStatusBadge={getStatusBadge}
+          fetchDashboardData={fetchDashboardData}
+        />
+      ) : (
+        <VoiceCampaignsTab />
+      )}
+    </div>
+  )
+}
+
+function VoiceOverviewTab({
+  loading,
+  stats,
+  percentUsed,
+  timeRange,
+  setTimeRange,
+  search,
+  setSearch,
+  filteredLogs,
+  expandedLogId,
+  setExpandedLogId,
+  logs,
+  formatDuration,
+  getStatusBadge,
+  fetchDashboardData
+}: VoiceOverviewTabProps) {
+  return (
+    <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 select-none">
-        
         {/* Total Calls */}
         <div className="bg-white/60 dark:bg-gray-900/60 border border-gray-150 dark:border-gray-800/80 backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between h-40 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
@@ -366,7 +466,7 @@ function VoiceDashboardContent() {
           <div className="flex-grow flex flex-col justify-between py-1 h-full">
             <div>
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 block">Minutes Used</span>
-              <span className="text-2xl font-extrabold text-gray-950 dark:text-white block mt-1 tracking-tight">
+              <span className="text-2xl font-extrabold text-gray-955 dark:text-white block mt-1 tracking-tight">
                 {loading ? '—' : stats?.totalMinutes.toLocaleString()}
               </span>
             </div>
@@ -389,32 +489,51 @@ function VoiceDashboardContent() {
             <Clock className="w-4 h-4 text-emerald-500" />
           </div>
           <div>
-            <div className="text-3xl font-extrabold text-gray-950 dark:text-white tracking-tight">
+            <div className="text-3xl font-extrabold text-gray-955 dark:text-white tracking-tight">
               {loading ? '—' : stats ? formatDuration(stats.avgDuration) : '—'}
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-2.5">per completed session</p>
           </div>
         </div>
-
       </div>
 
       {/* Call History Table */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 select-none">
           <div>
-            <h2 className="text-sm font-extrabold text-gray-950 dark:text-white tracking-tight uppercase tracking-wide">Call History</h2>
+            <h2 className="text-sm font-extrabold text-gray-955 dark:text-white tracking-tight uppercase tracking-wide">Call History</h2>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Historical records for outbound & inbound dialogs</p>
           </div>
           
-          <div className="w-full sm:max-w-xs relative">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by phone, status, transcript..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-250 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
-            />
+          <div className="flex items-center gap-3">
+            <div className="flex rounded-xl bg-white dark:bg-gray-900 p-1 border border-gray-150 dark:border-gray-800 shadow-sm">
+              {['24h', '7d', '30d'].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setTimeRange(r)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${timeRange === r ? 'bg-gray-50 dark:bg-gray-800 text-emerald-500 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={fetchDashboardData}
+              className="p-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 hover:border-gray-250 dark:hover:border-gray-700 text-gray-500 hover:text-gray-700 dark:text-gray-400 transition-all flex items-center gap-2 text-xs font-bold shadow-sm"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden md:inline">Refresh</span>
+            </button>
+            <div className="w-full sm:max-w-xs relative">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by phone, status, transcript..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-850 dark:text-gray-250 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+              />
+            </div>
           </div>
         </div>
 
@@ -432,7 +551,7 @@ function VoiceDashboardContent() {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-gray-150 dark:border-gray-850 text-[10px] font-extrabold uppercase tracking-wider text-gray-400 bg-gray-50/50 dark:bg-gray-950/20 select-none">
+                  <tr className="border-b border-gray-150 dark:border-gray-850 text-[10px] font-extrabold uppercase tracking-wider text-gray-400 bg-gray-50/50 dark:bg-gray-955/20 select-none">
                     <th className="px-5 py-3.5">Status</th>
                     <th className="px-5 py-3.5">From</th>
                     <th className="px-5 py-3.5">To</th>
@@ -443,38 +562,40 @@ function VoiceDashboardContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-150 dark:divide-gray-855 text-xs text-gray-700 dark:text-gray-300">
-                  {filteredLogs.map((log) => {
+                  {filteredLogs.map((log: CallLog) => {
                     const isExpanded = expandedLogId === log.id
                     return (
-                      <tr key={log.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-850/20 transition-all">
-                        <td className="px-5 py-3.5 whitespace-nowrap align-middle">
-                          {getStatusBadge(log.status)}
-                        </td>
-                        <td className="px-5 py-3.5 font-medium font-mono text-[11px] align-middle">
-                          {log.from_phone_number || 'Inbound (Virtual)'}
-                        </td>
-                        <td className="px-5 py-3.5 font-medium font-mono text-[11px] align-middle">
-                          {log.to_phone_number || 'Direct Dial'}
-                        </td>
-                        <td className="px-5 py-3.5 font-bold text-gray-800 dark:text-gray-200 align-middle">
-                          {log.agents?.name || 'Default Bot'}
-                        </td>
-                        <td className="px-5 py-3.5 font-semibold align-middle">
-                          {formatDuration(log.duration_seconds)}
-                        </td>
-                        <td className="px-5 py-3.5 font-bold text-emerald-600 dark:text-emerald-400 align-middle">
-                          {log.cost > 0 ? `₹${log.cost.toFixed(2)}` : '₹0.00'}
-                        </td>
-                        <td className="px-5 py-3.5 text-right align-middle select-none">
-                          <button
-                            onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
-                            className="p-1 text-gray-400 hover:text-emerald-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors inline-flex items-center gap-1 font-bold text-[10px] uppercase tracking-wide border border-transparent hover:border-gray-150"
-                          >
-                            Transcript
-                            {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                          </button>
-                        </td>
-                      </tr>
+                      <React.Fragment key={log.id}>
+                        <tr className="hover:bg-gray-50/30 dark:hover:bg-gray-850/20 transition-all">
+                          <td className="px-5 py-3.5 whitespace-nowrap align-middle">
+                            {getStatusBadge(log.status)}
+                          </td>
+                          <td className="px-5 py-3.5 font-medium font-mono text-[11px] align-middle">
+                            {log.from_phone_number || 'Inbound (Virtual)'}
+                          </td>
+                          <td className="px-5 py-3.5 font-medium font-mono text-[11px] align-middle">
+                            {log.to_phone_number || 'Direct Dial'}
+                          </td>
+                          <td className="px-5 py-3.5 font-bold text-gray-800 dark:text-gray-200 align-middle">
+                            {log.agents?.name || 'Default Bot'}
+                          </td>
+                          <td className="px-5 py-3.5 font-semibold align-middle">
+                            {formatDuration(log.duration_seconds)}
+                          </td>
+                          <td className="px-5 py-3.5 font-bold text-emerald-600 dark:text-emerald-400 align-middle">
+                            {log.cost > 0 ? `₹${log.cost.toFixed(2)}` : '₹0.00'}
+                          </td>
+                          <td className="px-5 py-3.5 text-right align-middle select-none">
+                            <button
+                              onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                              className="p-1 text-gray-400 hover:text-emerald-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors inline-flex items-center gap-1 font-bold text-[10px] uppercase tracking-wide border border-transparent hover:border-gray-150"
+                            >
+                              Transcript
+                              {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                            </button>
+                          </td>
+                        </tr>
+                      </React.Fragment>
                     )
                   })}
                 </tbody>
@@ -489,9 +610,9 @@ function VoiceDashboardContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm select-none">
           <div className="bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-850 rounded-3xl w-full max-w-xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden animate-scale-in">
             {/* Header */}
-            <div className="p-5 border-b border-gray-150 dark:border-gray-850 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
+            <div className="p-5 border-b border-gray-150 dark:border-gray-855 bg-gray-50 dark:bg-gray-900 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-extrabold text-gray-950 dark:text-white tracking-tight">Call Audio Transcript</h3>
+                <h3 className="text-sm font-extrabold text-gray-955 dark:text-white tracking-tight">Call Audio Transcript</h3>
                 <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Session ID: {expandedLogId}</p>
               </div>
               <button 
@@ -503,21 +624,24 @@ function VoiceDashboardContent() {
             </div>
 
             {/* Transcript Body */}
-            <div className="flex-1 p-6 overflow-y-auto bg-gray-50/20 dark:bg-gray-950/10">
-              {logs.find(l => l.id === expandedLogId)?.transcript ? (
-                <div className="text-xs leading-relaxed space-y-3 whitespace-pre-wrap font-medium text-gray-700 dark:text-gray-300">
-                  {logs.find(l => l.id === expandedLogId)?.transcript}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-gray-400 select-none">
-                  <Activity className="w-8 h-8 opacity-20 mb-2" />
-                  <p className="text-xs font-bold">No audio transcript was captured for this call.</p>
-                </div>
-              )}
+            <div className="flex-1 p-6 overflow-y-auto bg-gray-50/20 dark:bg-gray-955/10">
+              {(() => {
+                const log = logs.find((l: CallLog) => l.id === expandedLogId);
+                return log?.transcript ? (
+                  <div className="text-xs leading-relaxed space-y-3 whitespace-pre-wrap font-medium text-gray-700 dark:text-gray-300">
+                    {log.transcript}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 text-gray-400 select-none">
+                    <Activity className="w-8 h-8 opacity-20 mb-2" />
+                    <p className="text-xs font-bold">No audio transcript was captured for this call.</p>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Footer */}
-            <div className="p-5 border-t border-gray-150 dark:border-gray-850 bg-gray-50 dark:bg-gray-900 flex justify-end">
+            <div className="p-5 border-t border-gray-150 dark:border-gray-855 bg-gray-50 dark:bg-gray-900 flex justify-end">
               <button
                 type="button"
                 onClick={() => setExpandedLogId(null)}
@@ -529,7 +653,743 @@ function VoiceDashboardContent() {
           </div>
         </div>
       )}
-
     </div>
   )
+}
+
+function VoiceCampaignsTab() {
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignContacts, setCampaignContacts] = useState<Record<string, Contact[]>>({});
+  const [expandedCampaignId, setExpandedCampaignId] = useState<string | null>(null);
+
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // New Campaign Form State
+  const [newCampaignName, setNewCampaignName] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [csvContacts, setCsvContacts] = useState<{ name: string; phone_number: string }[]>([]);
+  const [csvFileName, setCsvFileName] = useState("");
+  const [csvError, setCsvError] = useState("");
+
+  // Interactive Call Simulation State
+  const [activeSimulation, setActiveSimulation] = useState<ActiveSimulation | null>(null);
+
+  // CSV Drag and Drop state
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch agents
+  const fetchAgents = useCallback(async () => {
+    try {
+      const res = await fetch('/api/voice/agents');
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAgents(data || []);
+      if (data && data.length > 0) {
+        setSelectedAgentId(data[0].id);
+      }
+    } catch (err) {
+      console.error("Error fetching agents:", err);
+    }
+  }, []);
+
+  // Fetch campaigns
+  const fetchCampaigns = useCallback(async () => {
+    try {
+      const res = await fetch('/api/voice/campaigns');
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setCampaigns(data || []);
+    } catch (err) {
+      console.error("Error fetching campaigns:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch contacts for expanded campaign
+  const fetchCampaignContacts = useCallback(async (campaignId: string) => {
+    try {
+      const res = await fetch(`/api/voice/campaigns/contacts?campaignId=${campaignId}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setCampaignContacts(prev => ({
+        ...prev,
+        [campaignId]: data || []
+      }));
+    } catch (err) {
+      console.error("Error fetching campaign contacts:", err);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchAgents();
+    fetchCampaigns();
+  }, [fetchAgents, fetchCampaigns]);
+
+  // Auto-fetch contacts if a campaign is expanded
+  useEffect(() => {
+    if (expandedCampaignId) {
+      fetchCampaignContacts(expandedCampaignId);
+    }
+  }, [expandedCampaignId, fetchCampaignContacts]);
+
+  // Real-time polling when a campaign is running
+  useEffect(() => {
+    const isAnyCampaignRunning = campaigns.some(c => c.status === "running");
+    if (!isAnyCampaignRunning) return;
+
+    const interval = setInterval(() => {
+      fetchCampaigns();
+      if (expandedCampaignId) {
+        fetchCampaignContacts(expandedCampaignId);
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [campaigns, expandedCampaignId, fetchCampaigns, fetchCampaignContacts]);
+
+  // Toggle expand campaign details
+  const toggleExpandCampaign = (campaignId: string) => {
+    if (expandedCampaignId === campaignId) {
+      setExpandedCampaignId(null);
+    } else {
+      setExpandedCampaignId(campaignId);
+    }
+  };
+
+  // CSV Drag & Drop Handlers
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const parseCSVText = (text: string) => {
+    setCsvError("");
+    const lines = text.split(/\r?\n/);
+    const parsed: { name: string; phone_number: string }[] = [];
+
+    if (lines.length === 0) {
+      setCsvError("The file is empty.");
+      setCsvContacts([]);
+      return;
+    }
+
+    const firstLine = lines[0];
+    let delimiter = ",";
+    if (firstLine.includes(";")) delimiter = ";";
+    else if (firstLine.includes("\t")) delimiter = "\t";
+
+    const rows = lines
+      .map((line: string) => {
+        return line.split(delimiter).map((cell: string) => cell.replace(/^['"]|['"]$/g, "").trim());
+      })
+      .filter((row: string[]) => row.length > 0 && row.some((cell: string) => cell !== ""));
+
+    if (rows.length === 0) {
+      setCsvError("No readable content found in the file.");
+      setCsvContacts([]);
+      return;
+    }
+
+    let nameColIndex = 0;
+    let phoneColIndex = 1;
+    let hasHeader = false;
+
+    const firstRow = rows[0];
+    const isHeaderRow = firstRow.some((cell: string) => {
+      const c = cell.toLowerCase();
+      return c.includes("name") || c.includes("phone") || c.includes("number") || c.includes("contact") || c.includes("mobile");
+    });
+
+    if (isHeaderRow) {
+      hasHeader = true;
+      firstRow.forEach((cell: string, idx: number) => {
+        const c = cell.toLowerCase();
+        if (c.includes("phone") || c.includes("number") || c.includes("mobile") || c.includes("tel") || c.includes("contact")) {
+          phoneColIndex = idx;
+        } else if (c.includes("name") || c.includes("first") || c.includes("last") || c.includes("user") || c.includes("person")) {
+          nameColIndex = idx;
+        }
+      });
+    } else {
+      let foundPhoneIdx = -1;
+      let foundNameIdx = -1;
+
+      firstRow.forEach((cell: string, idx: number) => {
+        const digits = cell.replace(/[^\d]/g, "");
+        if (digits.length >= 7) {
+          foundPhoneIdx = idx;
+        } else if (cell.length > 0 && foundNameIdx === -1) {
+          foundNameIdx = idx;
+        }
+      });
+
+      if (foundPhoneIdx !== -1) {
+        phoneColIndex = foundPhoneIdx;
+        nameColIndex = foundNameIdx !== -1 ? foundNameIdx : (foundPhoneIdx === 0 ? 1 : 0);
+      }
+    }
+
+    const dataStartIdx = hasHeader ? 1 : 0;
+    for (let i = dataStartIdx; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.length <= Math.max(nameColIndex, phoneColIndex)) continue;
+
+      const name = row[nameColIndex] || `Contact ${i + 1}`;
+      const phone = row[phoneColIndex] || "";
+
+      const cleanPhone = phone.replace(/[^\d+]/g, "");
+      if (cleanPhone.length >= 7) {
+        parsed.push({ name, phone_number: phone });
+      }
+    }
+
+    if (parsed.length === 0) {
+      setCsvError("Could not find any rows with valid phone numbers (minimum 7 digits). Please check your file format.");
+      setCsvContacts([]);
+    } else {
+      setCsvContacts(parsed);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      const isCsv = file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv" || file.type === "application/vnd.ms-excel";
+      if (isCsv) {
+        setCsvFileName(file.name);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (typeof event.target?.result === 'string') {
+            parseCSVText(event.target.result);
+          }
+        };
+        reader.readAsText(file);
+      } else {
+        setCsvError("Invalid file type. Please upload a .csv file.");
+      }
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const isCsv = file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv" || file.type === "application/vnd.ms-excel";
+      if (isCsv) {
+        setCsvFileName(file.name);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (typeof event.target?.result === 'string') {
+            parseCSVText(event.target.result);
+          }
+        };
+        reader.readAsText(file);
+      } else {
+        setCsvError("Invalid file type. Please select a .csv file.");
+      }
+    }
+  };
+
+  const handleCreateCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCampaignName || !selectedAgentId || csvContacts.length === 0) return;
+
+    setCreating(true);
+    try {
+      const res = await fetch('/api/voice/campaigns', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newCampaignName,
+          agentId: selectedAgentId,
+          contacts: csvContacts
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Reset
+      setNewCampaignName("");
+      setCsvContacts([]);
+      setCsvFileName("");
+      fetchCampaigns();
+    } catch (err: any) {
+      console.error("Failed to create campaign:", err);
+      alert("Error creating campaign: " + err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleStartCampaign = async (campaignId: string) => {
+    setActionLoading(campaignId);
+    try {
+      const response = await fetch("/api/voice/campaigns/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaignId })
+      });
+
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to start campaign");
+      }
+
+      await fetchCampaigns();
+    } catch (err: any) {
+      console.error("Failed to start campaign:", err);
+      alert("Failed to start campaign: " + err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePauseCampaign = async (campaignId: string) => {
+    setActionLoading(campaignId);
+    try {
+      const response = await fetch("/api/voice/campaigns/pause", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaignId })
+      });
+
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to pause campaign");
+      }
+
+      await fetchCampaigns();
+    } catch (err: any) {
+      console.error("Failed to pause campaign:", err);
+      alert("Failed to pause campaign: " + err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteCampaign = async (campaignId: string) => {
+    if (!confirm("Are you sure you want to delete this campaign? This will delete all campaign contacts and progress records.")) {
+      return;
+    }
+
+    setActionLoading(campaignId);
+    try {
+      const response = await fetch(`/api/voice/campaigns?id=${campaignId}`, {
+        method: "DELETE"
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to delete campaign");
+      }
+
+      await fetchCampaigns();
+      if (expandedCampaignId === campaignId) {
+        setExpandedCampaignId(null);
+      }
+    } catch (err: any) {
+      console.error("Failed to delete campaign:", err);
+      alert("Failed to delete campaign: " + err.message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Grid: Creator & Active Campaigns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Creator panel */}
+        <div className="space-y-6 lg:col-span-1">
+          <div className="bg-white/60 dark:bg-gray-900/60 border border-gray-150 dark:border-gray-800/85 backdrop-blur-md rounded-2xl p-6 shadow-sm space-y-5">
+            <h2 className="text-sm font-extrabold text-gray-955 dark:text-white tracking-tight flex items-center gap-2">
+              <Plus className="w-4 h-4 text-emerald-500" />
+              Launch New Campaign
+            </h2>
+
+            <form onSubmit={handleCreateCampaign} className="space-y-4">
+              {/* Campaign name */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 block">Campaign Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Real Estate Follow-up"
+                  value={newCampaignName}
+                  onChange={(e) => setNewCampaignName(e.target.value)}
+                  className="w-full h-10 px-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              {/* Agent selector */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 block">Select Dialing Agent</label>
+                <select
+                  value={selectedAgentId}
+                  onChange={(e) => setSelectedAgentId(e.target.value)}
+                  className="w-full h-10 px-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-955 text-xs text-gray-750 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {agents.length === 0 ? (
+                    <option value="">No voice agents available</option>
+                  ) : (
+                    agents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              {/* CSV Upload Area */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold uppercase tracking-wider text-gray-405 block">Upload Contact List (CSV)</label>
+                
+                <div
+                  onDragEnter={handleDrag}
+                  onDragOver={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
+                    dragActive
+                      ? "border-emerald-500 bg-emerald-500/5"
+                      : "border-gray-205 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 bg-gray-50/50 dark:bg-gray-950/20"
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={handleFileInput}
+                  />
+
+                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  
+                  {csvFileName ? (
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-emerald-500">{csvFileName}</p>
+                      <p className="text-[10px] text-gray-400 font-medium">{csvContacts.length} contacts parsed</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xs text-gray-650 dark:text-gray-305 font-bold">Drag & drop CSV file here</p>
+                      <p className="text-[10px] text-gray-405 font-medium mt-0.5">or click to browse local files</p>
+                    </div>
+                  )}
+                </div>
+
+                {csvError && (
+                  <p className="text-[11px] text-rose-500 flex items-center gap-1 mt-1 bg-rose-50 dark:bg-rose-955/20 p-2 rounded-lg border border-rose-100/10">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{csvError}</span>
+                  </p>
+                )}
+
+                <div className="rounded-xl bg-gray-50 dark:bg-gray-950/40 p-3.5 border border-gray-150 dark:border-gray-850 text-[10px] font-mono text-gray-405 leading-relaxed mt-2.5">
+                  <span className="text-gray-500 dark:text-gray-305 block font-bold mb-1">Expected Format:</span>
+                  name, phone_number<br />
+                  John Doe, +919831282280<br />
+                  Jane Smith, +918360599157
+                </div>
+              </div>
+
+              {/* Submit button */}
+              <button
+                type="submit"
+                disabled={creating || csvContacts.length === 0 || !newCampaignName}
+                className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:bg-emerald-300 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {creating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+                <span>Create Campaign</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Campaign Lists */}
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-sm font-extrabold text-gray-955 dark:text-white tracking-tight flex items-center gap-2">
+            <Activity className="w-4 h-4 text-emerald-500" />
+            Active Campaigns
+          </h2>
+
+          {loading ? (
+            <div className="bg-white/60 dark:bg-gray-900/60 border border-gray-150 dark:border-gray-800/80 rounded-2xl p-12 text-center">
+              <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-3" />
+              <p className="text-xs font-mono text-gray-400">Loading dialing campaigns...</p>
+            </div>
+          ) : campaigns.length === 0 ? (
+            <div className="bg-white/60 dark:bg-gray-900/60 border border-gray-150 dark:border-gray-800/80 rounded-2xl p-16 text-center space-y-3">
+              <PhoneCall className="w-10 h-10 text-gray-300 mx-auto" />
+              <div className="space-y-1">
+                <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300">No campaigns found</h3>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+                  Create an outbound calling campaign using the form on the left. You can then simulate browser WebRTC calls.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {campaigns.map((campaign) => {
+                const isExpanded = expandedCampaignId === campaign.id;
+                const progressPercent = campaign.total_contacts 
+                  ? Math.round((campaign.completed_contacts || 0) / campaign.total_contacts * 100) 
+                  : 0;
+
+                return (
+                  <div
+                    key={campaign.id}
+                    className={`border transition-all duration-200 overflow-hidden rounded-2xl ${
+                      isExpanded
+                        ? "border-emerald-500/30 bg-gradient-to-b from-white/80 to-emerald-50/5 dark:from-gray-900/80 dark:to-emerald-950/5"
+                        : "border-gray-150 dark:border-gray-850 hover:border-gray-200 dark:hover:border-gray-800 bg-white/60 dark:bg-gray-900/60"
+                    }`}
+                  >
+                    {/* Header Row */}
+                    <div
+                      onClick={() => toggleExpandCampaign(campaign.id)}
+                      className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer select-none"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-bold text-gray-955 dark:text-white text-sm">{campaign.name}</span>
+                          {campaign.status === "running" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-mono text-[9px] uppercase tracking-wider animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> running
+                            </span>
+                          ) : campaign.status === "paused" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-555 dark:text-amber-400 font-mono text-[9px] uppercase tracking-wider">
+                              paused
+                            </span>
+                          ) : campaign.status === "completed" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-105 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-404 font-mono text-[9px] uppercase tracking-wider">
+                              completed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-955 border border-gray-150 dark:border-gray-850 text-gray-400 font-mono text-[9px] uppercase tracking-wider">
+                              draft
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Subtitle Info */}
+                        <div className="flex items-center gap-4 text-[11px] text-gray-400 font-mono font-medium">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5" />
+                            {campaign.total_contacts} Contacts
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                            Agent: {campaign.agents?.name || "Unknown"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress bar & Buttons */}
+                      <div className="flex items-center gap-6 sm:justify-end">
+                        {/* Progress Meter */}
+                        <div className="w-36 hidden sm:block space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-gray-405">
+                            <span>Progress</span>
+                            <span>{campaign.completed_contacts}/{campaign.total_contacts}</span>
+                          </div>
+                          <div className="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-450 rounded-full"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          {campaign.status === "running" ? (
+                            <button
+                              onClick={() => handlePauseCampaign(campaign.id)}
+                              disabled={actionLoading === campaign.id}
+                              className="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-555 dark:text-amber-400 transition-colors cursor-pointer"
+                              title="Pause Campaign"
+                            >
+                              <Pause className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleStartCampaign(campaign.id)}
+                              disabled={actionLoading === campaign.id || campaign.status === "completed"}
+                              className="p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                              title="Start Campaign"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleDeleteCampaign(campaign.id)}
+                            disabled={actionLoading === campaign.id}
+                            className="p-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Delete Campaign"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <div className="p-1 text-gray-400 hover:text-gray-600">
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar for Mobile */}
+                    <div className="px-5 pb-4 sm:hidden">
+                      <div className="h-1 bg-gray-150 dark:bg-gray-850 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-emerald-450 rounded-full"
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Expanded Details Table */}
+                    {isExpanded && (
+                      <div className="border-t border-gray-150 dark:border-gray-855 bg-gray-50/20 dark:bg-gray-955/10 animate-in slide-in-from-top-4 duration-200">
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-left text-xs">
+                            <thead>
+                              <tr className="bg-gray-50/50 dark:bg-gray-955/40 border-b border-gray-150 dark:border-gray-850 text-[10px] font-mono text-gray-450 uppercase tracking-wider">
+                                <th className="px-6 py-4">Name</th>
+                                <th className="px-6 py-4">Phone Number</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Duration</th>
+                                <th className="px-6 py-4 text-right">Interactive Simulation</th>
+                              </tr>
+                            </thead>
+                             <tbody className="divide-y divide-gray-150/40 dark:divide-gray-850/40 font-mono">
+                              {(() => {
+                                const contacts = campaignContacts[campaign.id];
+                                if (!contacts) {
+                                  return (
+                                    <tr>
+                                      <td colSpan={5} className="px-6 py-8 text-center text-gray-450">
+                                        <Loader2 className="w-4 h-4 animate-spin text-emerald-500 mx-auto mb-2" />
+                                        Loading contacts...
+                                      </td>
+                                    </tr>
+                                  );
+                                }
+                                if (contacts.length === 0) {
+                                  return (
+                                    <tr>
+                                      <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                                        No contacts registered.
+                                      </td>
+                                    </tr>
+                                  );
+                                }
+                                return contacts.map((contact: Contact) => (
+                                  <tr key={contact.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-850/10 transition-colors">
+                                    <td className="px-6 py-3.5 font-sans font-semibold text-gray-805 dark:text-gray-200">
+                                      {contact.name}
+                                    </td>
+                                    <td className="px-6 py-3.5 text-gray-500 dark:text-gray-400">
+                                      {contact.phone_number}
+                                    </td>
+                                    <td className="px-6 py-3.5">
+                                      {contact.status === "completed" ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100/10 text-[9px] uppercase">
+                                          <CheckCircle2 className="w-2.5 h-2.5 text-emerald-505" /> Done
+                                        </span>
+                                      ) : contact.status === "dialing" ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] uppercase animate-pulse">
+                                          <Loader2 className="w-2.5 h-2.5 animate-spin" /> Dialing
+                                        </span>
+                                      ) : contact.status === "answered" ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] uppercase animate-pulse">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> active
+                                        </span>
+                                      ) : contact.status === "failed" ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-455 border border-rose-100/10 text-[9px] uppercase">
+                                          <XCircle className="w-2.5 h-2.5" /> Failed
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-50 dark:bg-gray-955 border border-gray-150 dark:border-gray-850 text-gray-400 text-[9px] uppercase">
+                                          {contact.status}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-6 py-3.5 text-gray-500">
+                                      {contact.duration_seconds > 0 ? `${contact.duration_seconds}s` : "--"}
+                                    </td>
+                                    <td className="px-6 py-3.5 text-right">
+                                      <button
+                                        onClick={() =>
+                                          setActiveSimulation({
+                                            agentId: campaign.agent_id,
+                                            agentName: campaign.agents?.name || "AI Agent",
+                                            contactId: contact.id
+                                          })
+                                        }
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-955 hover:bg-gray-100 dark:hover:bg-gray-900 border border-gray-200 dark:border-gray-850 hover:border-gray-250 dark:hover:border-gray-800 text-gray-500 hover:text-gray-700 dark:text-gray-404 transition-colors font-bold text-[10px] cursor-pointer"
+                                      >
+                                        <Phone className="w-3.5 h-3.5 text-emerald-505" />
+                                        Simulate Call
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ));
+                              })()}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Interactive Call Simulation Modal */}
+      {activeSimulation && (
+        <WebRTCCallModal
+          agentId={activeSimulation.agentId}
+          agentName={activeSimulation.agentName}
+          contactId={activeSimulation.contactId}
+          onClose={() => {
+            setActiveSimulation(null);
+            fetchCampaigns();
+            if (expandedCampaignId) {
+              fetchCampaignContacts(expandedCampaignId);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
 }
