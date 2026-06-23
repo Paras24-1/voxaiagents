@@ -9,7 +9,7 @@ import AdminPanel from '@/components/admin/AdminPanel'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 import { 
   Menu, X, BarChart2, MessageSquare, Calendar, Users, 
-  Send, Sun, Moon, Settings, LogOut 
+  Send, Sun, Moon, Settings, LogOut, Package 
 } from 'lucide-react'
 
 export default function Sidebar() {
@@ -56,6 +56,12 @@ export default function Sidebar() {
       name: 'Lead CRM',
       href: '/leads',
       icon: Users,
+      visible: true
+    },
+    {
+      name: 'Products',
+      href: '/products',
+      icon: Package,
       visible: true
     },
     {
