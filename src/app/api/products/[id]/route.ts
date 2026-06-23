@@ -31,8 +31,8 @@ export async function PATCH(
     if (error) throw error
 
     return NextResponse.json(data)
-  } catch (err: unknown) {
-    const error = err instanceof Error ? err.message : 'Unknown error'
+  } catch (err: any) {
+    const error = err?.message || err?.details || String(err) || 'Unknown error'
     return NextResponse.json({ error }, { status: 500 })
   }
 }
@@ -56,8 +56,8 @@ export async function DELETE(
     if (error) throw error
 
     return NextResponse.json({ success: true })
-  } catch (err: unknown) {
-    const error = err instanceof Error ? err.message : 'Unknown error'
+  } catch (err: any) {
+    const error = err?.message || err?.details || String(err) || 'Unknown error'
     return NextResponse.json({ error }, { status: 500 })
   }
 }
