@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseVoice, getOrgId } from '@/lib/supabase'
+import { supabaseVoice, supabaseAdmin, getOrgId } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   try {
@@ -9,6 +9,19 @@ export async function GET(req: NextRequest) {
     if (!supabaseVoice) {
       return NextResponse.json({ error: 'Voice service is not configured' }, { status: 501 })
     }
+
+    // Retrieve the mapped Voice SaaS Organization ID from the main database
+    const { data: orgData, error: orgError } = await supabaseAdmin
+      .from('organizations')
+      .select('voice_org_id')
+      .eq('id', orgId)
+      .single()
+
+    if (orgError || !orgData?.voice_org_id) {
+      return NextResponse.json({ error: 'Voice service is not linked for this organization' }, { status: 404 })
+    }
+
+    const voiceOrgId = orgData.voice_org_id
 
     const { searchParams } = new URL(req.url)
     const timeRange = searchParams.get('timeRange') || '7d'
@@ -22,7 +35,7 @@ export async function GET(req: NextRequest) {
     const { count: exactTotalCalls, error: countError } = await supabaseVoice
       .from('call_logs')
       .select('*', { count: 'exact', head: true })
-      .eq('organization_id', orgId)
+      .eq('organization_id', voiceOrgId)
       .gte('created_at', since)
 
     if (countError) throw countError
@@ -31,7 +44,7 @@ export async function GET(req: NextRequest) {
     const { data: allBilling, error: billingError } = await supabaseVoice
       .from('call_logs')
       .select('duration_seconds, cost')
-      .eq('organization_id', orgId)
+      .eq('organization_id', voiceOrgId)
 
     if (billingError) throw billingError
 
