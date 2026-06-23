@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseVoice, supabaseAdmin, getOrgId } from '@/lib/supabase'
+import { supabaseVoiceAdmin, supabaseAdmin, getOrgId } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   console.log('[API/Voice/Stats] GET request received');
@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!supabaseVoice) {
-      console.warn('[API/Voice/Stats] Service not configured: supabaseVoice is null');
+    if (!supabaseVoiceAdmin) {
+      console.warn('[API/Voice/Stats] Service not configured: supabaseVoiceAdmin is null');
       return NextResponse.json({ error: 'Voice service is not configured' }, { status: 501 })
     }
 
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     const since = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000).toISOString()
 
     // 1. Get EXACT total call count
-    const { count: exactTotalCalls, error: countError } = await supabaseVoice
+    const { count: exactTotalCalls, error: countError } = await supabaseVoiceAdmin
       .from('call_logs')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', voiceOrgId)
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     console.log(`[API/Voice/Stats] Exact total calls count: ${exactTotalCalls} for voiceOrgId: ${voiceOrgId}`);
 
     // 2. Fetch all logs for duration and cost totals
-    const { data: allBilling, error: billingError } = await supabaseVoice
+    const { data: allBilling, error: billingError } = await supabaseVoiceAdmin
       .from('call_logs')
       .select('duration_seconds, cost')
       .eq('organization_id', voiceOrgId)

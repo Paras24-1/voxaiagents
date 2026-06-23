@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseVoice, supabaseAdmin, getOrgId } from '@/lib/supabase'
+import { supabaseVoiceAdmin, supabaseAdmin, getOrgId } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   console.log('[API/Voice/Logs] GET request received');
@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!supabaseVoice) {
-      console.warn('[API/Voice/Logs] Service not configured: supabaseVoice is null');
+    if (!supabaseVoiceAdmin) {
+      console.warn('[API/Voice/Logs] Service not configured: supabaseVoiceAdmin is null');
       return NextResponse.json({ error: 'Voice service is not configured' }, { status: 501 })
     }
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const limit = parseInt(searchParams.get('limit') || '50')
 
-    const { data, error } = await supabaseVoice
+    const { data, error } = await supabaseVoiceAdmin
       .from('call_logs')
       .select('*, agents(name)')
       .eq('organization_id', voiceOrgId)
