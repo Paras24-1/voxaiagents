@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseVoice, supabaseAdmin, getOrgId } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
+  console.log('[API/Voice/Stats] GET request received');
   try {
     const orgId = await getOrgId(req)
-    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    console.log('[API/Voice/Stats] Resolved primary orgId:', orgId);
+    if (!orgId) {
+      console.warn('[API/Voice/Stats] Unauthorized: Failed to resolve orgId from request');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     if (!supabaseVoice) {
+      console.warn('[API/Voice/Stats] Service not configured: supabaseVoice is null');
       return NextResponse.json({ error: 'Voice service is not configured' }, { status: 501 })
     }
 
@@ -17,11 +23,18 @@ export async function GET(req: NextRequest) {
       .eq('id', orgId)
       .single()
 
-    if (orgError || !orgData?.voice_org_id) {
+    if (orgError) {
+      console.error('[API/Voice/Stats] Database error fetching organization voice_org_id:', orgError);
       return NextResponse.json({ error: 'Voice service is not linked for this organization' }, { status: 404 })
     }
 
-    const voiceOrgId = orgData.voice_org_id
+    if (!orgData?.voice_org_id) {
+      console.warn('[API/Voice/Stats] voice_org_id is null/undefined in database for orgId:', orgId);
+      return NextResponse.json({ error: 'Voice service is not linked for this organization' }, { status: 404 })
+    }
+
+    const voiceOrgId = orgData.voice_org_id;
+    console.log('[API/Voice/Stats] Successfully mapped to voiceOrgId:', voiceOrgId);
 
     const { searchParams } = new URL(req.url)
     const timeRange = searchParams.get('timeRange') || '7d'
@@ -38,7 +51,12 @@ export async function GET(req: NextRequest) {
       .eq('organization_id', voiceOrgId)
       .gte('created_at', since)
 
-    if (countError) throw countError
+    if (countError) {
+      console.error('[API/Voice/Stats] Error querying exact call logs count from Voice DB:', countError);
+      throw countError
+    }
+
+    console.log(`[API/Voice/Stats] Exact total calls count: ${exactTotalCalls} for voiceOrgId: ${voiceOrgId}`);
 
     // 2. Fetch all logs for duration and cost totals
     const { data: allBilling, error: billingError } = await supabaseVoice
