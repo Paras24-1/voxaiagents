@@ -78,7 +78,11 @@ function ProductsContent() {
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/products')
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const res = await fetch('/api/products', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       setProducts(data)
@@ -156,9 +160,15 @@ function ProductsContent() {
       const method = editingProduct ? 'PATCH' : 'POST'
       const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products'
 
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       })
 
@@ -179,8 +189,12 @@ function ProductsContent() {
 
     try {
       setDeleteLoading(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+
       const res = await fetch(`/api/products/${confirmDeleteId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
