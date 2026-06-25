@@ -15,18 +15,61 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required parameter: campaignId' }, { status: 400 })
     }
 
-    // Retrieve mapped voice_org_id
+    // Retrieve mapped voice_org_id and voice_wallet_credits
+    let voiceOrgId: string | null = null
+    let voiceWalletCredits = 0.00
+
     const { data: orgData, error: orgError } = await supabaseAdmin
       .from('organizations')
-      .select('voice_org_id')
+      .select('voice_org_id, voice_wallet_credits')
       .eq('id', orgId)
       .single()
 
-    if (orgError || !orgData?.voice_org_id) {
-      return NextResponse.json({ error: 'Voice service is not linked for this organization' }, { status: 404 })
+    if (orgError) {
+      console.warn('[API/Voice/Campaigns/Start] Failed to query voice_wallet_credits, trying fallback:', orgError.message)
+      const { data: orgDataFallback, error: orgErrorFallback } = await supabaseAdmin
+        .from('organizations')
+        .select('voice_org_id')
+        .eq('id', orgId)
+        .single()
+
+      if (orgErrorFallback || !orgDataFallback?.voice_org_id) {
+        return NextResponse.json({ error: 'Voice service is not linked for this organization' }, { status: 404 })
+      }
+      voiceOrgId = orgDataFallback.voice_org_id
+    } else {
+      if (!orgData?.voice_org_id) {
+        return NextResponse.json({ error: 'Voice service is not linked for this organization' }, { status: 404 })
+      }
+      voiceOrgId = orgData.voice_org_id
+      voiceWalletCredits = orgData.voice_wallet_credits ? Number(orgData.voice_wallet_credits) : 0.00
     }
 
-    const voiceOrgId = orgData.voice_org_id
+    // 2. Fetch total calling minutes to calculate wallet state
+    const { data: allBilling, error: billingError } = await supabaseVoiceAdmin
+      .from('call_logs')
+      .select('duration_seconds')
+      .eq('organization_id', voiceOrgId)
+
+    if (billingError) {
+      console.error('[API/Voice/Campaigns/Start] Error fetching logs for billing verification:', billingError)
+    } else {
+      const billingArr = allBilling || []
+      const totalDurationSeconds = billingArr.reduce((sum, l) => sum + (l.duration_seconds || 0), 0)
+      const totalMinutes = totalDurationSeconds / 60
+      
+      const freeMinutesLimit = 100
+      const overageMinutes = Math.max(0, totalMinutes - freeMinutesLimit)
+      const creditsConsumed = overageMinutes * 3.5
+      const remainingBalance = voiceWalletCredits - creditsConsumed
+
+      if (totalMinutes >= freeMinutesLimit && remainingBalance <= 0) {
+        return NextResponse.json(
+          { error: `Insufficient wallet balance (₹${remainingBalance.toFixed(2)}). You have used ${Math.round(totalMinutes)} mins (100 free limit exceeded). Please top up your wallet to start campaigns.` },
+          { status: 402 }
+        )
+      }
+    }
 
     // 1. Verify that the campaign belongs to this organization
     const { data: campaign, error: campError } = await supabaseVoiceAdmin

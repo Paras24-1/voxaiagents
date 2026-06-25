@@ -711,44 +711,148 @@ export default function HomePage() {
         <section id="pricing" className="relative py-20">
           <div className="vox-container">
             <SectionHeading
-              eyebrow="Pricing"
-              title="Custom AI systems, custom pricing"
-              subtitle="Every business is different. We scope, build, and price each project based on your specific requirements and goals."
+              eyebrow="Pricing Packages"
+              title="Tailored Plans for High-Growth Teams"
+              subtitle="Choose the plan that matches your scale. From basic WhatsApp CRM workflows to automated outbound dialer voice AI agents."
             />
-            <div className="mt-10 flex justify-center">
-              <div className="vox-glass vox-noise vox-glow relative max-w-lg w-full rounded-2xl p-8">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="font-display text-2xl font-semibold">Full AI Studio Package</div>
-                  <span className="border border-white/10 bg-white/5 text-muted-foreground text-xs px-2 py-1 rounded-full">Custom Scoped</span>
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+              
+              {/* Plan 1: CRM Lite */}
+              <div className="vox-glass vox-noise relative flex flex-col justify-between rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-all duration-300">
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-display text-xl font-bold text-white">CRM Lite</div>
+                    <span className="border border-white/10 bg-white/5 text-muted-foreground text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full font-bold">Zero Setup Fee</span>
+                  </div>
+                  <div className="mt-5">
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-black tracking-tight text-white">₹1,800</span>
+                      <span className="ml-1 text-xs text-muted-foreground">/ month</span>
+                    </div>
+                    <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                      An entry-level plan featuring full WhatsApp CRM capabilities with automated AI text agents and catalog routing.
+                    </p>
+                  </div>
+                  <div className="mt-6 border-t border-white/5 pt-5">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-500 mb-3">What's Included:</div>
+                    <ul className="space-y-3.5">
+                      {[
+                        "WhatsApp CRM & Analytics Dashboard",
+                        "Catalog up to 100 products (auto-sends text, images, videos, & PDFs)",
+                        "AI detects & replies to voice notes",
+                        "AI / Human handover mode with toggle",
+                        "Custom chatbot flows & triggers",
+                        "Zero setup cost (use your Meta WhatsApp API & Gemini keys)",
+                      ].map((it, i) => (
+                        <li key={i} className="flex gap-2.5 text-xs">
+                          <BadgeCheck className="h-4.5 w-4.5 shrink-0 text-emerald-500" />
+                          <span className="text-foreground/90 leading-tight">{it}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div className="mt-6">
-                  <div className="text-4xl font-semibold tracking-tight">Custom</div>
-                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                    We build the full AI stack for your business — WhatsApp agents, Voice agents, automation workflows, custom dashboard, and CRM integrations. One team, one system.
-                  </p>
-                </div>
-                <ul className="mt-8 space-y-3">
-                  {[
-                    "WhatsApp AI Agent (full build)",
-                    "Voice AI Agent (real-time calls)",
-                    "Custom automation workflows",
-                    "CRM & API integrations",
-                    "Branded AI dashboard",
-                    "Ongoing monitoring & support",
-                  ].map((it, i) => (
-                    <li key={i} className="flex gap-3 text-sm">
-                      <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--accent))]" />
-                      <span className="text-foreground/90">{it}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-10">
+                <div className="mt-8 pt-4">
                   <a href={CALENDLY} target="_blank" rel="noreferrer"
-                    className="flex items-center justify-center w-full h-12 text-lg bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-white rounded-xl font-medium hover:opacity-95 transition-opacity">
-                    Book a Strategy Call <ArrowRight className="ml-2 h-5 w-5" />
+                    className="flex items-center justify-center w-full h-11 text-xs bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl font-bold transition-all uppercase tracking-wider">
+                    Get Started with Lite
                   </a>
                 </div>
               </div>
+
+              {/* Plan 2: Voice & WhatsApp Pro (RECOMMENDED / FEATURED) */}
+              <div className="vox-glass vox-noise vox-glow relative flex flex-col justify-between rounded-2xl p-6 border-2 border-[hsl(var(--accent))] shadow-lg transform md:-translate-y-2 transition-all duration-300">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-md">
+                  Most Popular
+                </div>
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-display text-xl font-bold text-white">Voice & WhatsApp Pro</div>
+                    <span className="border border-[hsl(var(--accent))]/30 bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent))] text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full font-bold">100 Free Mins/Mo</span>
+                  </div>
+                  <div className="mt-5">
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-black tracking-tight text-white">₹3,999</span>
+                      <span className="ml-1 text-xs text-muted-foreground">/ month</span>
+                    </div>
+                    <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                      Our flagship plan introducing human-like voice agents, outbound campaigns, and call recording transcripts.
+                    </p>
+                  </div>
+                  <div className="mt-6 border-t border-white/5 pt-5">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-[hsl(var(--accent))] mb-3">All CRM Lite Features Plus:</div>
+                    <ul className="space-y-3.5">
+                      {[
+                        "Voice AI Agent (realtime bilingual English, Hindi, Marathi calls)",
+                        "Automation AI Outbound Calls (Custom Workflows)",
+                        "Campaign Auto-Dialer & Bulk Outbound Calling",
+                        "Smart Live Call Transfer to Human Agent",
+                        "Automatic Call Recordings & Transcripts logged",
+                        "100 free calling minutes / mo included",
+                        "Overage minutes billed at only ₹3.5 / min",
+                        "Automated lead nurturing & follow-up sequences",
+                        "Personal priority realtime support channels",
+                        "We handle calling LLM (Gemini) & telephony costs",
+                      ].map((it, i) => (
+                        <li key={i} className="flex gap-2.5 text-xs">
+                          <BadgeCheck className="h-4.5 w-4.5 shrink-0 text-[hsl(var(--accent))]" />
+                          <span className="text-foreground/90 leading-tight font-medium">{it}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-8 pt-4">
+                  <a href={CALENDLY} target="_blank" rel="noreferrer"
+                    className="flex items-center justify-center w-full h-11 text-xs bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--accent))] text-white rounded-xl font-bold hover:opacity-95 shadow-md transition-opacity uppercase tracking-wider">
+                    Upgrade to Pro <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Plan 3: Enterprise Automation */}
+              <div className="vox-glass vox-noise relative flex flex-col justify-between rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-all duration-300">
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="font-display text-xl font-bold text-white">Enterprise</div>
+                    <span className="border border-white/10 bg-white/5 text-muted-foreground text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full font-bold">Custom Scope</span>
+                  </div>
+                  <div className="mt-5">
+                    <div className="flex items-baseline">
+                      <span className="text-3xl font-black tracking-tight text-white">Custom</span>
+                    </div>
+                    <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                      Bespoke integrations, system engineering, and custom workflows configured for your organization structure.
+                    </p>
+                  </div>
+                  <div className="mt-6 border-t border-white/5 pt-5">
+                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-500 mb-3">Enterprise Inclusions:</div>
+                    <ul className="space-y-3.5">
+                      {[
+                        "Includes all Pro package features",
+                        "Bespoke n8n workflow integration & automation",
+                        "Custom Database, ERP, CRM (Zoho, HubSpot) syncing",
+                        "Custom Domain Name (e.g. crm.yourcompany.com)",
+                        "Fully White-labeled Dashboard with your branding",
+                        "Dedicated systems engineer & priority SLAs",
+                        "Unlimited server capacity & custom calling scale",
+                      ].map((it, i) => (
+                        <li key={i} className="flex gap-2.5 text-xs">
+                          <BadgeCheck className="h-4.5 w-4.5 shrink-0 text-emerald-500" />
+                          <span className="text-foreground/90 leading-tight">{it}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="mt-8 pt-4">
+                  <a href={CALENDLY} target="_blank" rel="noreferrer"
+                    className="flex items-center justify-center w-full h-11 text-xs bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl font-bold transition-all uppercase tracking-wider">
+                    Request Custom Quote
+                  </a>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>

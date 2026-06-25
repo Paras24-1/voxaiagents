@@ -32,7 +32,8 @@ import {
   Phone,
   Upload,
   FileText,
-  ChevronUp
+  ChevronUp,
+  Coins
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -49,12 +50,23 @@ interface CallLog {
   agents?: { name: string } | null
 }
 
+interface WalletInfo {
+  voice_wallet_credits: number
+  free_minutes_allowance: number
+  free_minutes_used: number
+  overage_minutes: number
+  overage_rate: number
+  credits_consumed: number
+  remaining_balance: number
+}
+
 interface Stats {
   totalCalls: number
   totalMinutes: number
   minutesLimit: number
   avgDuration: number
   totalCost: number
+  wallet?: WalletInfo
 }
 
 interface Agent {
@@ -404,9 +416,7 @@ function VoiceDashboardContent() {
       )}
     </div>
   )
-}
-
-function VoiceOverviewTab({
+}function VoiceOverviewTab({
   loading,
   stats,
   percentUsed,
@@ -422,10 +432,12 @@ function VoiceOverviewTab({
   getStatusBadge,
   fetchDashboardData
 }: VoiceOverviewTabProps) {
+  const { org } = useOrg()
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 select-none">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 select-none">
         {/* Total Calls */}
         <div className="bg-white/60 dark:bg-gray-900/60 border border-gray-150 dark:border-gray-800/80 backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between h-40 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
@@ -434,7 +446,7 @@ function VoiceOverviewTab({
           </div>
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-gray-950 dark:text-white tracking-tight">
+              <span className="text-3xl font-extrabold text-gray-955 dark:text-white tracking-tight">
                 {loading ? '—' : stats?.totalCalls}
               </span>
               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">calls</span>
@@ -470,13 +482,13 @@ function VoiceOverviewTab({
                 {loading ? '—' : stats?.totalMinutes.toLocaleString()}
               </span>
             </div>
-            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-              {stats && stats.totalCost > 0 ? (
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                  Cost: ₹{stats.totalCost.toFixed(2)}
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider font-extrabold">
+              {stats && stats.totalMinutes > stats.minutesLimit ? (
+                <span className="text-rose-500 font-extrabold">
+                  {Math.round(stats.totalMinutes - stats.minutesLimit)} min overage
                 </span>
               ) : (
-                <>of <span className="text-gray-700 dark:text-gray-300 font-black">{stats?.minutesLimit}</span> free min limit</>
+                <>of <span className="text-gray-700 dark:text-gray-300 font-black">{stats?.minutesLimit ?? 100}</span> free min limit</>
               )}
             </div>
           </div>
@@ -493,6 +505,40 @@ function VoiceOverviewTab({
               {loading ? '—' : stats ? formatDuration(stats.avgDuration) : '—'}
             </div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-2.5">per completed session</p>
+          </div>
+        </div>
+
+        {/* AI Credits Wallet */}
+        <div className="bg-white/60 dark:bg-gray-900/60 border border-gray-150 dark:border-gray-800/80 backdrop-blur-md rounded-2xl p-6 flex flex-col justify-between h-40 shadow-sm hover:shadow-md transition-all animate-scale-in">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">AI Credits Wallet</span>
+            <Coins className="w-4 h-4 text-amber-500" />
+          </div>
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold text-gray-955 dark:text-white tracking-tight">
+                {loading ? '—' : `₹${stats?.wallet?.remaining_balance?.toFixed(2) ?? '0.00'}`}
+              </span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">INR</span>
+            </div>
+            <div className="flex items-center justify-between mt-2.5">
+              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
+                {loading ? '—' : stats?.wallet && stats.wallet.remaining_balance > 0 ? (
+                  `~${(stats.wallet.remaining_balance / 3.5).toFixed(1)} mins left`
+                ) : (
+                  'No credits'
+                )}
+              </span>
+              <button
+                onClick={() => {
+                  const orgName = org?.name || 'My Organization';
+                  window.open(`https://wa.me/919831282280?text=Hello!%20I%20want%20to%20add%20credits%20to%20my%20Voice%20AI%20Wallet%20for%20organization%3A%20${encodeURIComponent(orgName)}`, '_blank');
+                }}
+                className="px-2.5 py-1 text-[9px] font-extrabold bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white rounded-md transition-all uppercase tracking-wider cursor-pointer"
+              >
+                Top Up
+              </button>
+            </div>
           </div>
         </div>
       </div>
