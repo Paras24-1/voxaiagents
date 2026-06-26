@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { useOrg } from '@/contexts/OrgContext'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { 
   ShoppingBag, CheckCircle2, Truck, Timer, Search, Plus, 
@@ -92,7 +93,11 @@ function OrdersDashboardContent() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/orders')
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const res = await fetch('/api/orders', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
       if (!res.ok) throw new Error('Failed to load orders')
       const data = await res.json()
       setOrders(data)
@@ -124,9 +129,14 @@ function OrdersDashboardContent() {
 
     try {
       setCreateLoading(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           customerName,
           customerEmail,
@@ -158,9 +168,14 @@ function OrdersDashboardContent() {
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     try {
       setActionLoadingId(orderId)
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ status: newStatus })
       })
 
@@ -183,8 +198,11 @@ function OrdersDashboardContent() {
     if (!confirm('Are you sure you want to cancel and delete this order?')) return
     try {
       setActionLoadingId(orderId)
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
       const res = await fetch(`/api/orders/${orderId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       })
 
       if (!res.ok) throw new Error('Failed to delete order')
