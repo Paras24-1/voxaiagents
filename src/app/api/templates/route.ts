@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     // Fetch tenant-specific credentials
     const { data: settings, error: settingsError } = await supabaseAdmin
       .from('organization_settings')
-      .select('whatsapp_token, whatsapp_phone_id')
+      .select('whatsapp_token, whatsapp_phone_id, whatsapp_waba_id')
       .eq('org_id', orgId)
       .single()
 
@@ -22,19 +22,7 @@ export async function GET(req: NextRequest) {
 
     const token = settings.whatsapp_token
     const phoneId = settings.whatsapp_phone_id
-
-    // Try fetching whatsapp_waba_id separately to prevent SQL crashes if the column doesn't exist yet
-    let wabaId = ''
-    try {
-      const { data: wabaSetting } = await supabaseAdmin
-        .from('organization_settings')
-        .select('whatsapp_waba_id')
-        .eq('org_id', orgId)
-        .maybeSingle()
-      wabaId = wabaSetting?.whatsapp_waba_id || ''
-    } catch (e) {
-      console.log('[templates] whatsapp_waba_id column may not exist in organization_settings table:', e)
-    }
+    let wabaId = settings.whatsapp_waba_id || ''
 
     console.log(`[templates API] GET templates for orgId: ${orgId}`)
     console.log(`[templates API] whatsapp_token (preview): ${token ? token.substring(0, 15) : 'EMPTY'}...`)
