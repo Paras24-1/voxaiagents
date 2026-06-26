@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       .single()
 
     if (settingsError || !settings || !settings.whatsapp_token || !settings.whatsapp_phone_id) {
+      console.warn(`[templates API] Missing settings for org: ${orgId}`, settingsError)
       return NextResponse.json({ error: 'WhatsApp credentials not configured. Go to Settings.' }, { status: 400 })
     }
 
@@ -34,6 +35,11 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       console.log('[templates] whatsapp_waba_id column may not exist in organization_settings table:', e)
     }
+
+    console.log(`[templates API] GET templates for orgId: ${orgId}`)
+    console.log(`[templates API] whatsapp_token (preview): ${token ? token.substring(0, 15) : 'EMPTY'}...`)
+    console.log(`[templates API] whatsapp_phone_id: ${phoneId}`)
+    console.log(`[templates API] whatsapp_waba_id: ${wabaId ? wabaId : 'EMPTY'}`)
 
     if (!wabaId) {
       // 1. Fetch businesses associated with the token to find the WABAs
@@ -123,7 +129,7 @@ export async function GET(req: NextRequest) {
 
     const templatesData = await templatesRes.json()
     if (templatesData.error) {
-      console.error('[templates] Meta templates fetch error:', templatesData.error)
+      console.error('[templates API] Meta templates fetch error details:', JSON.stringify(templatesData.error, null, 2))
       return NextResponse.json({ error: templatesData.error.message }, { status: 500 })
     }
 
