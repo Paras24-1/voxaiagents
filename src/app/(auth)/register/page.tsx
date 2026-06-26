@@ -15,6 +15,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     whatsappPhoneId: '',
+    whatsappWabaId: '',
     whatsappToken: '',
     n8nWebhookUrl: '',
     n8nReplyWebhookUrl: '',
@@ -137,6 +138,17 @@ export default function RegisterPage() {
                   required
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
                   placeholder="1146038121916207"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">WhatsApp Business Account (WABA) ID</label>
+                <input
+                  type="text"
+                  value={form.whatsappWabaId}
+                  onChange={e => update('whatsappWabaId', e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                  placeholder="2736624566720655"
                 />
               </div>
               <div>

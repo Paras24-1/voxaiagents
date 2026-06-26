@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
       email,
       password,
       whatsappPhoneId,
+      whatsappWabaId,
       whatsappToken,
       n8nWebhookUrl,
       n8nReplyWebhookUrl,
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
   .insert({
     org_id: org.id,
     whatsapp_phone_id: whatsappPhoneId || null,
+    whatsapp_waba_id: whatsappWabaId || null,
     whatsapp_token: whatsappToken || null,
     n8n_webhook_url: n8nWebhookUrl || null,
     n8n_reply_webhook_url: n8nReplyWebhookUrl || null,
