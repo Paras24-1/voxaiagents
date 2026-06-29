@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { message_id, from_email, from_name, to_email, subject, body_text } = body
+    const { message_id, from_email, from_name, to_email, subject, body_text, ai_draft_reply } = body
 
     if (!message_id || !from_email || !subject || !body_text) {
       return NextResponse.json({ error: 'Missing required parameters: message_id, from_email, subject, or body_text' }, { status: 400 })
@@ -80,9 +80,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate AI draft reply using Gemini (zero dependencies API call)
-    let aiDraft = ''
+    let aiDraft = ai_draft_reply || ''
     const geminiApiKey = process.env.GEMINI_API_KEY
-    if (geminiApiKey) {
+    if (!aiDraft && geminiApiKey) {
       try {
         console.log(`[API/Emails] Triggering Gemini draft for email: ${message_id}`)
         
