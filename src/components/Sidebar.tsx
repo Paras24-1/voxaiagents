@@ -9,7 +9,7 @@ import AdminPanel from '@/components/admin/AdminPanel'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 import { 
   Menu, X, BarChart2, MessageSquare, Calendar, Users, 
-  Send, Sun, Moon, Settings, LogOut, Package, PhoneCall, ShoppingBag
+  Send, Sun, Moon, Settings, LogOut, Package, PhoneCall, ShoppingBag, Mail
 } from 'lucide-react'
 
 export default function Sidebar() {
@@ -68,6 +68,12 @@ export default function Sidebar() {
       name: 'Orders & Status',
       href: '/orders',
       icon: ShoppingBag,
+      visible: true
+    },
+    {
+      name: 'Email Inbox',
+      href: '/emails',
+      icon: Mail,
       visible: true
     },
     {
