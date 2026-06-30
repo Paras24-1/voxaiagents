@@ -70,11 +70,35 @@ export function useConversations(filters: {
         table: 'conversations',
         filter: `org_id=eq.${orgId}`
       },
-        () => fetchConversations(false)
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newConv = payload.new as Conversation
+            setConversations(prev => {
+              if (prev.some(c => c.id === newConv.id)) return prev
+              return [newConv, ...prev]
+            })
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedConv = payload.new as Conversation
+            setConversations(prev => {
+              const list = prev.map(c => {
+                if (c.id === updatedConv.id) {
+                  // Defensive spreading to merge updated columns while preserving static fields
+                  return { ...c, ...updatedConv }
+                }
+                return c
+              })
+              // Re-sort list by updated_at descending
+              return [...list].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+            })
+          } else if (payload.eventType === 'DELETE') {
+            const oldConv = payload.old as Conversation
+            setConversations(prev => prev.filter(c => c.id !== oldConv.id))
+          }
+        }
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [orgId, fetchConversations])
+  }, [orgId])
 
   return { conversations, loading, refetch: fetchConversations }
 }
