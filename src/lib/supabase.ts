@@ -10,7 +10,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   realtime: { params: { eventsPerSecond: 10 } },
 })
 
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+  global: {
+    fetch: (url, init) => fetch(url, { ...init, cache: 'no-store' })
+  }
+})
 
 // Helper: get current user's org_id from session
 export async function getOrgId(req: Request): Promise<string | null> {
@@ -86,5 +94,13 @@ export const supabaseVoice = voiceSupabaseUrl && voiceSupabaseAnonKey
   : null
 
 export const supabaseVoiceAdmin = voiceSupabaseUrl && voiceSupabaseServiceKey
-  ? createClient(voiceSupabaseUrl, voiceSupabaseServiceKey)
+  ? createClient(voiceSupabaseUrl, voiceSupabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        fetch: (url, init) => fetch(url, { ...init, cache: 'no-store' })
+      }
+    })
   : null
