@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { name, template_name, template_body, template_language, contacts, scheduled_at, header_image_url } = body
 
+    console.log(`[campaigns API] POST parameters:`, JSON.stringify({ name, template_name, template_language, contacts_count: contacts?.length }))
+
     // Deduplicate contacts by phone number to prevent constraint errors
     const uniqueContactsMap = new Map<string, any>()
     contacts.forEach((c: any) => {

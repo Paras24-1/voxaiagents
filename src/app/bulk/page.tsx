@@ -432,6 +432,12 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
         'Content-Type': 'application/json',
         ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
       }
+      console.log('Sending campaign payload:', {
+        name: campaignName,
+        template_name: templateName,
+        template_language: selectedTemplate?.language || 'en'
+      })
+
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers,
@@ -439,7 +445,7 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
           name: campaignName,
           template_name: templateName,
           template_body: templateBody,
-          template_language: templates.find(t => t.name === templateName)?.language || 'en',
+          template_language: selectedTemplate?.language || 'en',
           scheduled_at: scheduledAt || null,
           variable_mapping: variableMapping,
           header_image_url: headerImageUrl || '',
