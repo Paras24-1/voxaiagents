@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       const businessesData = await businessesRes.json()
       if (businessesData.error) {
         console.error('[templates] Meta businesses fetch error:', businessesData.error)
-        return NextResponse.json({ error: businessesData.error.message }, { status: 500 })
+        return NextResponse.json({ error: businessesData.error.message, details: businessesData.error }, { status: 500 })
       }
 
       const businesses = businessesData.data || []
@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
     const templatesData = await templatesRes.json()
     if (templatesData.error) {
       console.error('[templates API] Meta templates fetch error details:', JSON.stringify(templatesData.error, null, 2))
-      return NextResponse.json({ error: templatesData.error.message }, { status: 500 })
+      return NextResponse.json({ error: templatesData.error.message, details: templatesData.error }, { status: 500 })
     }
 
     // 3. Format templates for the frontend editor
