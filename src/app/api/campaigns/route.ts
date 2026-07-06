@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { name, template_name, template_body, contacts, scheduled_at, header_image_url } = body
+    const { name, template_name, template_body, template_language, contacts, scheduled_at, header_image_url } = body
 
     // Deduplicate contacts by phone number to prevent constraint errors
     const uniqueContactsMap = new Map<string, any>()
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
         name,
         template_name,
         template_body,
+        template_language: template_language || 'en',
         total: uniqueContacts.length,
         status: scheduled_at ? 'draft' : 'sending',
         scheduled_at: scheduled_at || null,
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({ 
             campaign_id: campaign.id, 
             template_name, 
+            template_language: campaign.template_language || template_language || 'en',
             contacts: uniqueContacts,
             header_image_url: header_image_url || ''
           }),

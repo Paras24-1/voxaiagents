@@ -439,6 +439,7 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
           name: campaignName,
           template_name: templateName,
           template_body: templateBody,
+          template_language: templates.find(t => t.name === templateName)?.language || 'en',
           scheduled_at: scheduledAt || null,
           variable_mapping: variableMapping,
           header_image_url: headerImageUrl || '',
