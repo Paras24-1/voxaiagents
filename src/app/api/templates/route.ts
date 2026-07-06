@@ -15,6 +15,9 @@ export async function GET(req: NextRequest) {
       .eq('org_id', orgId)
       .single()
 
+    console.log(`[templates API] Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`)
+    console.log(`[templates API] Settings raw:`, JSON.stringify(settings))
+
     if (settingsError || !settings || !settings.whatsapp_token || !settings.whatsapp_phone_id) {
       console.warn(`[templates API] Missing settings for org: ${orgId}`, settingsError)
       return NextResponse.json({ error: 'WhatsApp credentials not configured. Go to Settings.' }, { status: 400 })
