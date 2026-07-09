@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
       header_format: t.components?.find((c: any) => c.type === 'HEADER')?.format || null,
       footer:   t.components?.find((c: any) => c.type === 'FOOTER')?.text || '',
       variables: (t.components?.find((c: any) => c.type === 'BODY')?.text || '')
-        .match(/{{\d+}}/g) || []
+        .match(/{{[a-zA-Z0-9_]+}}/g) || []
     }))
 
     return NextResponse.json(templates)
