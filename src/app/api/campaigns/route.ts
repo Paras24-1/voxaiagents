@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
     // Deduplicate contacts by phone number to prevent constraint errors
     const uniqueContactsMap = new Map<string, any>()
     contacts.forEach((c: any) => {
-      const cleanPhone = String(c.phone || '').replace(/\D/g, '')
+      let cleanPhone = String(c.phone || '').replace(/\D/g, '')
+      if (cleanPhone.length === 10 && /^[6789]/.test(cleanPhone)) {
+        cleanPhone = '91' + cleanPhone
+      }
       if (cleanPhone.length >= 10) {
         uniqueContactsMap.set(cleanPhone, { ...c, phone: cleanPhone })
       }
