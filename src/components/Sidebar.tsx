@@ -9,7 +9,7 @@ import AdminPanel from '@/components/admin/AdminPanel'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 import { 
   Menu, X, BarChart2, MessageSquare, Calendar, Users, 
-  Send, Sun, Moon, Settings, LogOut, Package, PhoneCall, ShoppingBag, Mail
+  Send, Sun, Moon, Settings, LogOut, Package, PhoneCall, ShoppingBag, Mail, Shield
 } from 'lucide-react'
 
 export default function Sidebar() {
@@ -195,6 +195,17 @@ export default function Sidebar() {
               <span>Settings</span>
             </button>
           )}
+
+          {/* Privacy Policy */}
+          <Link
+            href="/privacy-policy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-150 dark:hover:bg-gray-800/50 transition-colors"
+          >
+            <Shield className="w-4 h-4" />
+            <span>Privacy Policy</span>
+          </Link>
 
           {/* Sign Out */}
           <button
