@@ -42,6 +42,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [stage, setStage] = useState('')
   const [unread, setUnread] = useState(false)
   const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
+  const [channelFilter, setChannelFilter] = useState<string>('all') // all, whatsapp, instagram
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showAddLead, setShowAddLead] = useState(false)
@@ -106,6 +107,8 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     }
   }
 
+
+  const hasInstagram = conversations.some(c => c.platform === 'instagram')
 
   return (
     <aside className="flex flex-col h-full bg-gray-50/50 dark:bg-gray-950">
@@ -222,6 +225,18 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
             ))}
           </select>
+
+          {hasInstagram && (
+            <select
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+              className="text-xs px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+            >
+              <option value="all">All Channels</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="instagram">Instagram</option>
+            </select>
+          )}
           
           <button
             onClick={() => setUnread((u) => !u)}
@@ -246,6 +261,11 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           </div>
         ) : (
           [...conversations]
+            .filter((c) => {
+              if (channelFilter === 'whatsapp') return !c.platform || c.platform === 'whatsapp'
+              if (channelFilter === 'instagram') return c.platform === 'instagram'
+              return true
+            })
             .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
             .map((conv) => (
               <ConversationItem
@@ -360,6 +380,15 @@ function ConversationItem({
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${STAGE_COLORS[conv.stage as Stage] || STAGE_COLORS.new}`}>
             {conv.stage}
+          </span>
+
+          {/* Platform Badge */}
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+            conv.platform === 'instagram'
+              ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border border-pink-100/10'
+              : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border border-green-100/10'
+          }`}>
+            {conv.platform || 'whatsapp'}
           </span>
           
           {/* Assignment Badge */}

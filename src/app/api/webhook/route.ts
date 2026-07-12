@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { phone_number, message, direction, name, media_url, media_type } = body
+    const { phone_number, message, direction, name, media_url, media_type, platform } = body
 
     if (!phone_number || !direction) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
           last_message: msgText,
           org_id: orgId,
           updated_at: new Date().toISOString(),
+          platform: platform || 'whatsapp',
           ...(assignedTo
             ? { assigned_to: assignedTo, assignment_status: 'assigned' }
             : {})
@@ -108,6 +109,7 @@ export async function POST(req: NextRequest) {
         timestamp: timestamp.toISOString(),
         media_url:  media_url  || null,
         media_type: media_type || null,
+        platform: platform || 'whatsapp',
       })
       .select()
       .single()

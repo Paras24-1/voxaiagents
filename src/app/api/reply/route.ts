@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
 
     const timestamp = new Date().toISOString()
 
+    // Fetch conversation platform
+    const { data: conv } = await supabaseAdmin
+      .from('conversations')
+      .select('platform')
+      .eq('id', conversation_id)
+      .eq('org_id', orgId)
+      .maybeSingle()
+    const platform = conv?.platform || 'whatsapp'
+
     // 1. Save outgoing message
     const { data: msg, error: msgError } = await supabaseAdmin
       .from('messages')
@@ -27,6 +36,7 @@ export async function POST(req: NextRequest) {
         timestamp,
         media_url: media_url || null,
         media_type: media_type || null,
+        platform,
       })
       .select()
       .single()
@@ -56,7 +66,7 @@ export async function POST(req: NextRequest) {
       await fetch(n8nUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number, message, media_url, media_type, direction: 'outgoing', timestamp }),
+        body: JSON.stringify({ phone_number, message, media_url, media_type, direction: 'outgoing', timestamp, platform }),
       })
     }
 

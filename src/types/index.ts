@@ -12,6 +12,7 @@ export interface Conversation {
   assignment_status?: string
   created_at: string
   updated_at: string
+  platform?: string
 }
 
 export type Stage =
@@ -39,6 +40,7 @@ export interface Message {
   media_url?: string | null
   media_type?: string | null
   created_at: string
+  platform?: string
 }
 
 export interface Lead {

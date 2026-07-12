@@ -223,7 +223,16 @@ hot_customer:'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-150 dark:border-gray-800/85 bg-white dark:bg-gray-900 flex items-center justify-between shrink-0 shadow-sm">
         <div>
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{conversation.name}</h2>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white leading-tight flex items-center gap-2">
+            <span>{conversation.name}</span>
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+              conversation.platform === 'instagram'
+                ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border border-pink-100/10'
+                : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border border-green-100/10'
+            }`}>
+              {conversation.platform || 'whatsapp'}
+            </span>
+          </h2>
           <p className="text-[11px] text-gray-400 mt-0.5">{conversation.phone_number}</p>
         </div>
 
