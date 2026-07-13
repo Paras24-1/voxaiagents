@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Settings, Database, Cpu, User, Mail, Shield, Save, RefreshCw, Key } from 'lucide-react'
+import { X, Settings, Database, Cpu, User, Mail, Shield, Save, RefreshCw, Key, Bot } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useOrg } from '@/contexts/OrgContext'
 
@@ -14,6 +14,7 @@ interface SettingsData {
   google_sheet_id: string
   google_sheet_name: string
   google_sheets_api_key: string
+  gemini_api_key: string
 }
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
@@ -38,7 +39,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     n8n_reply_webhook_url: '',
     google_sheet_id: '',
     google_sheet_name: 'LEADS',
-    google_sheets_api_key: ''
+    google_sheets_api_key: '',
+    gemini_api_key: ''
   })
 
   useEffect(() => {
@@ -58,7 +60,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             n8n_reply_webhook_url: data.n8n_reply_webhook_url || '',
             google_sheet_id: data.google_sheet_id || '',
             google_sheet_name: data.google_sheet_name || 'LEADS',
-            google_sheets_api_key: data.google_sheets_api_key || ''
+            google_sheets_api_key: data.google_sheets_api_key || '',
+            gemini_api_key: data.gemini_api_key || ''
           })
         }
       } catch (err) {
@@ -293,6 +296,25 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                       className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* AI Engine Credentials */}
+              <div className="space-y-3.5">
+                <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-1.5">
+                  <Bot className="w-4 h-4 text-emerald-500" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">AI Engine Credentials</h4>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Gemini API Key</label>
+                  <input
+                    type="password"
+                    disabled={!isEditable}
+                    value={formData.gemini_api_key}
+                    onChange={e => setFormData({ ...formData, gemini_api_key: e.target.value })}
+                    placeholder="AIzaSy..."
+                    className="w-full px-3.5 py-2.5 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
+                  />
                 </div>
               </div>
 
