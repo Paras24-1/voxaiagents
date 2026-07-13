@@ -9,7 +9,7 @@ import AdminPanel from '@/components/admin/AdminPanel'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 import { 
   Menu, X, BarChart2, MessageSquare, Calendar, Users, 
-  Send, Sun, Moon, Settings, LogOut, Package, PhoneCall, ShoppingBag, Mail, Shield
+  Send, Sun, Moon, Settings, LogOut, Package, PhoneCall, ShoppingBag, Mail, Shield, MessageCircle
 } from 'lucide-react'
 
 export default function Sidebar() {
@@ -44,6 +44,12 @@ export default function Sidebar() {
       name: 'Chats',
       href: '/chats',
       icon: MessageSquare,
+      visible: true
+    },
+    {
+      name: 'Comments',
+      href: '/comments',
+      icon: MessageCircle,
       visible: true
     },
     {
