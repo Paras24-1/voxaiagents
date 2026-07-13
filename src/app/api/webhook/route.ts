@@ -170,8 +170,9 @@ export async function POST(req: NextRequest) {
       assigned_employee_phone: assignedEmployeePhone
     })
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('[webhook]', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    const errMsg = err?.message || String(err)
+    return NextResponse.json({ error: errMsg }, { status: 500 })
   }
 }
