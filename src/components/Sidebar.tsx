@@ -50,7 +50,7 @@ export default function Sidebar() {
       name: 'Comments',
       href: '/comments',
       icon: MessageCircle,
-      visible: org?.has_comments_crm || false
+      visible: true
     },
     {
       name: 'Followups',
@@ -74,19 +74,19 @@ export default function Sidebar() {
       name: 'Orders & Status',
       href: '/orders',
       icon: ShoppingBag,
-      visible: org?.has_orders_crm || false
+      visible: true
     },
     {
       name: 'Email Inbox',
       href: '/emails',
       icon: Mail,
-      visible: org?.has_emails_crm || false
+      visible: true
     },
     {
       name: 'Voice AI',
       href: '/voice',
       icon: PhoneCall,
-      visible: org?.has_voice_ai || false
+      visible: true
     },
     {
       name: 'Bulk Message',
