@@ -17,7 +17,7 @@ export default function Sidebar() {
   const [showAdmin, setShowAdmin] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   
-  const { profile, signOut } = useOrg()
+  const { profile, org, signOut } = useOrg()
   const router = useRouter()
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
@@ -50,7 +50,7 @@ export default function Sidebar() {
       name: 'Comments',
       href: '/comments',
       icon: MessageCircle,
-      visible: true
+      visible: org?.has_comments_crm || false
     },
     {
       name: 'Followups',
@@ -74,19 +74,19 @@ export default function Sidebar() {
       name: 'Orders & Status',
       href: '/orders',
       icon: ShoppingBag,
-      visible: true
+      visible: org?.has_orders_crm || false
     },
     {
       name: 'Email Inbox',
       href: '/emails',
       icon: Mail,
-      visible: true
+      visible: org?.has_emails_crm || false
     },
     {
       name: 'Voice AI',
       href: '/voice',
       icon: PhoneCall,
-      visible: true
+      visible: org?.has_voice_ai || false
     },
     {
       name: 'Bulk Message',

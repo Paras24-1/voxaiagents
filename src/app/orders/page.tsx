@@ -11,6 +11,7 @@ import {
   Mail, Calendar, Phone, DollarSign, ChevronRight, ChevronDown, Check
 } from 'lucide-react'
 import { STATUS_TITLES, STATUS_COLORS } from '@/lib/order-constants'
+import FeatureUpgradePaywall from '@/components/FeatureUpgradePaywall'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
+    <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-955">
       {/* Top Header */}
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0 shadow-sm z-10 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -63,7 +64,11 @@ export default function OrdersPage() {
 
       {/* Main Container */}
       <div className="flex-1 overflow-y-auto p-6">
-        <OrdersDashboardContent />
+        {org?.has_orders_crm ? (
+          <OrdersDashboardContent />
+        ) : (
+          <FeatureUpgradePaywall featureName="Order Status Automation" orgName={org?.name || 'Your Team'} />
+        )}
       </div>
     </div>
   )

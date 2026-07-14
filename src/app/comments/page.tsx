@@ -9,6 +9,7 @@ import {
   ExternalLink, Search, Filter, RefreshCw, AlertCircle, 
   Send, ShieldAlert, Heart, CheckCircle2 
 } from 'lucide-react'
+import FeatureUpgradePaywall from '@/components/FeatureUpgradePaywall'
 
 interface SocialComment {
   id: string
@@ -35,7 +36,7 @@ interface Stats {
 export const dynamic = 'force-dynamic'
 
 export default function CommentsPage() {
-  const { profile, loading: authLoading } = useOrg()
+  const { profile, org, loading: authLoading } = useOrg()
   const router = useRouter()
 
   useEffect(() => {
@@ -44,13 +45,24 @@ export default function CommentsPage() {
 
   if (authLoading || !profile) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-955">
         <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
-  return <CommentsContent />
+  return (
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+      <Sidebar />
+      <main className="flex-1 min-h-screen p-6 md:p-8 ml-64 transition-all overflow-x-hidden">
+        {org?.has_comments_crm ? (
+          <CommentsContent />
+        ) : (
+          <FeatureUpgradePaywall featureName="Comments & Moderation Center" orgName={org?.name || 'Your Team'} />
+        )}
+      </main>
+    </div>
+  )
 }
 
 function CommentsContent() {
@@ -173,10 +185,7 @@ function CommentsContent() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Sidebar />
-      
-      <main className="flex-1 min-h-screen p-6 md:p-8 ml-64 transition-all overflow-x-hidden">
+    <>
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -469,7 +478,6 @@ function CommentsContent() {
           </div>
         )}
 
-      </main>
-    </div>
+    </>
   )
 }

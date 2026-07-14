@@ -19,6 +19,9 @@ interface Organization {
   logo_url?: string
   plan: string
   has_voice_ai?: boolean
+  has_orders_crm?: boolean
+  has_comments_crm?: boolean
+  has_emails_crm?: boolean
 }
 
 interface OrgContextType {

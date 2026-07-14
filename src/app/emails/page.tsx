@@ -10,6 +10,7 @@ import {
   Save, Check, AlertTriangle
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import FeatureUpgradePaywall from '@/components/FeatureUpgradePaywall'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function EmailsPage() {
-  const { profile, loading: authLoading } = useOrg()
+  const { profile, org, loading: authLoading } = useOrg()
   const router = useRouter()
 
   useEffect(() => {
@@ -75,7 +76,11 @@ export default function EmailsPage() {
 
       {/* Main Container */}
       <div className="flex-1 overflow-hidden p-6">
-        <EmailsInboxContent />
+        {org?.has_emails_crm ? (
+          <EmailsInboxContent />
+        ) : (
+          <FeatureUpgradePaywall featureName="Email AI Agent" orgName={org?.name || 'Your Team'} />
+        )}
       </div>
     </div>
   )
