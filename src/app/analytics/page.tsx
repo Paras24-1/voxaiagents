@@ -11,8 +11,11 @@ import {
   Calendar, 
   CheckCircle, 
   AlertTriangle, 
-  Award 
+  Award,
+  Search,
+  RefreshCw
 } from 'lucide-react'
+import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
 import { 
   BarChart, 
@@ -68,6 +71,20 @@ interface Stats {
 
 const COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4']
 
+const STAGE_COLORS: Record<string, string> = {
+  new: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  interested: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  booking: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  confirmed: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  completed: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  followup: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
+  not_interested: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+  call_done: 'bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-300',
+  low_budget: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  hot_customer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300'
+}
+
 export const dynamic = 'force-dynamic'
 
 export default function AnalyticsPage() {
@@ -93,7 +110,50 @@ function AnalyticsContent() {
   const [loading, setLoading] = useState(true)
   const { org } = useOrg()
 
+  // Daily Leads Inspector states
+  const [inspectorDate, setInspectorDate] = useState(new Date().toISOString().split('T')[0])
+  const [inspectorLeads, setInspectorLeads] = useState<any[]>([])
+  const [inspectorLoading, setInspectorLoading] = useState(false)
+  const [inspectorSearch, setInspectorSearch] = useState('')
+
   useEffect(() => { fetchStats() }, [])
+
+  const fetchInspectorLeads = async () => {
+    if (!org?.id || !inspectorDate) return
+    setInspectorLoading(true)
+    try {
+      const startOfDay = new Date(inspectorDate)
+      startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay = new Date(inspectorDate)
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('id, name, phone_number, created_at, stage')
+        .eq('org_id', org.id)
+        .gte('created_at', startOfDay.toISOString())
+        .lte('created_at', endOfDay.toISOString())
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setInspectorLeads(data || [])
+    } catch (err) {
+      console.error('Failed to inspect daily leads:', err)
+    } finally {
+      setInspectorLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchInspectorLeads()
+  }, [inspectorDate, org?.id])
+
+  const filteredInspectorLeads = inspectorLeads.filter(lead => {
+    const searchStr = inspectorSearch.toLowerCase()
+    const nameStr = (lead.name || '').toLowerCase()
+    const phoneStr = (lead.phone_number || '').toLowerCase()
+    return nameStr.includes(searchStr) || phoneStr.includes(searchStr)
+  })
 
   const fetchStats = async () => {
     setLoading(true)
@@ -370,6 +430,80 @@ function AnalyticsContent() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Daily Leads Inspector Section */}
+            <div className="mt-8 pt-6 border-t border-gray-150 dark:border-gray-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Daily Leads Inspector</h4>
+                  <p className="text-[11px] text-gray-400">Select a date to view all leads acquired on that day</p>
+                </div>
+                
+                {/* Date Picker Input */}
+                <input
+                  type="date"
+                  value={inspectorDate}
+                  onChange={e => setInspectorDate(e.target.value)}
+                  className="px-3 py-2 text-xs text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-855 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                />
+              </div>
+
+              {/* Search Inside Inspector */}
+              {inspectorLeads.length > 0 && (
+                <div className="relative mb-3">
+                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Filter by name or phone..."
+                    value={inspectorSearch}
+                    onChange={e => setInspectorSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 text-[11px] text-gray-905 dark:text-white bg-gray-50 dark:bg-gray-950 rounded-lg border border-gray-150 dark:border-gray-855 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Inspector Content */}
+              {inspectorLoading ? (
+                <div className="py-8 flex items-center justify-center gap-2 text-xs text-gray-400">
+                  <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
+                  Loading leads...
+                </div>
+              ) : filteredInspectorLeads.length === 0 ? (
+                <div className="py-8 text-center text-xs text-gray-400">
+                  {inspectorLeads.length > 0 ? 'No matching leads found.' : 'No leads ingested on this date.'}
+                </div>
+              ) : (
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1 divide-y divide-gray-100 dark:divide-gray-800/60">
+                  {filteredInspectorLeads.map((lead) => {
+                    const stageColor = STAGE_COLORS[lead.stage] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    return (
+                      <div key={lead.id} className="pt-2 first:pt-0 flex items-center justify-between gap-3 text-xs">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 dark:text-white truncate">
+                            {lead.name || `Lead (${lead.phone_number})`}
+                          </p>
+                          <p className="text-[10px] text-gray-400 block mt-0.5">
+                            Phone: {lead.phone_number || 'N/A'} • Received: {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${stageColor}`}>
+                            {lead.stage}
+                          </span>
+                          <Link
+                            href={`/chats?phone=${lead.phone_number}`}
+                            className="p-1.5 rounded-lg bg-gray-50 dark:bg-gray-850 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-gray-400 hover:text-emerald-500 transition-colors"
+                            title="Open Chat"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
