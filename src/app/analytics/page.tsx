@@ -38,6 +38,11 @@ interface EmployeeStats {
   completed: number
 }
 
+interface TimelineItem {
+  date: string
+  count: number
+}
+
 interface Stats {
   stage_counts: {
     new: number
@@ -58,6 +63,7 @@ interface Stats {
   total_active: number
   total_completed: number
   employees: EmployeeStats[]
+  timeline: TimelineItem[]
 }
 
 const COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4']
@@ -218,6 +224,52 @@ function AnalyticsContent() {
             description="Awaiting assignment response"
             color="amber" 
           />
+        </div>
+
+        {/* Daily Lead Trend Chart */}
+        <div className="bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-gray-800/80 p-6 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-emerald-500" />
+                Daily Lead Generation Trend
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Track incoming lead volumes day-by-day over the last 30 days</p>
+            </div>
+            <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-full uppercase tracking-wider">
+              Last 30 Days
+            </div>
+          </div>
+
+          {/* Custom Responsive SVG Chart */}
+          <div className="h-44 flex items-end justify-between gap-1 sm:gap-2 pt-4 border-b border-gray-150 dark:border-gray-800">
+            {stats.timeline?.map((day, idx) => {
+              const maxVal = Math.max(...(stats.timeline?.map(d => d.count) || []), 5)
+              const heightPercent = (day.count / maxVal) * 100
+              return (
+                <div key={idx} className="flex-1 h-full flex flex-col justify-end items-center group relative">
+                  {/* Hover tooltip bubble */}
+                  <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
+                    <div className="bg-gray-950 dark:bg-white text-white dark:text-gray-900 text-[9px] font-bold px-2 py-1 rounded-lg shadow-md whitespace-nowrap">
+                      {day.count} leads ({day.date})
+                    </div>
+                    <div className="w-1.5 h-1.5 bg-gray-950 dark:bg-white rotate-45 -mt-1" />
+                  </div>
+                  {/* Vertical Bar */}
+                  <div
+                    style={{ height: `${Math.max(heightPercent, 2)}%` }}
+                    className="w-full rounded-t bg-gradient-to-t from-emerald-500/20 to-emerald-500 hover:from-emerald-400 hover:to-teal-400 transition-all cursor-pointer shadow-inner"
+                  />
+                </div>
+              )
+            })}
+          </div>
+          {/* Legend Labels */}
+          <div className="flex justify-between text-[9px] font-bold text-gray-400 mt-2 px-1">
+            <span>{stats.timeline?.[0]?.date}</span>
+            <span>{stats.timeline?.[14]?.date}</span>
+            <span>{stats.timeline?.[29]?.date}</span>
+          </div>
         </div>
 
         {/* Row 2: Funnel & Leakage analysis */}

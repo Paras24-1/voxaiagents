@@ -124,6 +124,38 @@ export async function GET(req: NextRequest) {
 
     const employeeStats = await Promise.all(employeeStatsPromises)
 
+    // 6. Fetch daily lead generation timeline (last 30 days)
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const { data: recentLeads } = await supabaseAdmin
+      .from('conversations')
+      .select('created_at')
+      .eq('org_id', orgId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+
+    const dailyCounts: Record<string, number> = {}
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const dateStr = d.toISOString().split('T')[0]
+      dailyCounts[dateStr] = 0
+    }
+
+    recentLeads?.forEach((lead: any) => {
+      if (lead.created_at) {
+        const dateStr = lead.created_at.split('T')[0]
+        if (dateStr in dailyCounts) {
+          dailyCounts[dateStr]++
+        }
+      }
+    })
+
+    const timeline = Object.keys(dailyCounts).map(date => ({
+      date: new Date(date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+      count: dailyCounts[date]
+    }))
+
     // Return the unified aggregates
     return NextResponse.json({
       stage_counts: stageCounts,
@@ -132,7 +164,8 @@ export async function GET(req: NextRequest) {
       total_unassigned: totalUnassigned || 0,
       total_active: totalActive || 0,
       total_completed: totalCompleted || 0,
-      employees: employeeStats
+      employees: employeeStats,
+      timeline
     })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
