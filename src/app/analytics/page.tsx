@@ -436,7 +436,14 @@ function AnalyticsContent() {
             <div className="mt-8 pt-6 border-t border-gray-150 dark:border-gray-800">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Daily Leads Inspector</h4>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    Daily Leads Inspector
+                    {!inspectorLoading && (
+                      <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                        {inspectorLeads.length} {inspectorLeads.length === 1 ? 'lead' : 'leads'}
+                      </span>
+                    )}
+                  </h4>
                   <p className="text-[11px] text-gray-400">Select a date to view all leads acquired on that day</p>
                 </div>
                 
