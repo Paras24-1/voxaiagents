@@ -1,10 +1,12 @@
 'use client'
 
 import { supabase } from '@/lib/supabase'
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useOrg } from '@/contexts/OrgContext'
 import { useTheme } from 'next-themes'
+
+export const dynamic = 'force-dynamic'
 
 import ConversationList from '@/components/chat/ConversationList'
 import ChatWindow from '@/components/chat/ChatWindow'
@@ -23,7 +25,7 @@ import {
 
 type MobileView = 'list' | 'chat' | 'lead'
 
-export default function ChatsPage() {
+function ChatsPageContent() {
   const {
     org,
     signOut,
@@ -32,6 +34,8 @@ export default function ChatsPage() {
   } = useOrg()
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const phone = searchParams.get('phone')
 
   const { theme, setTheme } = useTheme()
   const dark = theme === 'dark'
@@ -67,6 +71,31 @@ export default function ChatsPage() {
       setLead(null)
     }
   }, [])
+
+  // Auto-focus selected lead's chat from URL query parameter
+  useEffect(() => {
+    if (!org?.id || !phone) return
+
+    const loadDirectConversation = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('org_id', org.id)
+          .eq('phone_number', phone)
+          .maybeSingle()
+
+        if (error) throw error
+        if (data) {
+          handleSelect(data)
+        }
+      } catch (err) {
+        console.error('Failed to auto-select conversation by phone:', err)
+      }
+    }
+
+    loadDirectConversation()
+  }, [phone, org?.id, handleSelect])
 
   const handleLeadUpdate = useCallback(
     (updates: Partial<Lead>) => {
@@ -260,5 +289,17 @@ export default function ChatsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function ChatsPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen flex items-center justify-center bg-gray-50/50 dark:bg-gray-955">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <ChatsPageContent />
+    </Suspense>
   )
 }
