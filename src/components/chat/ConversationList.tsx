@@ -30,6 +30,36 @@ const STAGE_COLORS: Record<Stage, string> = {
   unknown:        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
 }
 
+function getLeadType(conv: Conversation): string {
+  const leadObj = Array.isArray(conv.lead) ? conv.lead[0] : conv.lead
+  const leadMeta = typeof leadObj?.metadata === 'string'
+    ? (() => { try { return JSON.parse(leadObj.metadata) } catch { return {} } })()
+    : (leadObj?.metadata || {})
+
+  const convMeta = typeof (conv as any).metadata === 'string'
+    ? (() => { try { return JSON.parse((conv as any).metadata) } catch { return {} } })()
+    : ((conv as any).metadata || {})
+
+  const candidate =
+    conv.lead_type ||
+    (conv as any).Lead_Type ||
+    convMeta.lead_type ||
+    convMeta.Lead_Type ||
+    convMeta.type ||
+    convMeta.user_type ||
+    convMeta.customer_type ||
+    leadObj?.lead_type ||
+    (leadObj as any)?.Lead_Type ||
+    leadMeta?.lead_type ||
+    leadMeta?.Lead_Type ||
+    leadMeta?.type ||
+    leadMeta?.user_type ||
+    leadMeta?.customer_type ||
+    ''
+
+  return String(candidate).trim().toLowerCase()
+}
+
 interface Props {
   selectedId: string | null
   onSelect: (conv: Conversation) => void
@@ -48,13 +78,18 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [unread, setUnread] = useState(false)
   const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
   const [channelFilter, setChannelFilter] = useState<string>('all') // all, whatsapp, instagram
+  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('all') // all, osmo_dealer, dealer, customer
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showAddLead, setShowAddLead] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>([])
-  const { profile } = useOrg()
+  const { profile, org } = useOrg()
+  const isOsmoRo = 
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
+    org?.name?.toLowerCase().includes('osmo') ||
+    org?.slug?.toLowerCase().includes('osmo')
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
-  console.log('DEBUG:', { profile, isAdmin, role: profile?.role })
+  console.log('DEBUG:', { profile, org, isAdmin, role: profile?.role, isOsmoRo })
 
 
 
@@ -242,6 +277,21 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               <option value="instagram">Instagram</option>
             </select>
           )}
+
+          {/* Lead Type Filter (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
+          {isOsmoRo && (
+            <select
+              value={leadTypeFilter}
+              onChange={(e) => setLeadTypeFilter(e.target.value)}
+              className="text-xs px-2.5 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700/80 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm"
+              title="Filter by Lead Type"
+            >
+              <option value="all">All Types</option>
+              <option value="osmo_dealer">Osmo Dealer</option>
+              <option value="dealer">Dealer</option>
+              <option value="customer">Customer</option>
+            </select>
+          )}
           
           <button
             onClick={() => setUnread((u) => !u)}
@@ -271,6 +321,20 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               if (channelFilter === 'instagram') return c.platform === 'instagram'
               return true
             })
+            .filter((c) => {
+              if (!isOsmoRo || leadTypeFilter === 'all') return true
+              const t = getLeadType(c)
+              if (leadTypeFilter === 'osmo_dealer') {
+                return (t.includes('osmo') && (t.includes('deal') || t.includes('deler'))) || t === 'osmo_dealer' || t === 'osmo dealer' || t === 'osmodealer'
+              }
+              if (leadTypeFilter === 'dealer') {
+                return ((t.includes('deal') || t.includes('deler')) && !t.includes('osmo')) || t === 'dealer' || t === 'deler'
+              }
+              if (leadTypeFilter === 'customer') {
+                return t.includes('custom') || t.includes('cust') || t === 'customer'
+              }
+              return false
+            })
             .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
             .map((conv) => (
               <ConversationItem
@@ -282,6 +346,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 isAdmin={isAdmin}
                 employees={employees}
                 onAssignmentChange={refetch}
+                isOsmoRo={isOsmoRo}
               />
             ))
         )}
@@ -298,6 +363,7 @@ function ConversationItem({
   isAdmin,
   employees,
   onAssignmentChange,
+  isOsmoRo,
 }: {
   conversation: Conversation
   isSelected: boolean
@@ -306,10 +372,31 @@ function ConversationItem({
   isAdmin: boolean
   employees: Employee[]
   onAssignmentChange: () => void
+  isOsmoRo?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
   const [showAssign, setShowAssign] = useState(false)
   const [assigning, setAssigning] = useState(false)
+
+  const rawType = getLeadType(conv)
+  let displayType = ''
+  let typeBadgeColor = ''
+
+  if (rawType) {
+    if ((rawType.includes('osmo') && (rawType.includes('deal') || rawType.includes('deler'))) || rawType === 'osmo_dealer' || rawType === 'osmo dealer' || rawType === 'osmodealer') {
+      displayType = 'Osmo Dealer'
+      typeBadgeColor = 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-100/10'
+    } else if (rawType.includes('deal') || rawType.includes('deler') || rawType === 'dealer' || rawType === 'deler') {
+      displayType = 'Dealer'
+      typeBadgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-100/10'
+    } else if (rawType.includes('custom') || rawType.includes('cust') || rawType === 'customer') {
+      displayType = 'Customer'
+      typeBadgeColor = 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-100/10'
+    } else {
+      displayType = rawType.replace(/_/g, ' ')
+      typeBadgeColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-100/10'
+    }
+  }
 
   const initials = (conv.name || conv.phone_number || 'U')
   .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -403,6 +490,13 @@ function ConversationItem({
           }`}>
             {conv.platform || 'whatsapp'}
           </span>
+
+          {/* Lead Type Badge (Osmo RO Dashboard) */}
+          {isOsmoRo && displayType && (
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${typeBadgeColor}`}>
+              {displayType}
+            </span>
+          )}
 
           {/* Blocked Badge */}
           {conv.is_blocked && (

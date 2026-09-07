@@ -16,6 +16,9 @@ export interface Conversation {
   receiver_phone_number?: string
   last_incoming_message_at?: string
   is_blocked?: boolean
+  lead?: Lead | Lead[]
+  lead_type?: string
+  metadata?: Record<string, any>
 }
 
 export type Stage =
