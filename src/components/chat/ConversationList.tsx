@@ -30,7 +30,9 @@ const STAGE_COLORS: Record<Stage, string> = {
   unknown:        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
 }
 
-function getLeadType(conv: Conversation): string {
+export type OsmoLeadCategory = 'osmo_dealer' | 'dealer' | 'customer'
+
+function classifyLeadType(conv: Conversation): OsmoLeadCategory {
   const leadObj = Array.isArray(conv.lead) ? conv.lead[0] : conv.lead
   const leadMeta = typeof leadObj?.metadata === 'string'
     ? (() => { try { return JSON.parse(leadObj.metadata) } catch { return {} } })()
@@ -40,24 +42,83 @@ function getLeadType(conv: Conversation): string {
     ? (() => { try { return JSON.parse((conv as any).metadata) } catch { return {} } })()
     : ((conv as any).metadata || {})
 
-  const candidate =
-    conv.lead_type ||
-    (conv as any).Lead_Type ||
-    convMeta.lead_type ||
-    convMeta.Lead_Type ||
-    convMeta.type ||
-    convMeta.user_type ||
-    convMeta.customer_type ||
-    leadObj?.lead_type ||
-    (leadObj as any)?.Lead_Type ||
-    leadMeta?.lead_type ||
-    leadMeta?.Lead_Type ||
-    leadMeta?.type ||
-    leadMeta?.user_type ||
-    leadMeta?.customer_type ||
-    ''
+  const typeFields = [
+    conv.lead_type,
+    (conv as any).Lead_Type,
+    convMeta.lead_type,
+    convMeta.Lead_Type,
+    convMeta.type,
+    convMeta.user_type,
+    convMeta.customer_type,
+    convMeta.category,
+    convMeta.role,
+    convMeta.business_type,
+    leadObj?.lead_type,
+    (leadObj as any)?.Lead_Type,
+    leadMeta?.lead_type,
+    leadMeta?.Lead_Type,
+    leadMeta?.type,
+    leadMeta?.user_type,
+    leadMeta?.customer_type,
+    leadMeta?.category,
+    leadMeta?.role,
+    leadMeta?.business_type,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
 
-  return String(candidate).trim().toLowerCase()
+  const nameFields = [
+    conv.name,
+    leadObj?.name,
+    leadMeta?.name,
+    leadMeta?.contact_person,
+    leadMeta?.dealer_name,
+    leadMeta?.business_name,
+    leadMeta?.shop_name,
+    leadMeta?.company,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
+
+  const notesFields = [
+    (conv as any).notes,
+    (leadObj as any)?.notes,
+    (leadObj as any)?.followup_notes,
+    leadMeta?.notes,
+    leadMeta?.followup_notes,
+    leadMeta?.remarks,
+    leadMeta?.tags,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
+
+  const allText = [
+    ...typeFields,
+    ...nameFields,
+    ...notesFields,
+    ...Object.values(leadMeta).filter(v => typeof v === 'string').map(v => String(v).toLowerCase()),
+    ...Object.values(convMeta).filter(v => typeof v === 'string').map(v => String(v).toLowerCase())
+  ].join(' ')
+
+  // 1. Osmo Dealer match
+  const isOsmoDealer = 
+    typeFields.some(t => t.includes('osmo') && (t.includes('deal') || t.includes('deler') || t.includes('distribut') || t.includes('partner') || t.includes('retail'))) ||
+    allText.includes('osmo dealer') ||
+    allText.includes('osmodealer') ||
+    allText.includes('osmo deler') ||
+    allText.includes('osmo distributor') ||
+    (allText.includes('osmo') && (allText.includes('dealer') || allText.includes('deler') || allText.includes('distributor')))
+
+  if (isOsmoDealer) return 'osmo_dealer'
+
+  // 2. Dealer / Retailer match
+  const isDealer =
+    typeFields.some(t => t.includes('deal') || t.includes('deler') || t.includes('retail') || t.includes('distribut') || t.includes('wholesal') || t.includes('shop') || t.includes('technician')) ||
+    nameFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retail') || n.includes('distributor') || n.includes('traders') || n.includes('trader') || n.includes('enterprises') || n.includes('enterprise') || n.includes('water solution') || n.includes('ro care') || n.includes('agency')) ||
+    notesFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retailer') || n.includes('distributor')) ||
+    allText.includes('dealer') ||
+    allText.includes('deler') ||
+    allText.includes('retailer') ||
+    allText.includes('distributor')
+
+  if (isDealer) return 'dealer'
+
+  // 3. Default fallback: All non-dealer inbound WhatsApp leads are Customers
+  return 'customer'
 }
 
 interface Props {
@@ -110,12 +171,12 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
     conversations.forEach((c) => {
       all++
-      const t = getLeadType(c)
-      if ((t.includes('osmo') && (t.includes('deal') || t.includes('deler'))) || t === 'osmo_dealer' || t === 'osmo dealer' || t === 'osmodealer') {
+      const cat = classifyLeadType(c)
+      if (cat === 'osmo_dealer') {
         osmo_dealer++
-      } else if (t.includes('deal') || t.includes('deler') || t === 'dealer' || t === 'deler') {
+      } else if (cat === 'dealer') {
         dealer++
-      } else if (t.includes('custom') || t.includes('cust') || t === 'customer') {
+      } else {
         customer++
       }
     })
@@ -361,17 +422,8 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             })
             .filter((c) => {
               if (!isOsmoRo || leadTypeFilter === 'all') return true
-              const t = getLeadType(c)
-              if (leadTypeFilter === 'osmo_dealer') {
-                return (t.includes('osmo') && (t.includes('deal') || t.includes('deler'))) || t === 'osmo_dealer' || t === 'osmo dealer' || t === 'osmodealer'
-              }
-              if (leadTypeFilter === 'dealer') {
-                return ((t.includes('deal') || t.includes('deler')) && !t.includes('osmo')) || t === 'dealer' || t === 'deler'
-              }
-              if (leadTypeFilter === 'customer') {
-                return t.includes('custom') || t.includes('cust') || t === 'customer'
-              }
-              return false
+              const cat = classifyLeadType(c)
+              return cat === leadTypeFilter
             })
             .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
             .map((conv) => (
@@ -416,24 +468,19 @@ function ConversationItem({
   const [showAssign, setShowAssign] = useState(false)
   const [assigning, setAssigning] = useState(false)
 
-  const rawType = getLeadType(conv)
+  const leadCat = classifyLeadType(conv)
   let displayType = ''
   let typeBadgeColor = ''
 
-  if (rawType) {
-    if ((rawType.includes('osmo') && (rawType.includes('deal') || rawType.includes('deler'))) || rawType === 'osmo_dealer' || rawType === 'osmo dealer' || rawType === 'osmodealer') {
-      displayType = 'Osmo Dealer'
-      typeBadgeColor = 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-100/10'
-    } else if (rawType.includes('deal') || rawType.includes('deler') || rawType === 'dealer' || rawType === 'deler') {
-      displayType = 'Dealer'
-      typeBadgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-100/10'
-    } else if (rawType.includes('custom') || rawType.includes('cust') || rawType === 'customer') {
-      displayType = 'Customer'
-      typeBadgeColor = 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-100/10'
-    } else {
-      displayType = rawType.replace(/_/g, ' ')
-      typeBadgeColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-100/10'
-    }
+  if (leadCat === 'osmo_dealer') {
+    displayType = 'Osmo Dealer'
+    typeBadgeColor = 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-100/10'
+  } else if (leadCat === 'dealer') {
+    displayType = 'Dealer'
+    typeBadgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-100/10'
+  } else {
+    displayType = 'Customer'
+    typeBadgeColor = 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-100/10'
   }
 
   const initials = (conv.name || conv.phone_number || 'U')

@@ -112,6 +112,75 @@ export default function LeadsPage() {
   return <LeadsContent />
 }
 
+function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' {
+  const meta = typeof lead.metadata === 'string'
+    ? (() => { try { return JSON.parse(lead.metadata) } catch { return {} } })()
+    : (lead.metadata || {})
+
+  const typeFields = [
+    lead.lead_type,
+    (lead as any).Lead_Type,
+    meta.lead_type,
+    meta.Lead_Type,
+    meta.type,
+    meta.user_type,
+    meta.customer_type,
+    meta.category,
+    meta.role,
+    meta.business_type,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
+
+  const nameFields = [
+    lead.name,
+    (lead as any).customer_name,
+    meta.name,
+    meta.contact_person,
+    meta.dealer_name,
+    meta.business_name,
+    meta.shop_name,
+    meta.company,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
+
+  const notesFields = [
+    lead.followup_notes,
+    meta.notes,
+    meta.followup_notes,
+    meta.remarks,
+    meta.tags,
+    meta.conversation_summary,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
+
+  const allText = [
+    ...typeFields,
+    ...nameFields,
+    ...notesFields,
+    ...Object.values(meta).filter(v => typeof v === 'string').map(v => String(v).toLowerCase())
+  ].join(' ')
+
+  const isOsmoDealer = 
+    typeFields.some(t => t.includes('osmo') && (t.includes('deal') || t.includes('deler') || t.includes('distribut') || t.includes('partner') || t.includes('retail'))) ||
+    allText.includes('osmo dealer') ||
+    allText.includes('osmodealer') ||
+    allText.includes('osmo deler') ||
+    allText.includes('osmo distributor') ||
+    (allText.includes('osmo') && (allText.includes('dealer') || allText.includes('deler') || allText.includes('distributor')))
+
+  if (isOsmoDealer) return 'osmo_dealer'
+
+  const isDealer =
+    typeFields.some(t => t.includes('deal') || t.includes('deler') || t.includes('retail') || t.includes('distribut') || t.includes('wholesal') || t.includes('shop') || t.includes('technician')) ||
+    nameFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retail') || n.includes('distributor') || n.includes('traders') || n.includes('trader') || n.includes('enterprises') || n.includes('enterprise') || n.includes('water solution') || n.includes('ro care') || n.includes('agency')) ||
+    notesFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retailer') || n.includes('distributor')) ||
+    allText.includes('dealer') ||
+    allText.includes('deler') ||
+    allText.includes('retailer') ||
+    allText.includes('distributor')
+
+  if (isDealer) return 'dealer'
+
+  return 'customer'
+}
+
 function LeadsContent() {
   const { profile, org } = useOrg()
   const isOsmoRo = 
@@ -149,13 +218,12 @@ function LeadsContent() {
 
     leads.forEach((l) => {
       all++
-      const meta = typeof l.metadata === 'string' ? (() => { try { return JSON.parse(l.metadata) } catch { return {} } })() : (l.metadata || {})
-      const candidate = String(l.lead_type || (l as any).Lead_Type || meta.lead_type || meta.Lead_Type || meta.type || meta.user_type || meta.customer_type || '').trim().toLowerCase()
-      if ((candidate.includes('osmo') && (candidate.includes('deal') || candidate.includes('deler'))) || candidate === 'osmo_dealer' || candidate === 'osmo dealer' || candidate === 'osmodealer') {
+      const cat = classifyLead(l)
+      if (cat === 'osmo_dealer') {
         osmo_dealer++
-      } else if (candidate.includes('deal') || candidate.includes('deler') || candidate === 'dealer' || candidate === 'deler') {
+      } else if (cat === 'dealer') {
         dealer++
-      } else if (candidate.includes('custom') || candidate.includes('cust') || candidate === 'customer') {
+      } else {
         customer++
       }
     })
@@ -505,18 +573,8 @@ function LeadsContent() {
             ) : (() => {
               const displayedLeads = leads.filter((lead) => {
                 if (!isOsmoRo || leadTypeFilter === 'all') return true
-                const meta = typeof lead.metadata === 'string' ? (() => { try { return JSON.parse(lead.metadata) } catch { return {} } })() : (lead.metadata || {})
-                const candidate = String(lead.lead_type || (lead as any).Lead_Type || meta.lead_type || meta.Lead_Type || meta.type || meta.user_type || meta.customer_type || '').trim().toLowerCase()
-                if (leadTypeFilter === 'osmo_dealer') {
-                  return (candidate.includes('osmo') && (candidate.includes('deal') || candidate.includes('deler'))) || candidate === 'osmo_dealer' || candidate === 'osmo dealer' || candidate === 'osmodealer'
-                }
-                if (leadTypeFilter === 'dealer') {
-                  return ((candidate.includes('deal') || candidate.includes('deler')) && !candidate.includes('osmo')) || candidate === 'dealer' || candidate === 'deler'
-                }
-                if (leadTypeFilter === 'customer') {
-                  return candidate.includes('custom') || candidate.includes('cust') || candidate === 'customer'
-                }
-                return false
+                const cat = classifyLead(lead)
+                return cat === leadTypeFilter
               })
 
               if (displayedLeads.length === 0) {
@@ -627,7 +685,15 @@ function LeadsContent() {
                             onClick={() => handleViewLead(lead)}
                           >
                             <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50 transition-colors z-10 shadow-[inset_-1px_0_0_0_#f3f4f6] dark:shadow-[inset_-1px_0_0_0_#1f2937]">
-                              <div className="font-semibold text-gray-950 dark:text-white">{displayName}</div>
+                              <div className="font-semibold text-gray-950 dark:text-white flex items-center gap-2">
+                                <span>{displayName}</span>
+                                {isOsmoRo && (() => {
+                                  const cat = classifyLead(lead)
+                                  if (cat === 'osmo_dealer') return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">Osmo Dealer</span>
+                                  if (cat === 'dealer') return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Dealer</span>
+                                  return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">Customer</span>
+                                })()}
+                              </div>
                               <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                 <Phone className="w-3 h-3" />
                                 {lead.phone_number}
