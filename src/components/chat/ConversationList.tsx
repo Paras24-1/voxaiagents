@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Conversation, Stage } from '@/types'
 import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
@@ -91,17 +91,37 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
   console.log('DEBUG:', { profile, org, isAdmin, role: profile?.role, isOsmoRo })
 
-
-
   const { conversations, loading, refetch } = useConversations({ 
-  search, 
-  stage, 
-  unread,
-  assignFilter: assignedFilter,
-  userId: profile?.id,
-  isAdmin: !!isAdmin,
-  userRole: profile?.role,
-})
+    search, 
+    stage, 
+    unread,
+    assignFilter: assignedFilter,
+    userId: profile?.id,
+    isAdmin: !!isAdmin,
+    userRole: profile?.role,
+  })
+
+  // Calculate live count per lead type category for Osmo RO
+  const typeCounts = useMemo(() => {
+    let all = 0
+    let osmo_dealer = 0
+    let dealer = 0
+    let customer = 0
+
+    conversations.forEach((c) => {
+      all++
+      const t = getLeadType(c)
+      if ((t.includes('osmo') && (t.includes('deal') || t.includes('deler'))) || t === 'osmo_dealer' || t === 'osmo dealer' || t === 'osmodealer') {
+        osmo_dealer++
+      } else if (t.includes('deal') || t.includes('deler') || t === 'dealer' || t === 'deler') {
+        dealer++
+      } else if (t.includes('custom') || t.includes('cust') || t === 'customer') {
+        customer++
+      }
+    })
+
+    return { all, osmo_dealer, dealer, customer }
+  }, [conversations])
 
   useEffect(() => {
     if (profile?.role === 'admin' || profile?.role === 'owner') {
@@ -234,6 +254,39 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           />
         </div>
 
+        {/* Quick Tap Category Tabs (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
+        {isOsmoRo && (
+          <div className="grid grid-cols-4 gap-1 p-1 mb-3 bg-gray-100/90 dark:bg-gray-850 rounded-xl border border-gray-200/80 dark:border-gray-750 shadow-inner">
+            {[
+              { id: 'all', label: 'All', count: typeCounts.all, activeStyle: 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' },
+              { id: 'osmo_dealer', label: 'Osmo Dealer', count: typeCounts.osmo_dealer, activeStyle: 'bg-purple-600 text-white shadow-sm shadow-purple-500/20' },
+              { id: 'dealer', label: 'Dealer', count: typeCounts.dealer, activeStyle: 'bg-amber-600 text-white shadow-sm shadow-amber-500/20' },
+              { id: 'customer', label: 'Customer', count: typeCounts.customer, activeStyle: 'bg-teal-600 text-white shadow-sm shadow-teal-500/20' },
+            ].map((tab) => {
+              const active = leadTypeFilter === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setLeadTypeFilter(tab.id)}
+                  className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all duration-200 select-none ${
+                    active
+                      ? tab.activeStyle
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-750'
+                  }`}
+                >
+                  <span className="text-[10.5px] font-bold tracking-tight leading-none truncate w-full text-center">
+                    {tab.label}
+                  </span>
+                  <span className={`text-[10px] mt-0.5 font-extrabold ${active ? 'opacity-90' : 'opacity-60'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
           
@@ -275,21 +328,6 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               <option value="all">All Channels</option>
               <option value="whatsapp">WhatsApp</option>
               <option value="instagram">Instagram</option>
-            </select>
-          )}
-
-          {/* Lead Type Filter (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
-          {isOsmoRo && (
-            <select
-              value={leadTypeFilter}
-              onChange={(e) => setLeadTypeFilter(e.target.value)}
-              className="text-xs px-2.5 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-700/80 bg-emerald-50/60 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-sm"
-              title="Filter by Lead Type"
-            >
-              <option value="all">All Types</option>
-              <option value="osmo_dealer">Osmo Dealer</option>
-              <option value="dealer">Dealer</option>
-              <option value="customer">Customer</option>
             </select>
           )}
           

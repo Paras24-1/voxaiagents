@@ -38,7 +38,68 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await query
     if (error) throw error
-    return NextResponse.json(data)
+
+    // Fetch leads for this org to ensure all conversations have lead and lead_type matched even if FK relation is not set
+    const { data: leadsData } = await supabaseAdmin
+      .from('leads')
+      .select('id, conversation_id, phone_number, name, lead_type, stage, lead_quality, lead_score, lead_temperature, metadata')
+      .eq('org_id', orgId)
+
+    const leadsByConvId = new Map<string, any>()
+    const leadsByPhone = new Map<string, any>()
+
+    if (leadsData && Array.isArray(leadsData)) {
+      leadsData.forEach((l) => {
+        if (l.conversation_id) leadsByConvId.set(l.conversation_id, l)
+        const cleanPhone = (l.phone_number || '').replace(/\D/g, '').slice(-10)
+        if (cleanPhone) leadsByPhone.set(cleanPhone, l)
+      })
+    }
+
+    const enrichedData = (data || []).map((conv: any) => {
+      let matchedLead = conv.lead
+      if (Array.isArray(matchedLead)) {
+        matchedLead = matchedLead[0] || null
+      }
+      if (!matchedLead && conv.id) {
+        matchedLead = leadsByConvId.get(conv.id) || null
+      }
+      if (!matchedLead && conv.phone_number) {
+        const cleanPhone = (conv.phone_number || '').replace(/\D/g, '').slice(-10)
+        matchedLead = leadsByPhone.get(cleanPhone) || null
+      }
+
+      let parsedMeta = conv.metadata || {}
+      if (typeof parsedMeta === 'string') {
+        try { parsedMeta = JSON.parse(parsedMeta) } catch {}
+      }
+
+      let leadMeta = matchedLead?.metadata || {}
+      if (typeof leadMeta === 'string') {
+        try { leadMeta = JSON.parse(leadMeta) } catch {}
+      }
+
+      const leadType =
+        conv.lead_type ||
+        parsedMeta.lead_type ||
+        parsedMeta.Lead_Type ||
+        matchedLead?.lead_type ||
+        matchedLead?.Lead_Type ||
+        leadMeta.lead_type ||
+        leadMeta.Lead_Type ||
+        leadMeta.type ||
+        leadMeta.user_type ||
+        leadMeta.customer_type ||
+        ''
+
+      return {
+        ...conv,
+        lead: matchedLead || conv.lead,
+        lead_type: leadType,
+      }
+    })
+
+    return NextResponse.json(enrichedData)
   } catch (err: unknown) {
     const error = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error }, { status: 500 })

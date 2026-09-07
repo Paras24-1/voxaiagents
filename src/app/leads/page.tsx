@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { 
   Search, 
@@ -34,6 +34,7 @@ interface Lead {
   lead_temperature?: string | null
   lead_score: number
   industry?: string | null
+  lead_type?: string | null
   followup_date?: string | null
   followup_notes?: string | null
   created_at: string
@@ -112,7 +113,12 @@ export default function LeadsPage() {
 }
 
 function LeadsContent() {
-  const { org } = useOrg()
+  const { profile, org } = useOrg()
+  const isOsmoRo = 
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
+    org?.name?.toLowerCase().includes('osmo') ||
+    org?.slug?.toLowerCase().includes('osmo')
+
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -121,6 +127,7 @@ function LeadsContent() {
   const [search, setSearch] = useState('')
   const [selectedStage, setSelectedStage] = useState('')
   const [selectedQuality, setSelectedQuality] = useState('')
+  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('all') // all, osmo_dealer, dealer, customer
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   
@@ -132,6 +139,29 @@ function LeadsContent() {
   const [editQuality, setEditQuality] = useState('')
   const [editScore, setEditScore] = useState(0)
   const [savingLead, setSavingLead] = useState(false)
+
+  // Calculate live count per lead type category for Osmo RO
+  const typeCounts = useMemo(() => {
+    let all = 0
+    let osmo_dealer = 0
+    let dealer = 0
+    let customer = 0
+
+    leads.forEach((l) => {
+      all++
+      const meta = typeof l.metadata === 'string' ? (() => { try { return JSON.parse(l.metadata) } catch { return {} } })() : (l.metadata || {})
+      const candidate = String(l.lead_type || (l as any).Lead_Type || meta.lead_type || meta.Lead_Type || meta.type || meta.user_type || meta.customer_type || '').trim().toLowerCase()
+      if ((candidate.includes('osmo') && (candidate.includes('deal') || candidate.includes('deler'))) || candidate === 'osmo_dealer' || candidate === 'osmo dealer' || candidate === 'osmodealer') {
+        osmo_dealer++
+      } else if (candidate.includes('deal') || candidate.includes('deler') || candidate === 'dealer' || candidate === 'deler') {
+        dealer++
+      } else if (candidate.includes('custom') || candidate.includes('cust') || candidate === 'customer') {
+        customer++
+      }
+    })
+
+    return { all, osmo_dealer, dealer, customer }
+  }, [leads])
 
   useEffect(() => {
     fetchLeads()
@@ -416,6 +446,41 @@ function LeadsContent() {
             </div>
           </div>
 
+          {/* Quick Tap Category Tabs (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
+          {isOsmoRo && (
+            <div className="grid grid-cols-4 gap-2 p-1.5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+              {[
+                { id: 'all', label: 'All Leads', count: typeCounts.all, activeStyle: 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm border border-gray-300 dark:border-gray-700' },
+                { id: 'osmo_dealer', label: 'Osmo Dealer', count: typeCounts.osmo_dealer, activeStyle: 'bg-purple-600 text-white shadow-sm shadow-purple-500/20' },
+                { id: 'dealer', label: 'Dealer', count: typeCounts.dealer, activeStyle: 'bg-amber-600 text-white shadow-sm shadow-amber-500/20' },
+                { id: 'customer', label: 'Customer', count: typeCounts.customer, activeStyle: 'bg-teal-600 text-white shadow-sm shadow-teal-500/20' },
+              ].map((tab) => {
+                const active = leadTypeFilter === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setLeadTypeFilter(tab.id)}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 select-none ${
+                      active
+                        ? tab.activeStyle
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/60'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                      active && tab.id !== 'all'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           {/* CRM Leads Table */}
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[350px]">
             {loading ? (
@@ -438,6 +503,32 @@ function LeadsContent() {
                 <p className="text-xs text-gray-500 mt-1 max-w-xs">Adjust your search parameters or check your n8n workflow connections.</p>
               </div>
             ) : (() => {
+              const displayedLeads = leads.filter((lead) => {
+                if (!isOsmoRo || leadTypeFilter === 'all') return true
+                const meta = typeof lead.metadata === 'string' ? (() => { try { return JSON.parse(lead.metadata) } catch { return {} } })() : (lead.metadata || {})
+                const candidate = String(lead.lead_type || (lead as any).Lead_Type || meta.lead_type || meta.Lead_Type || meta.type || meta.user_type || meta.customer_type || '').trim().toLowerCase()
+                if (leadTypeFilter === 'osmo_dealer') {
+                  return (candidate.includes('osmo') && (candidate.includes('deal') || candidate.includes('deler'))) || candidate === 'osmo_dealer' || candidate === 'osmo dealer' || candidate === 'osmodealer'
+                }
+                if (leadTypeFilter === 'dealer') {
+                  return ((candidate.includes('deal') || candidate.includes('deler')) && !candidate.includes('osmo')) || candidate === 'dealer' || candidate === 'deler'
+                }
+                if (leadTypeFilter === 'customer') {
+                  return candidate.includes('custom') || candidate.includes('cust') || candidate === 'customer'
+                }
+                return false
+              })
+
+              if (displayedLeads.length === 0) {
+                return (
+                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                    <AlertCircle className="w-12 h-12 text-gray-400 mb-2" />
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">No Leads in this Category</h4>
+                    <p className="text-xs text-gray-500 mt-1 max-w-xs">No leads match the selected category filter.</p>
+                  </div>
+                )
+              }
+
               const skipKeys = [
                 'id', 'created_at', 'updated_at', 'org_id', 'assigned_to', 
                 'phone_number', 'name', 'conversation_id',
@@ -459,7 +550,7 @@ function LeadsContent() {
               // Collect all unique custom keys across leads (merging top-level and metadata)
               const rawKeys = Array.from(new Set([
                 ...standardKeys,
-                ...leads.flatMap(lead => {
+                ...displayedLeads.flatMap(lead => {
                   let meta = (lead.metadata || {}) as Record<string, any>;
                   if (typeof meta === 'string') {
                     try { meta = JSON.parse(meta) } catch (e) { meta = {} }
@@ -500,7 +591,7 @@ function LeadsContent() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
-                      {leads.map((lead) => {
+                      {displayedLeads.map((lead) => {
                         let rawFollowup = lead.followup_notes || '';
                         if (rawFollowup.includes('Scheduled Meeting')) {
                           rawFollowup = 'Scheduled Meeting';
