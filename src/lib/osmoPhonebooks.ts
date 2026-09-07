@@ -1,0 +1,315 @@
+import { supabaseAdmin } from '@/lib/supabase'
+
+export type OsmoCategoryKey = 'osmo_dealer' | 'dealer' | 'customer'
+
+export const OSMO_PHONEBOOK_DEFINITIONS: Record<OsmoCategoryKey, { name: string; label: string; description: string }> = {
+  osmo_dealer: {
+    name: 'Osmo Dealers',
+    label: 'Osmo Dealers',
+    description: 'Auto-segregated authorized Osmo RO dealers & distributors'
+  },
+  dealer: {
+    name: 'Dealers',
+    label: 'Dealers',
+    description: 'Auto-segregated general RO dealers, retailers, traders & technicians'
+  },
+  customer: {
+    name: 'Customers',
+    label: 'Customers',
+    description: 'Auto-segregated inbound customer leads, buyers & service inquiries'
+  }
+}
+
+export function cleanPhone(raw: any): string {
+  if (!raw) return ''
+  let cleaned = String(raw).replace(/\D/g, '')
+  if (cleaned.length === 10 && /^[6789]/.test(cleaned)) {
+    cleaned = '91' + cleaned
+  }
+  return cleaned
+}
+
+export function classifyOsmoContact(item: any): OsmoCategoryKey {
+  const leadObj = item.lead ? (Array.isArray(item.lead) ? item.lead[0] : item.lead) : item
+  const leadMeta = typeof leadObj?.metadata === 'string'
+    ? (() => { try { return JSON.parse(leadObj.metadata) } catch { return {} } })()
+    : (leadObj?.metadata || {})
+
+  const convMeta = typeof item.metadata === 'string'
+    ? (() => { try { return JSON.parse(item.metadata) } catch { return {} } })()
+    : (item.metadata || {})
+
+  const typeFields = [
+    item.lead_type,
+    item.Lead_Type,
+    convMeta.lead_type,
+    convMeta.Lead_Type,
+    convMeta.type,
+    convMeta.user_type,
+    convMeta.customer_type,
+    convMeta.category,
+    convMeta.role,
+    convMeta.business_type,
+    leadObj?.lead_type,
+    leadObj?.Lead_Type,
+    leadMeta?.lead_type,
+    leadMeta?.Lead_Type,
+    leadMeta?.type,
+    leadMeta?.user_type,
+    leadMeta?.customer_type,
+    leadMeta?.category,
+    leadMeta?.role,
+    leadMeta?.business_type,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
+
+  const nameFields = [
+    item.name,
+    item.customer_name,
+    leadObj?.name,
+    leadObj?.customer_name,
+    leadMeta?.name,
+    leadMeta?.contact_person,
+    leadMeta?.dealer_name,
+    leadMeta?.business_name,
+    leadMeta?.shop_name,
+    leadMeta?.company,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
+
+  const notesFields = [
+    item.notes,
+    leadObj?.notes,
+    leadObj?.followup_notes,
+    leadMeta?.notes,
+    leadMeta?.followup_notes,
+    leadMeta?.remarks,
+    leadMeta?.tags,
+    leadMeta?.conversation_summary,
+  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
+
+  const allText = [
+    ...typeFields,
+    ...nameFields,
+    ...notesFields,
+    ...Object.values(leadMeta).filter(v => typeof v === 'string').map(v => String(v).toLowerCase()),
+    ...Object.values(convMeta).filter(v => typeof v === 'string').map(v => String(v).toLowerCase())
+  ].join(' ')
+
+  // 1. Osmo Dealer match
+  const isOsmoDealer = 
+    typeFields.some(t => t.includes('osmo') && (t.includes('deal') || t.includes('deler') || t.includes('distribut') || t.includes('partner') || t.includes('retail'))) ||
+    allText.includes('osmo dealer') ||
+    allText.includes('osmodealer') ||
+    allText.includes('osmo deler') ||
+    allText.includes('osmo distributor') ||
+    (allText.includes('osmo') && (allText.includes('dealer') || allText.includes('deler') || allText.includes('distributor')))
+
+  if (isOsmoDealer) return 'osmo_dealer'
+
+  // 2. Dealer / Retailer match
+  const isDealer =
+    typeFields.some(t => t.includes('deal') || t.includes('deler') || t.includes('retail') || t.includes('distribut') || t.includes('wholesal') || t.includes('shop') || t.includes('technician')) ||
+    nameFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retail') || n.includes('distributor') || n.includes('traders') || n.includes('trader') || n.includes('enterprises') || n.includes('enterprise') || n.includes('water solution') || n.includes('ro care') || n.includes('agency')) ||
+    notesFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retailer') || n.includes('distributor')) ||
+    allText.includes('dealer') ||
+    allText.includes('deler') ||
+    allText.includes('retailer') ||
+    allText.includes('distributor')
+
+  if (isDealer) return 'dealer'
+
+  // 3. Default fallback: All non-dealer inbound WhatsApp leads are Customers
+  return 'customer'
+}
+
+export async function isOsmoOrg(orgId: string): Promise<boolean> {
+  try {
+    const { data: org } = await supabaseAdmin
+      .from('organizations')
+      .select('name, slug')
+      .eq('id', orgId)
+      .maybeSingle()
+
+    if (org?.name?.toLowerCase().includes('osmo') || org?.slug?.toLowerCase().includes('osmo')) {
+      return true
+    }
+
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('email')
+      .eq('org_id', orgId)
+
+    return (users || []).some(u => u.email?.toLowerCase() === 'paanifilter9@gmail.com')
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Ensures the 3 auto-segregated phonebooks exist for Osmo RO,
+ * synchronizes all current conversations & CRM leads into their respective phonebooks,
+ * and returns the phonebook records with updated live contact counts.
+ */
+export async function syncOsmoPhonebooks(orgId: string) {
+  try {
+    // 1. Ensure the 3 phonebook records exist in DB
+    const { data: existingPhonebooks, error: pbFetchErr } = await supabaseAdmin
+      .from('phonebooks')
+      .select('*')
+      .eq('org_id', orgId)
+
+    if (pbFetchErr) throw pbFetchErr
+
+    const pbMap: Record<OsmoCategoryKey, any> = {
+      osmo_dealer: null,
+      dealer: null,
+      customer: null
+    }
+
+    for (const [key, def] of Object.entries(OSMO_PHONEBOOK_DEFINITIONS) as [OsmoCategoryKey, any][]) {
+      let found = (existingPhonebooks || []).find((p: any) => 
+        p.name.toLowerCase() === def.name.toLowerCase() ||
+        p.name.toLowerCase() === `[auto] ${def.name}`.toLowerCase() ||
+        p.name.toLowerCase() === `osmo ro - ${def.name}`.toLowerCase()
+      )
+
+      if (!found) {
+        const { data: createdPb, error: createErr } = await supabaseAdmin
+          .from('phonebooks')
+          .insert({
+            org_id: orgId,
+            name: def.name
+          })
+          .select()
+          .single()
+
+        if (createErr) {
+          console.error(`Error creating auto phonebook ${def.name}:`, createErr)
+        } else {
+          found = createdPb
+        }
+      }
+
+      pbMap[key] = found
+    }
+
+    // 2. Fetch all conversations and leads for this org
+    const [{ data: conversations }, { data: leads }] = await Promise.all([
+      supabaseAdmin
+        .from('conversations')
+        .select('*, lead:leads(*)')
+        .eq('org_id', orgId),
+      supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('org_id', orgId)
+    ]);
+
+    // Group contacts by category
+    const categorizedContacts: Record<OsmoCategoryKey, Map<string, any>> = {
+      osmo_dealer: new Map(),
+      dealer: new Map(),
+      customer: new Map()
+    };
+
+    // Process conversations
+    (conversations || []).forEach((c: any) => {
+      const p = cleanPhone(c.phone_number)
+      if (p.length < 10) return
+
+      const category = classifyOsmoContact(c)
+      const leadObj = Array.isArray(c.lead) ? c.lead[0] : c.lead
+      const meta = typeof c.metadata === 'string' ? (() => { try { return JSON.parse(c.metadata) } catch { return {} } })() : (c.metadata || {})
+      const leadMeta = typeof leadObj?.metadata === 'string' ? (() => { try { return JSON.parse(leadObj.metadata) } catch { return {} } })() : (leadObj?.metadata || {})
+
+      const name = c.name || leadObj?.name || meta.name || leadMeta.name || leadMeta.contact_person || `Contact ${p.slice(-4)}`
+      const stage = c.stage || leadObj?.stage || 'new'
+      const quality = leadObj?.lead_quality || leadObj?.lead_temperature || meta.lead_quality || 'cold'
+      const score = leadObj?.lead_score || meta.lead_score || 0
+      const city = leadMeta.city || meta.city || ''
+      const machineInterest = leadMeta.machine_interest || meta.machine_interest || ''
+
+      categorizedContacts[category].set(p, {
+        phone: p,
+        name,
+        variables: {
+          name,
+          phone: p,
+          category: OSMO_PHONEBOOK_DEFINITIONS[category].label,
+          stage,
+          quality: String(quality).toUpperCase(),
+          score: String(score),
+          city,
+          machine_interest: machineInterest
+        }
+      })
+    });
+
+    // Process leads (in case any lead exists without a conversation record)
+    (leads || []).forEach((l: any) => {
+      const p = cleanPhone(l.phone_number)
+      if (p.length < 10) return
+
+      // If already added via conversations, preserve existing or merge
+      const category = classifyOsmoContact(l)
+      if (!categorizedContacts[category].has(p)) {
+        const meta = typeof l.metadata === 'string' ? (() => { try { return JSON.parse(l.metadata) } catch { return {} } })() : (l.metadata || {})
+        const name = l.name || (l as any).customer_name || meta.name || meta.contact_person || `Lead ${p.slice(-4)}`
+        const stage = l.stage || 'new'
+        const quality = l.lead_quality || l.lead_temperature || meta.lead_quality || 'cold'
+        const score = l.lead_score || meta.lead_score || 0
+        const city = meta.city || ''
+        const machineInterest = meta.machine_interest || ''
+
+        categorizedContacts[category].set(p, {
+          phone: p,
+          name,
+          variables: {
+            name,
+            phone: p,
+            category: OSMO_PHONEBOOK_DEFINITIONS[category].label,
+            stage,
+            quality: String(quality).toUpperCase(),
+            score: String(score),
+            city,
+            machine_interest: machineInterest
+          }
+        })
+      }
+    })
+
+    // 3. Upsert contacts for each of the 3 phonebooks
+    for (const [key, pb] of Object.entries(pbMap) as [OsmoCategoryKey, any][]) {
+      if (!pb?.id) continue
+
+      const contactsList = Array.from(categorizedContacts[key].values())
+      
+      // Delete existing contacts for this phonebook to refresh cleanly
+      await supabaseAdmin
+        .from('phonebook_contacts')
+        .delete()
+        .eq('phonebook_id', pb.id)
+
+      if (contactsList.length > 0) {
+        const rows = contactsList.map(c => ({
+          phonebook_id: pb.id,
+          phone: c.phone,
+          name: c.name,
+          variables: c.variables
+        }))
+
+        // Insert in chunks of 500
+        for (let i = 0; i < rows.length; i += 500) {
+          const chunk = rows.slice(i, i + 500)
+          await supabaseAdmin
+            .from('phonebook_contacts')
+            .insert(chunk)
+        }
+      }
+    }
+
+    return { success: true }
+  } catch (err) {
+    console.error('[syncOsmoPhonebooks] error:', err)
+    return { success: false, error: err }
+  }
+}

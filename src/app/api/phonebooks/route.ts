@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getOrgId } from '@/lib/supabase'
+import { isOsmoOrg, syncOsmoPhonebooks } from '@/lib/osmoPhonebooks'
 
 // GET: List all phonebooks for the active organization
 export async function GET(req: NextRequest) {
   try {
     const orgId = await getOrgId(req)
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const isOsmo = await isOsmoOrg(orgId)
+    if (isOsmo) {
+      // Synchronize live leads and conversations into the 3 auto phonebooks
+      await syncOsmoPhonebooks(orgId)
+    }
 
     const { data: phonebooks, error } = await supabaseAdmin
       .from('phonebooks')
@@ -24,9 +31,17 @@ export async function GET(req: NextRequest) {
           .eq('phonebook_id', pb.id)
 
         if (countError) console.error(`Error counting contacts for phonebook ${pb.id}:`, countError)
+        
+        const isAuto = isOsmo && (
+          pb.name.toLowerCase().includes('dealer') ||
+          pb.name.toLowerCase().includes('customer') ||
+          pb.name.toLowerCase().includes('osmo')
+        )
+
         return {
           ...pb,
-          contact_count: count || 0
+          contact_count: count || 0,
+          is_auto_synced: isAuto
         }
       })
     )

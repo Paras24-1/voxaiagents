@@ -232,7 +232,12 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
 
 // ── New Campaign ───────────────────────────────────────────────
 function NewCampaign({ onCreated }: { onCreated: () => void }) {
-  const { profile } = useOrg()
+  const { profile, org } = useOrg()
+  const isOsmoRo = 
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
+    org?.name?.toLowerCase().includes('osmo') ||
+    org?.slug?.toLowerCase().includes('osmo')
+
   const [step, setStep]                         = useState(1)
   const [allContacts, setAllContacts]           = useState<Contact[]>([])
   const [columns, setColumns]                   = useState<string[]>([])
@@ -599,8 +604,101 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
 
-        {/* Step 1: Upload */}
-        <StepCard number={1} title="Upload Contacts" active={step >= 1} complete={step > 1}>
+        {/* Step 1: Upload / Select Audience */}
+        <StepCard number={1} title="Select Contacts / Phonebook" active={step >= 1} complete={step > 1}>
+          
+          {/* Quick Category Select Cards for Osmo RO (Paanifilter9@gmail.com) */}
+          {isOsmoRo && (
+            <div className="mb-4 p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-purple-500/10 border border-emerald-200/60 dark:border-emerald-800/60 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                    Auto-Segregated Osmo Category Phonebooks
+                  </h4>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                  Live Auto Sync
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                Tap a category below to broadcast WhatsApp templates directly to segregated leads:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {(() => {
+                  const osmoPb = phonebooks.find(p => p.name.toLowerCase().includes('osmo'))
+                  const dealerPb = phonebooks.find(p => p.name.toLowerCase().includes('dealer') && !p.name.toLowerCase().includes('osmo'))
+                  const customerPb = phonebooks.find(p => p.name.toLowerCase().includes('customer'))
+                  
+                  return [
+                    {
+                      key: 'osmo_dealer',
+                      name: 'Osmo Dealers',
+                      pb: osmoPb,
+                      desc: 'Authorized Osmo Dealers',
+                      count: osmoPb?.contact_count || 0,
+                      activeBorder: 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/30',
+                      badge: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300'
+                    },
+                    {
+                      key: 'dealer',
+                      name: 'Dealers',
+                      pb: dealerPb,
+                      desc: 'General RO Dealers & Retailers',
+                      count: dealerPb?.contact_count || 0,
+                      activeBorder: 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30',
+                      badge: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                    },
+                    {
+                      key: 'customer',
+                      name: 'Customers',
+                      pb: customerPb,
+                      desc: 'Inbound Buyer Leads & Inquiries',
+                      count: customerPb?.contact_count || 0,
+                      activeBorder: 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/30',
+                      badge: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300'
+                    }
+                  ].map((cat) => {
+                    const isSelected = selectedPhonebookId === cat.pb?.id
+                    return (
+                      <button
+                        key={cat.key}
+                        type="button"
+                        disabled={!cat.pb}
+                        onClick={() => {
+                          if (cat.pb?.id) {
+                            setSelectedPhonebookId(cat.pb.id)
+                            loadPhonebookContacts(cat.pb.id)
+                          }
+                        }}
+                        className={`p-3.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer ${
+                          isSelected
+                            ? `ring-2 ring-emerald-500 ${cat.activeBorder} shadow-sm`
+                            : 'bg-white dark:bg-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-750 shadow-sm hover:shadow'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                            {cat.name}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-extrabold ${cat.badge}`}>
+                            {cat.count}
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] text-gray-500 dark:text-gray-400 mb-2 truncate">
+                          {cat.desc}
+                        </p>
+                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          {isSelected ? '✓ Selected for Broadcast' : 'Select Phonebook →'}
+                        </span>
+                      </button>
+                    )
+                  })
+                })()}
+              </div>
+            </div>
+          )}
+
           <div
             onClick={() => fileRef.current?.click()}
             className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-400 transition-colors"
@@ -632,7 +730,7 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
             <>
               <div className="flex items-center gap-3 my-3">
                 <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
-                <span className="text-xs text-gray-400">or use saved Phonebook</span>
+                <span className="text-xs text-gray-400">or select saved Phonebook</span>
                 <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
               </div>
 
@@ -649,7 +747,7 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                   <option value="">-- Select Phonebook --</option>
                   {phonebooks.map((pb) => (
                     <option key={pb.id} value={pb.id}>
-                      {pb.name} ({pb.contact_count} contacts)
+                      {pb.is_auto_synced ? `⚡ ${pb.name} [Auto Synced]` : pb.name} ({pb.contact_count} contacts)
                     </option>
                   ))}
                 </select>
@@ -1241,11 +1339,18 @@ function MiniStat({ label, value, color }: { label: string; value: number; color
 }
 
 function PhonebooksTab() {
+  const { profile, org } = useOrg()
+  const isOsmoRo = 
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
+    org?.name?.toLowerCase().includes('osmo') ||
+    org?.slug?.toLowerCase().includes('osmo')
+
   const [phonebooks, setPhonebooks] = useState<any[]>([])
   const [selectedPbId, setSelectedPbId] = useState<string | null>(null)
   const [contacts, setContacts] = useState<any[]>([])
   const [pbName, setPbName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   
   // Contact creation state
   const [showAddContact, setShowAddContact] = useState(false)
@@ -1272,6 +1377,18 @@ function PhonebooksTab() {
       setLoading(false)
     }
   }, [])
+
+  const handleManualSync = async () => {
+    setSyncing(true)
+    try {
+      await fetchPhonebooks()
+      if (selectedPbId) {
+        handleSelectPb(selectedPbId)
+      }
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   useEffect(() => {
     fetchPhonebooks()
@@ -1483,7 +1600,20 @@ function PhonebooksTab() {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Left panel: phonebooks list */}
       <div className="md:col-span-1 bg-white dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
-        <h3 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">Your Phonebooks</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">Your Phonebooks</h3>
+          {isOsmoRo && (
+            <button
+              onClick={handleManualSync}
+              disabled={syncing || loading}
+              className="px-2.5 py-1 text-[10.5px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              title="Sync live segregated leads from chat and CRM"
+            >
+              <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync Leads'}
+            </button>
+          )}
+        </div>
         
         <form onSubmit={handleCreatePb} className="flex gap-2">
           <input
@@ -1503,31 +1633,43 @@ function PhonebooksTab() {
         </form>
 
         <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-          {phonebooks.map((pb) => (
-            <div
-              key={pb.id}
-              onClick={() => handleSelectPb(pb.id)}
-              className={`p-3 rounded-xl border transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                selectedPbId === pb.id
-                  ? 'border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/10'
-                  : 'border-gray-100 dark:border-gray-850 hover:bg-gray-50 dark:hover:bg-gray-900'
-              }`}
-            >
-              <div>
-                <p className="text-xs font-bold text-gray-900 dark:text-white">{pb.name}</p>
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{pb.contact_count} contacts</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDeletePb(pb.id)
-                }}
-                className="p-1 text-gray-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
+          {phonebooks.map((pb) => {
+            const isAuto = pb.is_auto_synced || (isOsmoRo && (pb.name.toLowerCase().includes('osmo') || pb.name.toLowerCase().includes('dealer') || pb.name.toLowerCase().includes('customer')))
+            return (
+              <div
+                key={pb.id}
+                onClick={() => handleSelectPb(pb.id)}
+                className={`p-3 rounded-xl border transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                  selectedPbId === pb.id
+                    ? 'border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/10'
+                    : 'border-gray-100 dark:border-gray-850 hover:bg-gray-50 dark:hover:bg-gray-900'
+                }`}
               >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
+                <div className="min-w-0 flex-1 pr-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{pb.name}</p>
+                    {isAuto && (
+                      <span className="text-[8px] font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50">
+                        ⚡ LIVE
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{pb.contact_count} contacts</span>
+                </div>
+                {!isAuto && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeletePb(pb.id)
+                    }}
+                    className="p-1 text-gray-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )
+          })}
           {phonebooks.length === 0 && (
             <p className="text-xs text-gray-400 text-center py-6">No phonebooks created yet.</p>
           )}

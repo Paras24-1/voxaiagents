@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { isOsmoOrg, syncOsmoPhonebooks } from '@/lib/osmoPhonebooks'
 
 async function getNextEmployee(orgId: string): Promise<string | null> {
   const { data: employees } = await supabaseAdmin
@@ -598,6 +599,11 @@ export async function POST(req: NextRequest) {
           })
         }
       }
+
+    // For Osmo RO tenant, trigger auto phonebook sync in background
+    isOsmoOrg(orgId).then((isOsmo) => {
+      if (isOsmo) syncOsmoPhonebooks(orgId).catch(console.error)
+    }).catch(() => {})
 
     return NextResponse.json({ 
       success: true, 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getOrgId } from '@/lib/supabase'
+import { isOsmoOrg, syncOsmoPhonebooks } from '@/lib/osmoPhonebooks'
 
 export async function GET(req: NextRequest) {
   try {
@@ -184,6 +185,11 @@ export async function PATCH(req: NextRequest) {
         .eq('id', conversation_id)
         .eq('org_id', orgId)
     }
+
+    // For Osmo RO tenant, trigger auto phonebook sync in background
+    isOsmoOrg(orgId).then((isOsmo) => {
+      if (isOsmo) syncOsmoPhonebooks(orgId).catch(console.error)
+    }).catch(() => {})
 
     return NextResponse.json(data || {})
   } catch (err: unknown) {
