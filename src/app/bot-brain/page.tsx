@@ -213,134 +213,12 @@ export default function BotBrainPage() {
               {/* Left & Middle Column: Controls & KB Settings */}
               <div className="lg:col-span-7 space-y-6">
                 
-                {/* 1. AI Execution Engine Mode */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-                  <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
-                    <Cpu className="w-5 h-5 text-purple-400" />
-                    <h2 className="text-base font-bold text-white">1. Select AI Execution Engine</h2>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Native Mode */}
-                    <button
-                      type="button"
-                      onClick={() => setEngineMode('native')}
-                      className={`p-4 rounded-xl border text-left transition-all relative ${
-                        engineMode === 'native'
-                          ? 'bg-purple-500/10 border-purple-500 text-white shadow-md shadow-purple-500/10'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-sm text-white">Native Dashboard AI</span>
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-md bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                          SIMPLE (NO N8N)
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Dashboard handles Meta webhooks, queries Google Sheets KB, and generates AI replies directly via Gemini / OpenAI. Zero n8n required.
-                      </p>
-                    </button>
-
-                    {/* Hybrid n8n Mode */}
-                    <button
-                      type="button"
-                      onClick={() => setEngineMode('hybrid_n8n')}
-                      className={`p-4 rounded-xl border text-left transition-all relative ${
-                        engineMode === 'hybrid_n8n'
-                          ? 'bg-blue-500/10 border-blue-500 text-white shadow-md shadow-blue-500/10'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-sm text-white">Hybrid n8n Workflow</span>
-                        <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded-md bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                          ADVANCED (N8N)
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Dashboard logs message, packages Bot Brain context + Knowledge Base into an enriched JSON payload, and posts to n8n for complex workflows.
-                      </p>
-                    </button>
-                  </div>
-
-                  {/* n8n Webhook URL input if hybrid */}
-                  {engineMode === 'hybrid_n8n' && (
-                    <div className="space-y-1.5 pt-2 animate-in fade-in">
-                      <label className="text-xs font-semibold text-slate-300">n8n Inbound Webhook URL:</label>
-                      <input
-                        type="url"
-                        placeholder="https://your-n8n.app/webhook/whatsapp-agent"
-                        value={n8nWebhookUrl}
-                        onChange={(e) => setN8nWebhookUrl(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. Organization Gemini & AI API Keys */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <Key className="w-5 h-5 text-amber-400" />
-                      <div>
-                        <h2 className="text-base font-bold text-white">2. Organization Gemini API Key</h2>
-                        <p className="text-xs text-slate-400">
-                          {engineMode === 'native' 
-                            ? 'Used directly by Native Dashboard AI for generating customer replies.'
-                            : 'Sent inside the Enriched Webhook payload to n8n for execution.'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase font-mono">
-                      {engineMode === 'native' ? 'Active in Native AI' : 'Forwarded to n8n'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                        <span>Gemini API Key:</span>
-                        <a 
-                          href="https://aistudio.google.com/app/apikey" 
-                          target="_blank" 
-                          rel="noreferrer" 
-                          className="text-[11px] text-amber-400 hover:underline flex items-center gap-1"
-                        >
-                          <span>Get Free Key</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="AIzaSy..."
-                        value={geminiApiKey}
-                        onChange={(e) => setGeminiApiKey(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 font-mono"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 pt-1">
-                      <label className="text-xs font-semibold text-slate-300">OpenAI API Key (Optional Fallback):</label>
-                      <input
-                        type="password"
-                        placeholder="sk-proj-..."
-                        value={openaiApiKey}
-                        onChange={(e) => setOpenaiApiKey(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. System Prompt & Model Config */}
+                {/* 1. System Prompt & Model Config */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                     <div className="flex items-center gap-2.5">
                       <Sparkles className="w-5 h-5 text-emerald-400" />
-                      <h2 className="text-base font-bold text-white">3. AI System Prompt & Intelligence</h2>
+                      <h2 className="text-base font-bold text-white">1. AI System Prompt & Intelligence</h2>
                     </div>
                     <div className="flex items-center gap-2">
                       <select
@@ -400,13 +278,13 @@ export default function BotBrainPage() {
                   />
                 </div>
 
-                {/* 4. Live 2-Way Google Sheet Knowledge Base */}
+                {/* 2. Live 2-Way Google Sheet Knowledge Base */}
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                     <div className="flex items-center gap-2.5">
                       <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
                       <div>
-                        <h2 className="text-base font-bold text-white">4. Live Google Sheets Knowledge Base</h2>
+                        <h2 className="text-base font-bold text-white">2. Live Google Sheets Knowledge Base</h2>
                         <p className="text-xs text-slate-400">Live sync price lists, FAQs, and products into the AI Bot Brain</p>
                       </div>
                     </div>

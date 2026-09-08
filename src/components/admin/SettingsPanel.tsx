@@ -259,6 +259,27 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
 
+              {/* AI API Keys */}
+              <div className="space-y-3.5">
+                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <Bot className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">AI Engine Credentials</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">Gemini API Key</label>
+                    <input
+                      type="password"
+                      disabled={!isEditable}
+                      value={formData.gemini_api_key}
+                      onChange={e => setFormData({ ...formData, gemini_api_key: e.target.value })}
+                      placeholder="AIzaSy..."
+                      className="w-full px-3.5 py-2.5 text-xs text-white bg-slate-950 rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 font-mono disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Google Sheet Sync */}
               <div className="space-y-3.5">
                 <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
