@@ -8,7 +8,7 @@ import Sidebar from '@/components/Sidebar'
 import { 
   Globe, Search, Sliders, Play, Trash2, CheckCircle2, 
   XCircle, Loader2, ArrowRight, Download, Upload, 
-  MapPin, Phone, Star, Award, Check
+  MapPin, Phone, Star, Award, Check, Book
 } from 'lucide-react'
 
 interface ScrapingJob {
@@ -77,6 +77,13 @@ function ScraperContent() {
   const [leadsLoading, setLeadsLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [importingMap, setImportingMap] = useState<Record<string, boolean>>({})
+
+  // Phonebook states
+  const [showPhonebookModal, setShowPhonebookModal] = useState(false)
+  const [phonebooks, setPhonebooks] = useState<any[]>([])
+  const [selectedPhonebookId, setSelectedPhonebookId] = useState('')
+  const [newPhonebookName, setNewPhonebookName] = useState('')
+  const [savingToPhonebook, setSavingToPhonebook] = useState(false)
 
   // Fetch all jobs
   const fetchJobs = useCallback(async () => {
@@ -243,6 +250,108 @@ function ScraperContent() {
       alert('Error in bulk import session')
     }
   }
+
+  // Fetch phonebooks for modal
+  const fetchPhonebooks = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const res = await fetch('/api/phonebooks', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        setPhonebooks(await res.json())
+      }
+    } catch (err) {
+      console.error('Failed to load phonebooks', err)
+    }
+  }
+
+  // Fetch phonebooks when modal opens
+  useEffect(() => {
+    if (showPhonebookModal) {
+      fetchPhonebooks()
+    }
+  }, [showPhonebookModal])
+
+  // Save extracted contacts to phonebook
+  const handleSaveToPhonebook = async () => {
+    const validLeads = leads.filter(l => l.phone)
+    if (validLeads.length === 0) {
+      alert('No valid phone numbers found to save.')
+      return
+    }
+
+    setSavingToPhonebook(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const headers = { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+
+      let pbId = selectedPhonebookId
+      
+      // If creating new phonebook
+      if (pbId === 'new') {
+        if (!newPhonebookName.trim()) {
+          alert('Please enter a name for the new phonebook.')
+          setSavingToPhonebook(false)
+          return
+        }
+        
+        const createRes = await fetch('/api/phonebooks', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ name: newPhonebookName.trim() })
+        })
+        
+        if (!createRes.ok) throw new Error('Failed to create phonebook')
+        const newPb = await createRes.json()
+        pbId = newPb.id
+      }
+
+      if (!pbId || pbId === 'new') throw new Error('Invalid phonebook selection')
+
+      // Prepare contacts payload
+      const contactsToSave = validLeads.map(l => ({
+        phone: l.phone,
+        name: l.name,
+        variables: {
+          address: l.address,
+          website: l.website,
+          category: l.category,
+          rating: l.rating,
+          reviews_count: l.reviews_count,
+          google_maps_url: l.google_maps_url
+        }
+      }))
+
+      // Save contacts
+      const saveRes = await fetch(`/api/phonebooks/${pbId}/contacts`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ contacts: contactsToSave })
+      })
+
+      if (saveRes.ok) {
+        alert('Successfully saved contacts to phonebook!')
+        setShowPhonebookModal(false)
+        setNewPhonebookName('')
+        setSelectedPhonebookId('')
+      } else {
+        const err = await saveRes.json()
+        alert(err.error || 'Failed to save contacts to phonebook')
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || 'An error occurred')
+    } finally {
+      setSavingToPhonebook(false)
+    }
+  }
+
   // Cancel/Reset a stuck job
   const handleCancelJob = async (jobId: string) => {
     if (!confirm('Are you sure you want to cancel and reset this scraping run?')) return
@@ -498,7 +607,16 @@ function ScraperContent() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
+                onClick={() => setShowPhonebookModal(true)}
+                disabled={leads.filter(l => l.phone).length === 0}
+                className="px-3.5 py-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                <Book className="w-4 h-4" />
+                Save to Phonebook
+              </button>
+
               <button
                 onClick={handleDownloadCSV}
                 disabled={leads.length === 0}
@@ -635,6 +753,74 @@ function ScraperContent() {
             </div>
           )}
           
+        </div>
+      )}
+
+      {/* Phonebook Modal */}
+      {showPhonebookModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 dark:border-gray-800">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
+              <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Book className="w-4 h-4 text-emerald-500" />
+                Save to Phonebook
+              </h3>
+              <button onClick={() => setShowPhonebookModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <p className="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                You are about to add <strong className="text-emerald-600 dark:text-emerald-400">{leads.filter(l => l.phone).length}</strong> leads (with valid phone numbers) from this scraping run into your Phonebook contacts.
+              </p>
+              
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">Select Target Phonebook</label>
+                <select
+                  value={selectedPhonebookId}
+                  onChange={(e) => setSelectedPhonebookId(e.target.value)}
+                  className="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900 dark:text-white"
+                >
+                  <option value="" disabled>-- Select a phonebook --</option>
+                  <option value="new" className="font-bold text-emerald-600">+ Create New Phonebook</option>
+                  {phonebooks.map(pb => (
+                    <option key={pb.id} value={pb.id}>{pb.name} ({pb.contact_count || 0} contacts)</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedPhonebookId === 'new' && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">New Phonebook Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Dentists in Mumbai"
+                    value={newPhonebookName}
+                    onChange={(e) => setNewPhonebookName(e.target.value)}
+                    className="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900 dark:text-white"
+                    autoFocus
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 flex justify-end gap-2">
+              <button
+                onClick={() => setShowPhonebookModal(false)}
+                className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveToPhonebook}
+                disabled={savingToPhonebook || !selectedPhonebookId || (selectedPhonebookId === 'new' && !newPhonebookName.trim())}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-md"
+              >
+                {savingToPhonebook && <Loader2 className="w-4 h-4 animate-spin" />}
+                {savingToPhonebook ? 'Saving...' : 'Save Contacts'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
