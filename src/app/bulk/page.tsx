@@ -1381,6 +1381,11 @@ function PhonebooksTab() {
   const handleManualSync = async () => {
     setSyncing(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      await fetch('/api/phonebooks?sync=true', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
       await fetchPhonebooks()
       if (selectedPbId) {
         handleSelectPb(selectedPbId)

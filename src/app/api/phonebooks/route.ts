@@ -8,8 +8,11 @@ export async function GET(req: NextRequest) {
     const orgId = await getOrgId(req)
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    const url = new URL(req.url)
+    const shouldSync = url.searchParams.get('sync') === 'true'
+    
     const isOsmo = await isOsmoOrg(orgId)
-    if (isOsmo) {
+    if (isOsmo && shouldSync) {
       // Synchronize live leads and conversations into the 3 auto phonebooks
       await syncOsmoPhonebooks(orgId)
     }
@@ -22,9 +25,9 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error
 
-    // Fetch contact count for each phonebook
+    // Fetch contact counts for each phonebook
     const phonebooksWithCounts = await Promise.all(
-      (phonebooks || []).map(async (pb) => {
+      (phonebooks || []).map(async (pb: any) => {
         const { count, error: countError } = await supabaseAdmin
           .from('phonebook_contacts')
           .select('*', { count: 'exact', head: true })
@@ -32,11 +35,11 @@ export async function GET(req: NextRequest) {
 
         if (countError) console.error(`Error counting contacts for phonebook ${pb.id}:`, countError)
         
-        const isAuto = isOsmo && (
+        const isAuto = Boolean(isOsmo && pb.name && (
           pb.name.toLowerCase().includes('dealer') ||
           pb.name.toLowerCase().includes('customer') ||
           pb.name.toLowerCase().includes('osmo')
-        )
+        ))
 
         return {
           ...pb,
