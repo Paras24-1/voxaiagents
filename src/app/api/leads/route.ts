@@ -186,6 +186,29 @@ export async function PATCH(req: NextRequest) {
         .eq('org_id', orgId)
     }
 
+    if (updates.lead_type || body.lead_type) {
+      const targetType = updates.lead_type || body.lead_type
+      const { data: conv } = await supabaseAdmin
+        .from('conversations')
+        .select('id, metadata')
+        .eq('id', conversation_id)
+        .eq('org_id', orgId)
+        .maybeSingle()
+
+      if (conv) {
+        let meta = conv.metadata || {}
+        if (typeof meta === 'string') {
+          try { meta = JSON.parse(meta) } catch {}
+        }
+        meta.lead_type = targetType
+        await supabaseAdmin
+          .from('conversations')
+          .update({ metadata: meta })
+          .eq('id', conversation_id)
+          .eq('org_id', orgId)
+      }
+    }
+
     // For Osmo RO tenant, trigger auto phonebook sync in background
     isOsmoOrg(orgId).then((isOsmo) => {
       if (isOsmo) syncOsmoPhonebooks(orgId).catch(console.error)

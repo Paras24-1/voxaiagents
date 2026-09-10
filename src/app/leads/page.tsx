@@ -17,7 +17,8 @@ import {
   Check, 
   Trash2,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
@@ -28,67 +29,48 @@ interface Lead {
   id: string
   conversation_id: string
   phone_number: string
-  name: string | null
-  stage: string
-  lead_quality: string | null
+  customer_name?: string | null
+  name?: string | null
+  created_at: string
+  updated_at?: string
+  stage?: string | null
+  lead_quality?: string | null
+  lead_score?: number | null
   lead_temperature?: string | null
-  lead_score: number
-  industry?: string | null
   lead_type?: string | null
+  notes?: string | null
   followup_date?: string | null
   followup_notes?: string | null
-  created_at: string
-  metadata: Record<string, any>
+  metadata?: any
 }
 
-const STAGES = [
-  'new',
-  'interested',
-  'booking',
-  'confirmed',
-  'completed',
-  'cancelled',
-  'followup',
-  'not_interested',
-  'call_done',
-  'low_budget',
-  'hot_customer',
-  'not_connected',
-  'joined',
-  'not_joined',
-  'contact_save',
-  'contact_not_save',
-  'unknown'
-]
+const STAGES = ['new', 'interested', 'booking', 'confirmed', 'cancelled', 'completed', 'followup', 'not_interested', 'call_done', 'low_budget', 'hot_customer', 'not_connected', 'joined', 'not_joined', 'contact_save', 'contact_not_save', 'unknown']
 
 const STAGE_COLORS: Record<string, string> = {
   new: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-  interested: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  booking: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  confirmed: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-  completed: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-  cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-  followup: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
-  not_interested: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-  call_done: 'bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-300',
-  low_budget: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
-  hot_customer: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
-  not_connected: 'bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-300',
+  interested: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/50',
+  booking: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/50',
+  confirmed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50',
+  cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/50',
+  completed: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50',
+  followup: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200/50',
+  not_interested: 'bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200/50',
+  call_done: 'bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200/50',
+  low_budget: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/50',
+  hot_customer: 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200/50',
+  not_connected: 'bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border border-gray-300/50',
   joined: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   not_joined: 'bg-zinc-150 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
-  unknown: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+  contact_save: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+  contact_not_save: 'bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  unknown: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
 }
 
 const QUALITY_COLORS: Record<string, string> = {
-  hot: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border border-red-300 font-bold',
-  HOT: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border border-red-300 font-bold',
-  warm: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 font-bold',
-  WARM: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300 font-bold',
-  cold: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  COLD: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  suppressed: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-400 border border-rose-400',
-  SUPPRESSED: 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-400 border border-rose-400',
-  unknown: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+  HOT: 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200/50',
+  WARM: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/50',
+  COLD: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/50',
+  SUPPRESSED: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/50',
 }
 
 export const dynamic = 'force-dynamic'
@@ -116,6 +98,19 @@ function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfi
   const meta = typeof lead.metadata === 'string'
     ? (() => { try { return JSON.parse(lead.metadata) } catch { return {} } })()
     : (lead.metadata || {})
+
+  // 0. Explicit Manual Override Check First
+  const explicitType = (
+    lead.lead_type ||
+    (lead as any).Lead_Type ||
+    meta.lead_type ||
+    meta.Lead_Type
+  )?.toString().trim().toLowerCase()
+
+  if (explicitType === 'osmo_dealer' || explicitType === 'osmo dealer') return 'osmo_dealer'
+  if (explicitType === 'dealer') return 'dealer'
+  if (explicitType === 'customer') return 'customer'
+  if (explicitType === 'unfiltered') return 'unfiltered'
 
   const typeFields = [
     lead.lead_type,
@@ -217,6 +212,7 @@ function LeadsContent() {
   const [editStage, setEditStage] = useState('')
   const [editQuality, setEditQuality] = useState('')
   const [editScore, setEditScore] = useState(0)
+  const [editCategory, setEditCategory] = useState('unfiltered')
   const [savingLead, setSavingLead] = useState(false)
 
   // Calculate live count per lead type category for Osmo RO
@@ -279,7 +275,43 @@ function LeadsContent() {
     }
   }
 
-  // Save Lead changes (Stage / Quality / Score)
+  // Quick category change directly from table
+  const handleQuickCategoryChange = async (lead: Lead, newCategory: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      
+      const res = await fetch('/api/leads', {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          conversation_id: lead.conversation_id,
+          lead_type: newCategory
+        })
+      })
+
+      if (res.ok) {
+        setLeads(prev => prev.map(l => {
+          if (l.id === lead.id) {
+            const currentMeta = typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})
+            return {
+              ...l,
+              lead_type: newCategory,
+              metadata: { ...currentMeta, lead_type: newCategory }
+            }
+          }
+          return l
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to change lead category:', err)
+    }
+  }
+
+  // Save Lead changes (Stage / Quality / Score / Category)
   const handleUpdateLead = async () => {
     if (!activeLead) return
     setSavingLead(true)
@@ -291,11 +323,12 @@ function LeadsContent() {
         'Content-Type': 'application/json'
       }
 
-      const updates = {
+      const updates: any = {
         conversation_id: activeLead.conversation_id,
         stage: editStage,
         lead_quality: editQuality || null,
-        lead_score: editScore
+        lead_score: editScore,
+        lead_type: editCategory
       }
 
       const res = await fetch('/api/leads', {
@@ -306,13 +339,12 @@ function LeadsContent() {
 
       if (!res.ok) throw new Error('Failed to update lead')
       
-      const updatedData = await res.json()
+      const currentMeta = typeof activeLead.metadata === 'string' ? JSON.parse(activeLead.metadata || '{}') : (activeLead.metadata || {})
+      const mergedMeta = { ...currentMeta, lead_type: editCategory }
       
       // Update local state list
-      setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, ...updates } : l))
-      setActiveLead(prev => prev ? { ...prev, ...updates } : null)
-      
-      // Show success micro-animation feedback
+      setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, ...updates, metadata: mergedMeta } : l))
+      setActiveLead(prev => prev ? { ...prev, ...updates, metadata: mergedMeta } : null)
     } catch (err) {
       console.error(err)
       alert('Failed to update lead settings.')
@@ -333,6 +365,7 @@ function LeadsContent() {
     setEditStage(stage)
     setEditQuality(quality)
     setEditScore(score)
+    setEditCategory(classifyLead(lead))
   }
 
   // Download filtered leads as CSV
@@ -698,13 +731,27 @@ function LeadsContent() {
                             <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-900/50 transition-colors z-10 shadow-[inset_-1px_0_0_0_#f3f4f6] dark:shadow-[inset_-1px_0_0_0_#1f2937]">
                               <div className="font-semibold text-gray-950 dark:text-white flex items-center gap-2">
                                 <span>{displayName}</span>
-                                {isOsmoRo && (() => {
-                                  const cat = classifyLead(lead)
-                                  if (cat === 'osmo_dealer') return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">Osmo Dealer</span>
-                                  if (cat === 'dealer') return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Dealer</span>
-                                  if (cat === 'customer') return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">Customer</span>
-                                  return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Unfiltered</span>
-                                })()}
+                                {isOsmoRo && (
+                                  <div className="relative inline-flex items-center ml-1" onClick={(e) => e.stopPropagation()}>
+                                    <select
+                                      value={classifyLead(lead)}
+                                      onChange={(e) => handleQuickCategoryChange(lead, e.target.value)}
+                                      className={`text-[9px] font-bold pl-1.5 pr-3.5 py-0.5 rounded-full uppercase tracking-wider border cursor-pointer appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-sm ${
+                                        classifyLead(lead) === 'osmo_dealer' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
+                                        classifyLead(lead) === 'dealer' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800' :
+                                        classifyLead(lead) === 'customer' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border-teal-200 dark:border-teal-800' :
+                                        'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-750'
+                                      }`}
+                                      title="Change Category (Osmo Dealer, Dealer, Customer, Unfiltered)"
+                                    >
+                                      <option value="unfiltered">Unfiltered</option>
+                                      <option value="osmo_dealer">Osmo Dealer</option>
+                                      <option value="dealer">Dealer</option>
+                                      <option value="customer">Customer</option>
+                                    </select>
+                                    <ChevronDown className="w-2 h-2 absolute right-1 pointer-events-none opacity-60" />
+                                  </div>
+                                )}
                               </div>
                               <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                 <Phone className="w-3 h-3" />
@@ -882,6 +929,21 @@ function LeadsContent() {
                         <option value="hot">HOT</option>
                         <option value="warm">WARM</option>
                         <option value="cold">COLD</option>
+                      </select>
+                    </div>
+
+                    {/* Category selector */}
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">Lead Category (Osmo RO)</label>
+                      <select
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                        className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm focus:outline-none font-semibold text-gray-900 dark:text-white"
+                      >
+                        <option value="unfiltered">⚪ Unfiltered (Undefined)</option>
+                        <option value="osmo_dealer">🟣 Osmo Dealer</option>
+                        <option value="dealer">🟠 Dealer / Retailer</option>
+                        <option value="customer">🟢 Customer</option>
                       </select>
                     </div>
                   </div>

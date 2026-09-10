@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Conversation, Stage } from '@/types'
 import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
-import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban } from 'lucide-react'
+import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown } from 'lucide-react'
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -41,6 +41,23 @@ function classifyLeadType(conv: Conversation): OsmoLeadCategory {
   const convMeta = typeof (conv as any).metadata === 'string'
     ? (() => { try { return JSON.parse((conv as any).metadata) } catch { return {} } })()
     : ((conv as any).metadata || {})
+
+  // 0. Explicit Manual Override Check First
+  const explicitType = (
+    conv.lead_type ||
+    (conv as any).Lead_Type ||
+    convMeta.lead_type ||
+    convMeta.Lead_Type ||
+    leadObj?.lead_type ||
+    (leadObj as any)?.Lead_Type ||
+    leadMeta?.lead_type ||
+    leadMeta?.Lead_Type
+  )?.toString().trim().toLowerCase()
+
+  if (explicitType === 'osmo_dealer' || explicitType === 'osmo dealer') return 'osmo_dealer'
+  if (explicitType === 'dealer') return 'dealer'
+  if (explicitType === 'customer') return 'customer'
+  if (explicitType === 'unfiltered') return 'unfiltered'
 
   const typeFields = [
     conv.lead_type,
@@ -498,6 +515,30 @@ function ConversationItem({
     typeBadgeColor = 'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200/50'
   }
 
+  const [updatingCat, setUpdatingCat] = useState(false)
+
+  const handleCategorySelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.stopPropagation()
+    const newCat = e.target.value as OsmoLeadCategory
+    setUpdatingCat(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch(`/api/conversations/${conv.id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({ lead_type: newCat })
+      })
+      onAssignmentChange()
+    } catch (err) {
+      console.error('Failed to change category:', err)
+    } finally {
+      setUpdatingCat(false)
+    }
+  }
+
   const initials = (conv.name || conv.phone_number || 'U')
   .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
@@ -591,11 +632,23 @@ function ConversationItem({
             {conv.platform || 'whatsapp'}
           </span>
 
-          {/* Lead Type Badge (Osmo RO Dashboard) */}
-          {isOsmoRo && displayType && (
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${typeBadgeColor}`}>
-              {displayType}
-            </span>
+          {/* Lead Type Badge / Manual Category Selector (Osmo RO Dashboard) */}
+          {isOsmoRo && (
+            <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
+              <select
+                value={leadCat}
+                disabled={updatingCat}
+                onChange={handleCategorySelect}
+                className={`text-[9px] font-bold pl-2 pr-4 py-0.5 rounded-full uppercase tracking-wider cursor-pointer border focus:outline-none focus:ring-1 focus:ring-emerald-500 appearance-none ${typeBadgeColor} ${updatingCat ? 'opacity-50 animate-pulse' : ''}`}
+                title="Change Lead Category"
+              >
+                <option value="unfiltered">Unfiltered</option>
+                <option value="osmo_dealer">Osmo Dealer</option>
+                <option value="dealer">Dealer</option>
+                <option value="customer">Customer</option>
+              </select>
+              <ChevronDown className="w-2.5 h-2.5 absolute right-1 pointer-events-none opacity-60" />
+            </div>
           )}
 
           {/* Blocked Badge */}

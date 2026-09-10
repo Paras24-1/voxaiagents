@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
+import { isOsmoOrg, syncOsmoPhonebooks } from '@/lib/osmoPhonebooks'
 
 export async function DELETE(
   req: NextRequest,
@@ -83,7 +84,7 @@ export async function PATCH(
 
     const { data: conv } = await supabaseAdmin
       .from('conversations')
-      .select('id, assigned_to')
+      .select('id, assigned_to, metadata, phone_number')
       .eq('id', id)
       .eq('org_id', profile.orgId)
       .maybeSingle()
@@ -97,11 +98,43 @@ export async function PATCH(
     }
 
     // Only allow updating safe fields
-    const allowedUpdates = isStaffEmployee ? ['stage', 'notes'] : ['stage', 'notes', 'assigned_to', 'assignment_status']
+    const allowedUpdates = isStaffEmployee 
+      ? ['stage', 'notes', 'lead_type', 'metadata'] 
+      : ['stage', 'notes', 'assigned_to', 'assignment_status', 'lead_type', 'metadata']
+    
     const filteredBody: Record<string, any> = {}
     for (const key of allowedUpdates) {
       if (key in body) {
         filteredBody[key] = body[key]
+      }
+    }
+
+    // Handle explicit lead_type update
+    if (body.lead_type !== undefined) {
+      let convMeta = conv.metadata || {}
+      if (typeof convMeta === 'string') {
+        try { convMeta = JSON.parse(convMeta) } catch {}
+      }
+      convMeta = { ...convMeta, lead_type: body.lead_type }
+      filteredBody.metadata = convMeta
+
+      // Also update linked lead record metadata if it exists
+      const { data: linkedLead } = await supabaseAdmin
+        .from('leads')
+        .select('id, metadata')
+        .eq('conversation_id', id)
+        .maybeSingle()
+
+      if (linkedLead) {
+        let leadMeta = linkedLead.metadata || {}
+        if (typeof leadMeta === 'string') {
+          try { leadMeta = JSON.parse(leadMeta) } catch {}
+        }
+        leadMeta = { ...leadMeta, lead_type: body.lead_type }
+        await supabaseAdmin
+          .from('leads')
+          .update({ metadata: leadMeta })
+          .eq('id', linkedLead.id)
       }
     }
 
@@ -112,6 +145,14 @@ export async function PATCH(
       .eq('org_id', profile.orgId)
 
     if (error) throw error
+
+    // Sync Osmo Phonebooks in background if lead_type was updated
+    if (body.lead_type !== undefined) {
+      isOsmoOrg(profile.orgId).then((isOsmo) => {
+        if (isOsmo) syncOsmoPhonebooks(profile.orgId).catch(console.error)
+      }).catch(() => {})
+    }
+
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

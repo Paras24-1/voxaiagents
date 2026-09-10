@@ -36,8 +36,15 @@ interface Props {
   onAIToggle: (id: string, mode: boolean) => void
 }
 
+import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
+
 export default function ChatWindow({ conversation, onAIToggle }: Props) {
-  const { profile } = useOrg()
+  const { profile, org } = useOrg()
+  const isOsmoRo = 
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
+    org?.name?.toLowerCase().includes('osmo') ||
+    org?.slug?.toLowerCase().includes('osmo')
+
   const [input, setInput] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -69,6 +76,49 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   useEffect(() => {
     setStage(conversation?.stage || 'new')
   }, [conversation?.id, conversation?.stage])
+
+  const CATEGORY_COLORS: Record<string, string> = {
+    unfiltered: 'bg-gray-150 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+    osmo_dealer: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    dealer: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    customer: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300'
+  }
+
+  const [category, setCategory] = useState<string>('unfiltered')
+  const [savingCategory, setSavingCategory] = useState(false)
+
+  useEffect(() => {
+    if (conversation) {
+      setCategory(classifyOsmoContact(conversation))
+    }
+  }, [conversation?.id, (conversation as any)?.metadata, conversation?.lead_type])
+
+  const handleCategoryChange = async (newCategory: string) => {
+    if (!conversation) return
+    setCategory(newCategory)
+    setSavingCategory(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch(`/api/conversations/${conversation.id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({ lead_type: newCategory })
+      })
+      conversation.lead_type = newCategory
+      if (conversation.metadata) {
+        if (typeof conversation.metadata === 'object') {
+          conversation.metadata.lead_type = newCategory
+        }
+      }
+    } catch (err) {
+      console.error('Failed to change category:', err)
+    } finally {
+      setSavingCategory(false)
+    }
+  }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
@@ -545,7 +595,25 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
           <p className="text-[11px] text-gray-400 mt-0.5">{conversation.phone_number}</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+          {/* Osmo Category Selector (Osmo RO) */}
+          {isOsmoRo && (
+            <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-2.5 py-1.5 rounded-xl border border-gray-150 dark:border-gray-700/50 shadow-inner select-none">
+              <span className="text-[9px] font-extrabold text-gray-400">CATEGORY:</span>
+              <select
+                value={category}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                disabled={savingCategory}
+                className={`text-[10px] uppercase font-bold tracking-wider px-1 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 ${CATEGORY_COLORS[category] || CATEGORY_COLORS.unfiltered}`}
+              >
+                <option value="unfiltered">Unfiltered</option>
+                <option value="osmo_dealer">Osmo Dealer</option>
+                <option value="dealer">Dealer</option>
+                <option value="customer">Customer</option>
+              </select>
+            </div>
+          )}
+
           {/* Stage Selector */}
           <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-2.5 py-1.5 rounded-xl border border-gray-150 dark:border-gray-700/50 shadow-inner select-none">
             <Tag className="w-3.5 h-3.5 text-gray-400" />

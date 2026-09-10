@@ -44,6 +44,23 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
     ? (() => { try { return JSON.parse(item.metadata) } catch { return {} } })()
     : (item.metadata || {})
 
+  // 0. Explicit Manual Override Check First
+  const explicitType = (
+    item.lead_type ||
+    item.Lead_Type ||
+    convMeta.lead_type ||
+    convMeta.Lead_Type ||
+    leadObj?.lead_type ||
+    leadObj?.Lead_Type ||
+    leadMeta?.lead_type ||
+    leadMeta?.Lead_Type
+  )?.toString().trim().toLowerCase()
+
+  if (explicitType === 'osmo_dealer' || explicitType === 'osmo dealer') return 'osmo_dealer'
+  if (explicitType === 'dealer') return 'dealer'
+  if (explicitType === 'customer') return 'customer'
+  if (explicitType === 'unfiltered') return 'unfiltered'
+
   const typeFields = [
     item.lead_type,
     item.Lead_Type,
