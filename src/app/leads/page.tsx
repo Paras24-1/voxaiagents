@@ -94,96 +94,10 @@ export default function LeadsPage() {
   return <LeadsContent />
 }
 
+import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
+
 function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered' {
-  const meta = typeof lead.metadata === 'string'
-    ? (() => { try { return JSON.parse(lead.metadata) } catch { return {} } })()
-    : (lead.metadata || {})
-
-  // 0. Explicit Manual Override Check First
-  const explicitType = (
-    lead.lead_type ||
-    (lead as any).Lead_Type ||
-    meta.lead_type ||
-    meta.Lead_Type
-  )?.toString().trim().toLowerCase()
-
-  if (explicitType === 'osmo_dealer' || explicitType === 'osmo dealer') return 'osmo_dealer'
-  if (explicitType === 'dealer') return 'dealer'
-  if (explicitType === 'customer') return 'customer'
-  if (explicitType === 'unfiltered') return 'unfiltered'
-
-  const typeFields = [
-    lead.lead_type,
-    (lead as any).Lead_Type,
-    meta.lead_type,
-    meta.Lead_Type,
-    meta.type,
-    meta.user_type,
-    meta.customer_type,
-    meta.category,
-    meta.role,
-    meta.business_type,
-  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
-
-  const nameFields = [
-    lead.name,
-    (lead as any).customer_name,
-    meta.name,
-    meta.contact_person,
-    meta.dealer_name,
-    meta.business_name,
-    meta.shop_name,
-    meta.company,
-  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
-
-  const notesFields = [
-    lead.followup_notes,
-    meta.notes,
-    meta.followup_notes,
-    meta.remarks,
-    meta.tags,
-    meta.conversation_summary,
-  ].filter(Boolean).map(v => String(v).trim().toLowerCase())
-
-  const allText = [
-    ...typeFields,
-    ...nameFields,
-    ...notesFields,
-    ...Object.values(meta).filter(v => typeof v === 'string').map(v => String(v).toLowerCase())
-  ].join(' ')
-
-  const isOsmoDealer = 
-    typeFields.some(t => t.includes('osmo') && (t.includes('deal') || t.includes('deler') || t.includes('distribut') || t.includes('partner') || t.includes('retail'))) ||
-    allText.includes('osmo dealer') ||
-    allText.includes('osmodealer') ||
-    allText.includes('osmo deler') ||
-    allText.includes('osmo distributor') ||
-    (allText.includes('osmo') && (allText.includes('dealer') || allText.includes('deler') || allText.includes('distributor')))
-
-  if (isOsmoDealer) return 'osmo_dealer'
-
-  const isDealer =
-    typeFields.some(t => t.includes('deal') || t.includes('deler') || t.includes('retail') || t.includes('distribut') || t.includes('wholesal') || t.includes('shop') || t.includes('technician')) ||
-    nameFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retail') || n.includes('distributor') || n.includes('traders') || n.includes('trader') || n.includes('enterprises') || n.includes('enterprise') || n.includes('water solution') || n.includes('ro care') || n.includes('agency')) ||
-    notesFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retailer') || n.includes('distributor')) ||
-    allText.includes('dealer') ||
-    allText.includes('deler') ||
-    allText.includes('retailer') ||
-    allText.includes('distributor')
-
-  if (isDealer) return 'dealer'
-
-  const isCustomer =
-    typeFields.some(t => t.includes('custom') || t.includes('cust') || t.includes('consumer') || t.includes('client') || t.includes('user') || t.includes('buyer')) ||
-    nameFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('client')) ||
-    notesFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('domestic') || n.includes('residential') || n.includes('ghar ke liye')) ||
-    allText.includes('customer') ||
-    allText.includes('consumer') ||
-    allText.includes('client')
-
-  if (isCustomer) return 'customer'
-
-  return 'unfiltered'
+  return classifyOsmoContact(lead)
 }
 
 function LeadsContent() {

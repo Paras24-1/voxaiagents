@@ -35,6 +35,8 @@ export function cleanPhone(raw: any): string {
 }
 
 export function classifyOsmoContact(item: any): OsmoCategoryKey {
+  if (!item) return 'unfiltered'
+
   const leadObj = item.lead ? (Array.isArray(item.lead) ? item.lead[0] : item.lead) : item
   const leadMeta = typeof leadObj?.metadata === 'string'
     ? (() => { try { return JSON.parse(leadObj.metadata) } catch { return {} } })()
@@ -44,21 +46,25 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
     ? (() => { try { return JSON.parse(item.metadata) } catch { return {} } })()
     : (item.metadata || {})
 
-  // 0. Explicit Manual Override Check First
+  // 0. Explicit Manual Override Check First (Highest Priority)
   const explicitType = (
     item.lead_type ||
     item.Lead_Type ||
     convMeta.lead_type ||
     convMeta.Lead_Type ||
+    convMeta.category ||
+    convMeta.user_type ||
     leadObj?.lead_type ||
     leadObj?.Lead_Type ||
     leadMeta?.lead_type ||
-    leadMeta?.Lead_Type
+    leadMeta?.Lead_Type ||
+    leadMeta?.category ||
+    leadMeta?.user_type
   )?.toString().trim().toLowerCase()
 
-  if (explicitType === 'osmo_dealer' || explicitType === 'osmo dealer') return 'osmo_dealer'
-  if (explicitType === 'dealer') return 'dealer'
-  if (explicitType === 'customer') return 'customer'
+  if (explicitType === 'osmo_dealer' || explicitType === 'osmo dealer' || explicitType === 'osmo_deler') return 'osmo_dealer'
+  if (explicitType === 'dealer' || explicitType === 'deler' || explicitType === 'distributor' || explicitType === 'retailer') return 'dealer'
+  if (explicitType === 'customer' || explicitType === 'consumer' || explicitType === 'client' || explicitType === 'end_user') return 'customer'
   if (explicitType === 'unfiltered') return 'unfiltered'
 
   const typeFields = [
@@ -97,56 +103,76 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
     leadMeta?.company,
   ].filter(Boolean).map(v => String(v).trim().toLowerCase())
 
-  const notesFields = [
+  const notesAndMessages = [
     item.notes,
+    item.last_message,
     leadObj?.notes,
     leadObj?.followup_notes,
+    leadObj?.machine_interest,
     leadMeta?.notes,
     leadMeta?.followup_notes,
     leadMeta?.remarks,
     leadMeta?.tags,
     leadMeta?.conversation_summary,
+    leadMeta?.machine_interest,
+    leadMeta?.city,
+    convMeta?.notes,
+    convMeta?.last_message,
+    convMeta?.summary,
   ].filter(Boolean).map(v => String(v).trim().toLowerCase())
 
   const allText = [
     ...typeFields,
     ...nameFields,
-    ...notesFields,
+    ...notesAndMessages,
     ...Object.values(leadMeta).filter(v => typeof v === 'string').map(v => String(v).toLowerCase()),
     ...Object.values(convMeta).filter(v => typeof v === 'string').map(v => String(v).toLowerCase())
   ].join(' ')
 
-  // 1. Osmo Dealer match
+  // 1. Osmo Dealer match (Authorized Osmo Dealers & Distributors)
   const isOsmoDealer = 
-    typeFields.some(t => t.includes('osmo') && (t.includes('deal') || t.includes('deler') || t.includes('distribut') || t.includes('partner') || t.includes('retail'))) ||
+    typeFields.some(t => t.includes('osmo') && (t.includes('deal') || t.includes('deler') || t.includes('distribut') || t.includes('partner') || t.includes('retail') || t.includes('franchis'))) ||
     allText.includes('osmo dealer') ||
     allText.includes('osmodealer') ||
     allText.includes('osmo deler') ||
     allText.includes('osmo distributor') ||
-    (allText.includes('osmo') && (allText.includes('dealer') || allText.includes('deler') || allText.includes('distributor')))
+    allText.includes('osmo partner') ||
+    (allText.includes('osmo') && (allText.includes('dealer') || allText.includes('deler') || allText.includes('distributor') || allText.includes('dealership')))
 
   if (isOsmoDealer) return 'osmo_dealer'
 
-  // 2. Dealer / Retailer match
+  // 2. Dealer / Retailer / Technician / B2B match
+  const dealerKeywords = [
+    'dealer', 'deler', 'delar', 'dealers', 'dealership', 'distributor', 'distributer', 'distributorship',
+    'wholesaler', 'wholesale', 'retailer', 'reseller', 'technician', 'mechanic', 'fitter',
+    'trader', 'traders', 'trading', 'enterprise', 'enterprises', 'agency', 'agencies',
+    'ro care', 'aqua care', 'water solution', 'water solutions', 'water tech', 'water purifier shop',
+    'spare parts', 'spares', 'bulk order', 'dealer price', 'dealer rate', 'wholesale price', 'wholesale rate',
+    'visiting card', 'business card', 'gstin', 'b2b', 'dukaan', 'shop name', 'outlet'
+  ]
+
   const isDealer =
-    typeFields.some(t => t.includes('deal') || t.includes('deler') || t.includes('retail') || t.includes('distribut') || t.includes('wholesal') || t.includes('shop') || t.includes('technician')) ||
-    nameFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retail') || n.includes('distributor') || n.includes('traders') || n.includes('trader') || n.includes('enterprises') || n.includes('enterprise') || n.includes('water solution') || n.includes('ro care') || n.includes('agency')) ||
-    notesFields.some(n => n.includes('dealer') || n.includes('deler') || n.includes('retailer') || n.includes('distributor')) ||
-    allText.includes('dealer') ||
-    allText.includes('deler') ||
-    allText.includes('retailer') ||
-    allText.includes('distributor')
+    typeFields.some(t => dealerKeywords.some(k => t.includes(k))) ||
+    nameFields.some(n => dealerKeywords.some(k => n.includes(k))) ||
+    notesAndMessages.some(m => dealerKeywords.some(k => m.includes(k))) ||
+    dealerKeywords.some(k => allText.includes(k))
 
   if (isDealer) return 'dealer'
 
-  // 3. Customer match (explicit customer indications)
+  // 3. Customer of RO (Domestic/Residential/Inbound Buyer/Service inquiries)
+  const customerKeywords = [
+    'customer', 'consumer', 'client', 'end user', 'enduser', 'buyer', 'direct buyer',
+    'residential', 'domestic', 'household',
+    'ghar ke liye', 'ghar k liye', 'ghar me', 'ghar pe', 'home use', 'for home', 'for house', 'for kitchen', 'personal use', 'flat',
+    'installation', 'fitting', 'service', 'repair', 'filter change', 'membrane change', 'water purifier buy', 'buy ro',
+    'lagwana hai', 'kharidna hai', 'ro chahiye', 'purifier chahiye', 'price of ro', 'ro price', 'kitne ka hai', 'rate kya hai'
+  ]
+
   const isCustomer =
-    typeFields.some(t => t.includes('custom') || t.includes('cust') || t.includes('consumer') || t.includes('client') || t.includes('user') || t.includes('buyer')) ||
-    nameFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('client')) ||
-    notesFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('domestic') || n.includes('residential') || n.includes('ghar ke liye')) ||
-    allText.includes('customer') ||
-    allText.includes('consumer') ||
-    allText.includes('client')
+    typeFields.some(t => customerKeywords.some(k => t.includes(k))) ||
+    nameFields.some(n => customerKeywords.some(k => n.includes(k))) ||
+    notesAndMessages.some(m => customerKeywords.some(k => m.includes(k))) ||
+    customerKeywords.some(k => allText.includes(k))
 
   if (isCustomer) return 'customer'
 
