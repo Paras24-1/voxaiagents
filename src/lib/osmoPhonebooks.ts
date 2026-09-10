@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase'
 
-export type OsmoCategoryKey = 'osmo_dealer' | 'dealer' | 'customer'
+export type OsmoCategoryKey = 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered'
 
 export const OSMO_PHONEBOOK_DEFINITIONS: Record<OsmoCategoryKey, { name: string; label: string; description: string }> = {
   osmo_dealer: {
@@ -16,7 +16,12 @@ export const OSMO_PHONEBOOK_DEFINITIONS: Record<OsmoCategoryKey, { name: string;
   customer: {
     name: 'Customers',
     label: 'Customers',
-    description: 'Auto-segregated inbound customer leads, buyers & service inquiries'
+    description: 'Auto-segregated inbound customer leads, buyers & residential inquiries'
+  },
+  unfiltered: {
+    name: 'Unfiltered Leads',
+    label: 'Unfiltered',
+    description: 'Auto-segregated undefined leads pending role identification'
   }
 }
 
@@ -117,8 +122,19 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
 
   if (isDealer) return 'dealer'
 
-  // 3. Default fallback: All non-dealer inbound WhatsApp leads are Customers
-  return 'customer'
+  // 3. Customer match (explicit customer indications)
+  const isCustomer =
+    typeFields.some(t => t.includes('custom') || t.includes('cust') || t.includes('consumer') || t.includes('client') || t.includes('user') || t.includes('buyer')) ||
+    nameFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('client')) ||
+    notesFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('domestic') || n.includes('residential') || n.includes('ghar ke liye')) ||
+    allText.includes('customer') ||
+    allText.includes('consumer') ||
+    allText.includes('client')
+
+  if (isCustomer) return 'customer'
+
+  // 4. Default fallback: undefined leads that did not define what they are
+  return 'unfiltered'
 }
 
 export async function isOsmoOrg(orgId: string): Promise<boolean> {
@@ -162,7 +178,8 @@ export async function syncOsmoPhonebooks(orgId: string) {
     const pbMap: Record<OsmoCategoryKey, any> = {
       osmo_dealer: null,
       dealer: null,
-      customer: null
+      customer: null,
+      unfiltered: null
     }
 
     for (const [key, def] of Object.entries(OSMO_PHONEBOOK_DEFINITIONS) as [OsmoCategoryKey, any][]) {
@@ -208,7 +225,8 @@ export async function syncOsmoPhonebooks(orgId: string) {
     const categorizedContacts: Record<OsmoCategoryKey, Map<string, any>> = {
       osmo_dealer: new Map(),
       dealer: new Map(),
-      customer: new Map()
+      customer: new Map(),
+      unfiltered: new Map()
     };
 
     // Process conversations

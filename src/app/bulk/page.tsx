@@ -624,11 +624,12 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                 Tap a category below to broadcast WhatsApp templates directly to segregated leads:
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {(() => {
                   const osmoPb = phonebooks.find(p => p.name.toLowerCase().includes('osmo'))
                   const dealerPb = phonebooks.find(p => p.name.toLowerCase().includes('dealer') && !p.name.toLowerCase().includes('osmo'))
                   const customerPb = phonebooks.find(p => p.name.toLowerCase().includes('customer'))
+                  const unfilteredPb = phonebooks.find(p => p.name.toLowerCase().includes('unfiltered'))
                   
                   return [
                     {
@@ -657,6 +658,15 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                       count: customerPb?.contact_count || 0,
                       activeBorder: 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/30',
                       badge: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300'
+                    },
+                    {
+                      key: 'unfiltered',
+                      name: 'Unfiltered',
+                      pb: unfilteredPb,
+                      desc: 'Undefined Role Leads',
+                      count: unfilteredPb?.contact_count || 0,
+                      activeBorder: 'border-gray-500 bg-gray-50/50 dark:bg-gray-800/30',
+                      badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                     }
                   ].map((cat) => {
                     const isSelected = selectedPhonebookId === cat.pb?.id
@@ -1639,7 +1649,7 @@ function PhonebooksTab() {
 
         <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
           {phonebooks.map((pb) => {
-            const isAuto = pb.is_auto_synced || (isOsmoRo && (pb.name.toLowerCase().includes('osmo') || pb.name.toLowerCase().includes('dealer') || pb.name.toLowerCase().includes('customer')))
+            const isAuto = pb.is_auto_synced || (isOsmoRo && (pb.name.toLowerCase().includes('osmo') || pb.name.toLowerCase().includes('dealer') || pb.name.toLowerCase().includes('customer') || pb.name.toLowerCase().includes('unfiltered')))
             return (
               <div
                 key={pb.id}

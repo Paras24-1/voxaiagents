@@ -30,7 +30,7 @@ const STAGE_COLORS: Record<Stage, string> = {
   unknown:        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
 }
 
-export type OsmoLeadCategory = 'osmo_dealer' | 'dealer' | 'customer'
+export type OsmoLeadCategory = 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered'
 
 function classifyLeadType(conv: Conversation): OsmoLeadCategory {
   const leadObj = Array.isArray(conv.lead) ? conv.lead[0] : conv.lead
@@ -117,8 +117,19 @@ function classifyLeadType(conv: Conversation): OsmoLeadCategory {
 
   if (isDealer) return 'dealer'
 
-  // 3. Default fallback: All non-dealer inbound WhatsApp leads are Customers
-  return 'customer'
+  // 3. Customer match (explicit customer indications)
+  const isCustomer =
+    typeFields.some(t => t.includes('custom') || t.includes('cust') || t.includes('consumer') || t.includes('client') || t.includes('user') || t.includes('buyer')) ||
+    nameFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('client')) ||
+    notesFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('domestic') || n.includes('residential') || n.includes('ghar ke liye')) ||
+    allText.includes('customer') ||
+    allText.includes('consumer') ||
+    allText.includes('client')
+
+  if (isCustomer) return 'customer'
+
+  // 4. Leads that did not define what they are
+  return 'unfiltered'
 }
 
 interface Props {
@@ -139,7 +150,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [unread, setUnread] = useState(false)
   const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
   const [channelFilter, setChannelFilter] = useState<string>('all') // all, whatsapp, instagram
-  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('all') // all, osmo_dealer, dealer, customer
+  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showAddLead, setShowAddLead] = useState(false)
@@ -164,24 +175,25 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
   // Calculate live count per lead type category for Osmo RO
   const typeCounts = useMemo(() => {
-    let all = 0
+    let unfiltered = 0
     let osmo_dealer = 0
     let dealer = 0
     let customer = 0
 
     conversations.forEach((c) => {
-      all++
       const cat = classifyLeadType(c)
       if (cat === 'osmo_dealer') {
         osmo_dealer++
       } else if (cat === 'dealer') {
         dealer++
-      } else {
+      } else if (cat === 'customer') {
         customer++
+      } else {
+        unfiltered++
       }
     })
 
-    return { all, osmo_dealer, dealer, customer }
+    return { unfiltered, osmo_dealer, dealer, customer }
   }, [conversations])
 
   useEffect(() => {
@@ -319,7 +331,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
         {isOsmoRo && (
           <div className="grid grid-cols-4 gap-1 p-1 mb-3 bg-gray-100/90 dark:bg-gray-850 rounded-xl border border-gray-200/80 dark:border-gray-750 shadow-inner">
             {[
-              { id: 'all', label: 'All', count: typeCounts.all, activeStyle: 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' },
+              { id: 'unfiltered', label: 'Unfiltered', count: typeCounts.unfiltered, activeStyle: 'bg-slate-700 text-white shadow-sm shadow-slate-500/20' },
               { id: 'osmo_dealer', label: 'Osmo Dealer', count: typeCounts.osmo_dealer, activeStyle: 'bg-purple-600 text-white shadow-sm shadow-purple-500/20' },
               { id: 'dealer', label: 'Dealer', count: typeCounts.dealer, activeStyle: 'bg-amber-600 text-white shadow-sm shadow-amber-500/20' },
               { id: 'customer', label: 'Customer', count: typeCounts.customer, activeStyle: 'bg-teal-600 text-white shadow-sm shadow-teal-500/20' },
@@ -330,7 +342,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                   key={tab.id}
                   type="button"
                   onClick={() => setLeadTypeFilter(tab.id)}
-                  className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all duration-200 select-none ${
+                  className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all duration-200 select-none cursor-pointer ${
                     active
                       ? tab.activeStyle
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-750'
@@ -478,9 +490,12 @@ function ConversationItem({
   } else if (leadCat === 'dealer') {
     displayType = 'Dealer'
     typeBadgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-100/10'
-  } else {
+  } else if (leadCat === 'customer') {
     displayType = 'Customer'
     typeBadgeColor = 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-100/10'
+  } else {
+    displayType = 'Unfiltered'
+    typeBadgeColor = 'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200/50'
   }
 
   const initials = (conv.name || conv.phone_number || 'U')

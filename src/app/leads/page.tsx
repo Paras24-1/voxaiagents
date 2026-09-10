@@ -112,7 +112,7 @@ export default function LeadsPage() {
   return <LeadsContent />
 }
 
-function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' {
+function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered' {
   const meta = typeof lead.metadata === 'string'
     ? (() => { try { return JSON.parse(lead.metadata) } catch { return {} } })()
     : (lead.metadata || {})
@@ -178,7 +178,17 @@ function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' {
 
   if (isDealer) return 'dealer'
 
-  return 'customer'
+  const isCustomer =
+    typeFields.some(t => t.includes('custom') || t.includes('cust') || t.includes('consumer') || t.includes('client') || t.includes('user') || t.includes('buyer')) ||
+    nameFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('client')) ||
+    notesFields.some(n => n.includes('customer') || n.includes('consumer') || n.includes('domestic') || n.includes('residential') || n.includes('ghar ke liye')) ||
+    allText.includes('customer') ||
+    allText.includes('consumer') ||
+    allText.includes('client')
+
+  if (isCustomer) return 'customer'
+
+  return 'unfiltered'
 }
 
 function LeadsContent() {
@@ -196,7 +206,7 @@ function LeadsContent() {
   const [search, setSearch] = useState('')
   const [selectedStage, setSelectedStage] = useState('')
   const [selectedQuality, setSelectedQuality] = useState('')
-  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('all') // all, osmo_dealer, dealer, customer
+  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   
@@ -211,24 +221,25 @@ function LeadsContent() {
 
   // Calculate live count per lead type category for Osmo RO
   const typeCounts = useMemo(() => {
-    let all = 0
+    let unfiltered = 0
     let osmo_dealer = 0
     let dealer = 0
     let customer = 0
 
     leads.forEach((l) => {
-      all++
       const cat = classifyLead(l)
       if (cat === 'osmo_dealer') {
         osmo_dealer++
       } else if (cat === 'dealer') {
         dealer++
-      } else {
+      } else if (cat === 'customer') {
         customer++
+      } else {
+        unfiltered++
       }
     })
 
-    return { all, osmo_dealer, dealer, customer }
+    return { unfiltered, osmo_dealer, dealer, customer }
   }, [leads])
 
   useEffect(() => {
@@ -518,7 +529,7 @@ function LeadsContent() {
           {isOsmoRo && (
             <div className="grid grid-cols-4 gap-2 p-1.5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
               {[
-                { id: 'all', label: 'All Leads', count: typeCounts.all, activeStyle: 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm border border-gray-300 dark:border-gray-700' },
+                { id: 'unfiltered', label: 'Unfiltered', count: typeCounts.unfiltered, activeStyle: 'bg-slate-700 text-white shadow-sm shadow-slate-500/20' },
                 { id: 'osmo_dealer', label: 'Osmo Dealer', count: typeCounts.osmo_dealer, activeStyle: 'bg-purple-600 text-white shadow-sm shadow-purple-500/20' },
                 { id: 'dealer', label: 'Dealer', count: typeCounts.dealer, activeStyle: 'bg-amber-600 text-white shadow-sm shadow-amber-500/20' },
                 { id: 'customer', label: 'Customer', count: typeCounts.customer, activeStyle: 'bg-teal-600 text-white shadow-sm shadow-teal-500/20' },
@@ -529,7 +540,7 @@ function LeadsContent() {
                     key={tab.id}
                     type="button"
                     onClick={() => setLeadTypeFilter(tab.id)}
-                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 select-none ${
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 select-none cursor-pointer ${
                       active
                         ? tab.activeStyle
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/60'
@@ -691,7 +702,8 @@ function LeadsContent() {
                                   const cat = classifyLead(lead)
                                   if (cat === 'osmo_dealer') return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">Osmo Dealer</span>
                                   if (cat === 'dealer') return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Dealer</span>
-                                  return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">Customer</span>
+                                  if (cat === 'customer') return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">Customer</span>
+                                  return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Unfiltered</span>
                                 })()}
                               </div>
                               <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
