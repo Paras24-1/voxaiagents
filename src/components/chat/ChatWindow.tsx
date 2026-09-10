@@ -6,7 +6,7 @@ import { useMessages, useSendMessage } from '@/hooks'
 import { supabase } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
 import { formatDistanceToNow } from 'date-fns'
-import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle } from 'lucide-react'
+import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle, Trash2 } from 'lucide-react'
 import TemplatePickerModal from '@/components/chat/TemplatePickerModal'
 import LocationPickerModal from '@/components/chat/LocationPickerModal'
 import { CannedReplyItem } from '@/components/chat/CannedRepliesModal'
@@ -107,6 +107,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   }, [fetchCannedReplies, conversation?.id])
   
   // Audio Recording State
+  const [audioPreview, setAudioPreview] = useState<{ url: string; file: File } | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
   const mediaRecorderRef = useRef<any>(null)
@@ -190,7 +191,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
           activeStream.getTracks().forEach((track: any) => track.stop())
         }
         
-        await handleSendAudio(audioFile)
+        setAudioPreview({ url: URL.createObjectURL(blob), file: audioFile })
       }).catch((e: any) => console.error(e))
     }
   }
@@ -1009,7 +1010,32 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                   <Paperclip className="w-4 h-4" />
                 </button>
 
-                {isRecording ? (
+                {audioPreview ? (
+                  <div className="flex-1 flex items-center gap-3 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setAudioPreview(null)}
+                      disabled={sending || uploading}
+                      className="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 dark:bg-red-900/40 dark:hover:bg-red-800/60 text-red-600 dark:text-red-400 transition-colors shrink-0"
+                      title="Discard Recording"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="flex-1 min-w-0 flex items-center h-8">
+                      <audio controls src={audioPreview.url} className="w-full h-8" />
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await handleSendAudio(audioPreview.file)
+                        setAudioPreview(null)
+                      }}
+                      disabled={sending || uploading}
+                      className="p-1.5 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition-colors shrink-0 flex items-center gap-2"
+                    >
+                      {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                      <span>Send</span>
+                    </button>
+                  </div>
+                ) : isRecording ? (
                   <div className="flex-1 flex items-center gap-3 px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded-xl">
                     <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
                     <span className="text-sm font-medium text-red-600 dark:text-red-400">
