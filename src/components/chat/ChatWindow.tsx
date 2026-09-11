@@ -96,38 +96,36 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const handleCategoryChange = async (newCategory: string) => {
     if (!conversation) return
     setCategory(newCategory)
-    setSavingCategory(true)
+    conversation.lead_type = newCategory
+    if (conversation.metadata && typeof conversation.metadata === 'object') {
+      conversation.metadata.lead_type = newCategory
+      conversation.metadata.category = newCategory
+    } else {
+      conversation.metadata = { lead_type: newCategory, category: newCategory }
+    }
+    if (conversation.lead) {
+      const leadObj = Array.isArray(conversation.lead) ? conversation.lead[0] : conversation.lead
+      if (leadObj) {
+        leadObj.lead_type = newCategory
+        if (leadObj.metadata && typeof leadObj.metadata === 'object') {
+          leadObj.metadata.lead_type = newCategory
+          leadObj.metadata.category = newCategory
+        }
+      }
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      await fetch(`/api/conversations/${conversation.id}`, {
+      fetch(`/api/conversations/${conversation.id}`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
           ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
         },
         body: JSON.stringify({ lead_type: newCategory })
-      })
-      conversation.lead_type = newCategory
-      if (conversation.metadata && typeof conversation.metadata === 'object') {
-        conversation.metadata.lead_type = newCategory
-        conversation.metadata.category = newCategory
-      } else {
-        conversation.metadata = { lead_type: newCategory, category: newCategory }
-      }
-      if (conversation.lead) {
-        const leadObj = Array.isArray(conversation.lead) ? conversation.lead[0] : conversation.lead
-        if (leadObj) {
-          leadObj.lead_type = newCategory
-          if (leadObj.metadata && typeof leadObj.metadata === 'object') {
-            leadObj.metadata.lead_type = newCategory
-            leadObj.metadata.category = newCategory
-          }
-        }
-      }
+      }).catch(console.error)
     } catch (err) {
       console.error('Failed to change category:', err)
-    } finally {
-      setSavingCategory(false)
     }
   }
 

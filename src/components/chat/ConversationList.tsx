@@ -406,39 +406,40 @@ function ConversationItem({
   const handleCategorySelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     e.stopPropagation()
     const newCat = e.target.value as OsmoLeadCategory
-    setUpdatingCat(true)
+
+    // Instant optimistic update
+    conv.lead_type = newCat
+    if (conv.metadata && typeof conv.metadata === 'object') {
+      conv.metadata.lead_type = newCat
+      conv.metadata.category = newCat
+    } else {
+      conv.metadata = { lead_type: newCat, category: newCat }
+    }
+    if (conv.lead) {
+      const leadObj = Array.isArray(conv.lead) ? conv.lead[0] : conv.lead
+      if (leadObj) {
+        leadObj.lead_type = newCat
+        if (leadObj.metadata && typeof leadObj.metadata === 'object') {
+          leadObj.metadata.lead_type = newCat
+          leadObj.metadata.category = newCat
+        }
+      }
+    }
+    onAssignmentChange()
+
+    // Background sync
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      await fetch(`/api/conversations/${conv.id}`, {
+      fetch(`/api/conversations/${conv.id}`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
           ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
         },
         body: JSON.stringify({ lead_type: newCat })
-      })
-      conv.lead_type = newCat
-      if (conv.metadata && typeof conv.metadata === 'object') {
-        conv.metadata.lead_type = newCat
-        conv.metadata.category = newCat
-      } else {
-        conv.metadata = { lead_type: newCat, category: newCat }
-      }
-      if (conv.lead) {
-        const leadObj = Array.isArray(conv.lead) ? conv.lead[0] : conv.lead
-        if (leadObj) {
-          leadObj.lead_type = newCat
-          if (leadObj.metadata && typeof leadObj.metadata === 'object') {
-            leadObj.metadata.lead_type = newCat
-            leadObj.metadata.category = newCat
-          }
-        }
-      }
-      onAssignmentChange()
+      }).catch(console.error)
     } catch (err) {
       console.error('Failed to change category:', err)
-    } finally {
-      setUpdatingCat(false)
     }
   }
 

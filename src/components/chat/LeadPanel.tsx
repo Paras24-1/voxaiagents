@@ -44,7 +44,29 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   const handleCategoryChange = async (newCategory: string) => {
     if (!conversation && !lead) return
     setLeadCategory(newCategory)
-    setSavingCategory(true)
+
+    if (conversation) {
+      conversation.lead_type = newCategory
+      if (conversation.metadata && typeof conversation.metadata === 'object') {
+        conversation.metadata.lead_type = newCategory
+        conversation.metadata.category = newCategory
+      } else {
+        conversation.metadata = { lead_type: newCategory, category: newCategory }
+      }
+    }
+
+    if (lead) {
+      const currentMeta = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {})
+      onLeadUpdate({
+        lead_type: newCategory,
+        metadata: {
+          ...currentMeta,
+          lead_type: newCategory,
+          category: newCategory
+        }
+      })
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const convId = conversation?.id || lead?.conversation_id
@@ -54,15 +76,16 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
 
+      const promises: Promise<any>[] = []
       if (convId) {
-        await fetch(`/api/conversations/${convId}`, {
+        promises.push(fetch(`/api/conversations/${convId}`, {
           method: 'PATCH',
           headers: authHeader,
           body: JSON.stringify({ lead_type: newCategory })
-        })
+        }))
       }
 
-      await fetch(`/api/leads`, {
+      promises.push(fetch(`/api/leads`, {
         method: 'PATCH',
         headers: authHeader,
         body: JSON.stringify({
@@ -71,31 +94,11 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           phone_number: lead?.phone_number || conversation?.phone_number,
           lead_type: newCategory
         })
-      })
+      }))
 
-      if (conversation) {
-        conversation.lead_type = newCategory
-        if (conversation.metadata && typeof conversation.metadata === 'object') {
-          conversation.metadata.lead_type = newCategory
-          conversation.metadata.category = newCategory
-        }
-      }
-
-      if (lead) {
-        const currentMeta = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {})
-        onLeadUpdate({
-          lead_type: newCategory,
-          metadata: {
-            ...currentMeta,
-            lead_type: newCategory,
-            category: newCategory
-          }
-        })
-      }
+      Promise.all(promises).catch(console.error)
     } catch (err) {
       console.error('Failed to change category:', err)
-    } finally {
-      setSavingCategory(false)
     }
   }
 

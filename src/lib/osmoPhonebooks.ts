@@ -34,8 +34,38 @@ export function cleanPhone(raw: any): string {
   return cleaned
 }
 
+const OSMO_DEALER_FAST_KEYS = new Set(['osmo_dealer', 'osmo dealer', 'osmo_deler'])
+const DEALER_FAST_KEYS = new Set(['dealer', 'deler', 'distributor', 'retailer'])
+const CUSTOMER_FAST_KEYS = new Set(['customer', 'consumer', 'client', 'end_user'])
+
+const DEALER_KEYWORDS = [
+  'dealer', 'deler', 'delar', 'dealers', 'dealership', 'distributor', 'distributer', 'distributorship',
+  'wholesaler', 'wholesale', 'retailer', 'reseller', 'technician', 'mechanic', 'fitter',
+  'trader', 'traders', 'trading', 'enterprise', 'enterprises', 'agency', 'agencies',
+  'ro care', 'aqua care', 'water solution', 'water solutions', 'water tech', 'water purifier shop',
+  'spare parts', 'spares', 'bulk order', 'dealer price', 'dealer rate', 'wholesale price', 'wholesale rate',
+  'visiting card', 'business card', 'gstin', 'b2b', 'dukaan', 'shop name', 'outlet'
+]
+
+const CUSTOMER_KEYWORDS = [
+  'customer', 'consumer', 'client', 'end user', 'enduser', 'buyer', 'direct buyer',
+  'residential', 'domestic', 'household',
+  'ghar ke liye', 'ghar k liye', 'ghar me', 'ghar pe', 'home use', 'for home', 'for house', 'for kitchen', 'personal use', 'flat',
+  'installation', 'fitting', 'service', 'repair', 'filter change', 'membrane change', 'water purifier buy', 'buy ro',
+  'lagwana hai', 'kharidna hai', 'ro chahiye', 'purifier chahiye', 'price of ro', 'ro price', 'kitne ka hai', 'rate kya hai'
+]
+
 export function classifyOsmoContact(item: any): OsmoCategoryKey {
   if (!item) return 'unfiltered'
+
+  // Fast check directly on item.lead_type
+  if (item.lead_type) {
+    const lt = String(item.lead_type).trim().toLowerCase()
+    if (OSMO_DEALER_FAST_KEYS.has(lt)) return 'osmo_dealer'
+    if (DEALER_FAST_KEYS.has(lt)) return 'dealer'
+    if (CUSTOMER_FAST_KEYS.has(lt)) return 'customer'
+    if (lt === 'unfiltered') return 'unfiltered'
+  }
 
   const leadObj = item.lead ? (Array.isArray(item.lead) ? item.lead[0] : item.lead) : item
   const leadMeta = typeof leadObj?.metadata === 'string'
@@ -62,10 +92,12 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
     leadMeta?.user_type
   )?.toString().trim().toLowerCase()
 
-  if (explicitType === 'osmo_dealer' || explicitType === 'osmo dealer' || explicitType === 'osmo_deler') return 'osmo_dealer'
-  if (explicitType === 'dealer' || explicitType === 'deler' || explicitType === 'distributor' || explicitType === 'retailer') return 'dealer'
-  if (explicitType === 'customer' || explicitType === 'consumer' || explicitType === 'client' || explicitType === 'end_user') return 'customer'
-  if (explicitType === 'unfiltered') return 'unfiltered'
+  if (explicitType) {
+    if (OSMO_DEALER_FAST_KEYS.has(explicitType)) return 'osmo_dealer'
+    if (DEALER_FAST_KEYS.has(explicitType)) return 'dealer'
+    if (CUSTOMER_FAST_KEYS.has(explicitType)) return 'customer'
+    if (explicitType === 'unfiltered') return 'unfiltered'
+  }
 
   const typeFields = [
     item.lead_type,
@@ -142,37 +174,20 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
   if (isOsmoDealer) return 'osmo_dealer'
 
   // 2. Dealer / Retailer / Technician / B2B match
-  const dealerKeywords = [
-    'dealer', 'deler', 'delar', 'dealers', 'dealership', 'distributor', 'distributer', 'distributorship',
-    'wholesaler', 'wholesale', 'retailer', 'reseller', 'technician', 'mechanic', 'fitter',
-    'trader', 'traders', 'trading', 'enterprise', 'enterprises', 'agency', 'agencies',
-    'ro care', 'aqua care', 'water solution', 'water solutions', 'water tech', 'water purifier shop',
-    'spare parts', 'spares', 'bulk order', 'dealer price', 'dealer rate', 'wholesale price', 'wholesale rate',
-    'visiting card', 'business card', 'gstin', 'b2b', 'dukaan', 'shop name', 'outlet'
-  ]
-
   const isDealer =
-    typeFields.some(t => dealerKeywords.some(k => t.includes(k))) ||
-    nameFields.some(n => dealerKeywords.some(k => n.includes(k))) ||
-    notesAndMessages.some(m => dealerKeywords.some(k => m.includes(k))) ||
-    dealerKeywords.some(k => allText.includes(k))
+    typeFields.some(t => DEALER_KEYWORDS.some(k => t.includes(k))) ||
+    nameFields.some(n => DEALER_KEYWORDS.some(k => n.includes(k))) ||
+    notesAndMessages.some(m => DEALER_KEYWORDS.some(k => m.includes(k))) ||
+    DEALER_KEYWORDS.some(k => allText.includes(k))
 
   if (isDealer) return 'dealer'
 
   // 3. Customer of RO (Domestic/Residential/Inbound Buyer/Service inquiries)
-  const customerKeywords = [
-    'customer', 'consumer', 'client', 'end user', 'enduser', 'buyer', 'direct buyer',
-    'residential', 'domestic', 'household',
-    'ghar ke liye', 'ghar k liye', 'ghar me', 'ghar pe', 'home use', 'for home', 'for house', 'for kitchen', 'personal use', 'flat',
-    'installation', 'fitting', 'service', 'repair', 'filter change', 'membrane change', 'water purifier buy', 'buy ro',
-    'lagwana hai', 'kharidna hai', 'ro chahiye', 'purifier chahiye', 'price of ro', 'ro price', 'kitne ka hai', 'rate kya hai'
-  ]
-
   const isCustomer =
-    typeFields.some(t => customerKeywords.some(k => t.includes(k))) ||
-    nameFields.some(n => customerKeywords.some(k => n.includes(k))) ||
-    notesAndMessages.some(m => customerKeywords.some(k => m.includes(k))) ||
-    customerKeywords.some(k => allText.includes(k))
+    typeFields.some(t => CUSTOMER_KEYWORDS.some(k => t.includes(k))) ||
+    nameFields.some(n => CUSTOMER_KEYWORDS.some(k => n.includes(k))) ||
+    notesAndMessages.some(m => CUSTOMER_KEYWORDS.some(k => m.includes(k))) ||
+    CUSTOMER_KEYWORDS.some(k => allText.includes(k))
 
   if (isCustomer) return 'customer'
 

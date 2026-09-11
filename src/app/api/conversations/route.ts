@@ -36,19 +36,21 @@ export async function GET(req: NextRequest) {
     if (stage)  query = query.eq('stage', stage)
     if (unread) query = query.gt('unread_count', 0)
 
-    const { data, error } = await query
-    if (error) throw error
-
-    // Fetch leads for this org to ensure all conversations have lead and lead_type matched even if FK relation is not set
-    const { data: leadsData } = await supabaseAdmin
+    const leadsQuery = supabaseAdmin
       .from('leads')
       .select('id, conversation_id, phone_number, name, lead_type, stage, lead_quality, lead_score, lead_temperature, metadata')
       .eq('org_id', orgId)
 
+    const [convRes, leadsRes] = await Promise.all([query, leadsQuery])
+    if (convRes.error) throw convRes.error
+
+    const data = convRes.data || []
+    const leadsData = leadsRes.data || []
+
     const leadsByConvId = new Map<string, any>()
     const leadsByPhone = new Map<string, any>()
 
-    if (leadsData && Array.isArray(leadsData)) {
+    if (Array.isArray(leadsData)) {
       leadsData.forEach((l) => {
         if (l.conversation_id) leadsByConvId.set(l.conversation_id, l)
         const cleanPhone = (l.phone_number || '').replace(/\D/g, '').slice(-10)

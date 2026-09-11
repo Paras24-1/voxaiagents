@@ -18,61 +18,45 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('start_date') || ''
     const endDate = searchParams.get('end_date') || ''
 
-    let allLeads: any[] = []
-    let pageNum = 0
-    const pageSize = 1000
-    let hasMore = true
+    let leadsQuery = supabaseAdmin
+      .from('leads')
+      .select('*')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
+      .limit(1000)
 
-    while (hasMore) {
-      let query = supabaseAdmin
-        .from('leads')
-        .select('*')
-        .eq('org_id', orgId)
-        .order('created_at', { ascending: false })
-        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1)
-
-      if (isStaffEmployee) {
-        query = query.eq('assigned_to', userId)
-      }
-
-      if (stage) {
-        query = query.eq('stage', stage)
-      }
-      if (quality) {
-        query = query.eq('lead_quality', quality)
-      }
-      if (startDate) {
-        query = query.gte('created_at', startDate)
-      }
-      if (endDate) {
-        query = query.lte('created_at', `${endDate}T23:59:59.999Z`)
-      }
-
-      const { data, error } = await query
-      if (error) throw error
-
-      if (!data || data.length === 0) {
-        hasMore = false
-      } else {
-        allLeads = [...allLeads, ...data]
-        if (data.length < pageSize) {
-          hasMore = false
-        } else {
-          pageNum++
-        }
-      }
+    if (isStaffEmployee) {
+      leadsQuery = leadsQuery.eq('assigned_to', userId)
     }
 
-    // Also fetch conversations for cross-matching metadata (e.g. lead_type)
-    const { data: convsData } = await supabaseAdmin
+    if (stage) {
+      leadsQuery = leadsQuery.eq('stage', stage)
+    }
+    if (quality) {
+      leadsQuery = leadsQuery.eq('lead_quality', quality)
+    }
+    if (startDate) {
+      leadsQuery = leadsQuery.gte('created_at', startDate)
+    }
+    if (endDate) {
+      leadsQuery = leadsQuery.lte('created_at', `${endDate}T23:59:59.999Z`)
+    }
+
+    const convsQuery = supabaseAdmin
       .from('conversations')
       .select('id, phone_number, metadata')
       .eq('org_id', orgId)
 
+    const [leadsRes, convsRes] = await Promise.all([leadsQuery, convsQuery])
+    if (leadsRes.error) throw leadsRes.error
+
+    const allLeads = leadsRes.data || []
+    const convsData = convsRes.data || []
+
     const convMapById = new Map<string, any>()
     const convMapByPhone = new Map<string, any>()
 
-    if (convsData && Array.isArray(convsData)) {
+    if (Array.isArray(convsData)) {
       convsData.forEach((c) => {
         let meta = c.metadata || {}
         if (typeof meta === 'string') {

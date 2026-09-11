@@ -191,11 +191,24 @@ function LeadsContent() {
 
   // Quick category change directly from table
   const handleQuickCategoryChange = async (lead: Lead, newCategory: string) => {
+    // Instant optimistic update
+    setLeads(prev => prev.map(l => {
+      if (l.id === lead.id || (l.phone_number && lead.phone_number && l.phone_number === lead.phone_number)) {
+        const currentMeta = typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})
+        return {
+          ...l,
+          lead_type: newCategory,
+          metadata: { ...currentMeta, lead_type: newCategory, category: newCategory }
+        }
+      }
+      return l
+    }))
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
       
-      const res = await fetch('/api/leads', {
+      fetch('/api/leads', {
         method: 'PATCH',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -207,21 +220,7 @@ function LeadsContent() {
           phone_number: lead.phone_number,
           lead_type: newCategory
         })
-      })
-
-      if (res.ok) {
-        setLeads(prev => prev.map(l => {
-          if (l.id === lead.id || (l.phone_number && lead.phone_number && l.phone_number === lead.phone_number)) {
-            const currentMeta = typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})
-            return {
-              ...l,
-              lead_type: newCategory,
-              metadata: { ...currentMeta, lead_type: newCategory, category: newCategory }
-            }
-          }
-          return l
-        }))
-      }
+      }).catch(console.error)
     } catch (err) {
       console.error('Failed to change lead category:', err)
     }
