@@ -417,6 +417,23 @@ function ConversationItem({
         },
         body: JSON.stringify({ lead_type: newCat })
       })
+      conv.lead_type = newCat
+      if (conv.metadata && typeof conv.metadata === 'object') {
+        conv.metadata.lead_type = newCat
+        conv.metadata.category = newCat
+      } else {
+        conv.metadata = { lead_type: newCat, category: newCat }
+      }
+      if (conv.lead) {
+        const leadObj = Array.isArray(conv.lead) ? conv.lead[0] : conv.lead
+        if (leadObj) {
+          leadObj.lead_type = newCat
+          if (leadObj.metadata && typeof leadObj.metadata === 'object') {
+            leadObj.metadata.lead_type = newCat
+            leadObj.metadata.category = newCat
+          }
+        }
+      }
       onAssignmentChange()
     } catch (err) {
       console.error('Failed to change category:', err)

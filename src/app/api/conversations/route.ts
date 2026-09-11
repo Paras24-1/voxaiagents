@@ -83,18 +83,29 @@ export async function GET(req: NextRequest) {
         conv.lead_type ||
         parsedMeta.lead_type ||
         parsedMeta.Lead_Type ||
+        parsedMeta.category ||
+        parsedMeta.user_type ||
         matchedLead?.lead_type ||
         matchedLead?.Lead_Type ||
         leadMeta.lead_type ||
         leadMeta.Lead_Type ||
+        leadMeta.category ||
         leadMeta.type ||
         leadMeta.user_type ||
         leadMeta.customer_type ||
         ''
 
+      if (leadType) {
+        parsedMeta.lead_type = leadType
+        parsedMeta.category = leadType
+        leadMeta.lead_type = leadType
+        leadMeta.category = leadType
+      }
+
       return {
         ...conv,
-        lead: matchedLead || conv.lead,
+        metadata: parsedMeta,
+        lead: matchedLead ? { ...matchedLead, metadata: leadMeta, lead_type: leadType } : (conv.lead ? { ...(Array.isArray(conv.lead) ? conv.lead[0] : conv.lead), metadata: leadMeta, lead_type: leadType } : null),
         lead_type: leadType,
       }
     })

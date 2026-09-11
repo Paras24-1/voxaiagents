@@ -66,8 +66,10 @@ export async function PATCH(req: NextRequest) {
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { conversation_id, metadata, ...updates } = body
-    if (!conversation_id) return NextResponse.json({ error: 'conversation_id required' }, { status: 400 })
+    const { conversation_id, id: leadId, phone_number, metadata, ...updates } = body
+    if (!conversation_id && !leadId && !phone_number) {
+      return NextResponse.json({ error: 'lead identifier (id, conversation_id, or phone_number) required' }, { status: 400 })
+    }
 
     let parsedMeta: any = metadata
     if (metadata && typeof metadata === 'string') {
@@ -81,7 +83,16 @@ export async function PATCH(req: NextRequest) {
       'followup_notified', 'lead_temperature'
     ];
 
-    let mergedMeta = { ...parsedMeta };
+    let mergedMeta = { ...(parsedMeta || {}) };
+
+    // Explicit lead_type handling
+    const targetLeadType = updates.lead_type || body.lead_type
+    if (targetLeadType) {
+      mergedMeta.lead_type = targetLeadType
+      mergedMeta.category = targetLeadType
+      mergedMeta.user_type = targetLeadType
+      mergedMeta.Lead_Type = targetLeadType
+    }
 
     // Calculate lead_quality & lead_temperature dynamically based on lead_score sent by n8n
     const sentScore = updates.lead_score ?? mergedMeta?.lead_score;
@@ -110,31 +121,56 @@ export async function PATCH(req: NextRequest) {
 
     finalUpdates.metadata = Object.keys(mergedMeta).length > 0 ? mergedMeta : null;
 
-    // First try updating by conversation_id
-    let { data, error } = await supabaseAdmin
-      .from('leads')
-      .update(finalUpdates)
-      .eq('conversation_id', conversation_id)
-      .eq('org_id', orgId)
-      .select()
-      .maybeSingle()
+    let data: any = null
+    let error: any = null
 
-    // If not found by conversation_id, fall back to phone number
-    if (!data) {
-      const { data: conv } = await supabaseAdmin
-        .from('conversations')
-        .select('phone_number')
-        .eq('id', conversation_id)
+    // 1. Try updating by lead primary ID first if provided
+    if (leadId) {
+      const res = await supabaseAdmin
+        .from('leads')
+        .update(finalUpdates)
+        .eq('id', leadId)
         .eq('org_id', orgId)
+        .select()
         .maybeSingle()
+      data = res.data
+      error = res.error
+    }
 
-      if (conv?.phone_number) {
-        const phone = conv.phone_number.replace(/\D/g, '').slice(-10)
+    // 2. Try updating by conversation_id if not yet found
+    if (!data && conversation_id) {
+      const res = await supabaseAdmin
+        .from('leads')
+        .update(finalUpdates)
+        .eq('conversation_id', conversation_id)
+        .eq('org_id', orgId)
+        .select()
+        .maybeSingle()
+      data = res.data
+      error = res.error
+    }
+
+    // 3. Fall back to matching by phone number
+    const targetPhone = phone_number || data?.phone_number
+    if (!data) {
+      let searchPhone = targetPhone
+      if (!searchPhone && conversation_id) {
+        const { data: conv } = await supabaseAdmin
+          .from('conversations')
+          .select('phone_number')
+          .eq('id', conversation_id)
+          .eq('org_id', orgId)
+          .maybeSingle()
+        if (conv?.phone_number) searchPhone = conv.phone_number
+      }
+
+      if (searchPhone) {
+        const phone = String(searchPhone).replace(/\D/g, '').slice(-10)
         const { data: leadData, error: leadError } = await supabaseAdmin
           .from('leads')
           .update({
             ...finalUpdates,
-            conversation_id // auto-link it
+            ...(conversation_id ? { conversation_id } : {})
           })
           .ilike('phone_number', `%${phone}`)
           .eq('org_id', orgId)
@@ -146,8 +182,8 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // If still not found, upsert a new lead row for the conversation
-    if (!data) {
+    // 4. If still not found and conversation_id exists, upsert a new lead row
+    if (!data && conversation_id) {
       const { data: conv } = await supabaseAdmin
         .from('conversations')
         .select('phone_number, name')
@@ -175,23 +211,51 @@ export async function PATCH(req: NextRequest) {
 
     if (error && !data) throw error
 
-    if (updates.name || updates.stage) {
-      await supabaseAdmin
-        .from('conversations')
-        .update({
-          ...(updates.name  ? { name: updates.name }   : {}),
-          ...(updates.stage ? { stage: updates.stage } : {}),
-        })
-        .eq('id', conversation_id)
-        .eq('org_id', orgId)
-    }
+    // Sync conversations table if name, stage, or lead_type was updated
+    const targetConvId = conversation_id || data?.conversation_id
+    if (targetConvId) {
+      if (updates.name || updates.stage) {
+        await supabaseAdmin
+          .from('conversations')
+          .update({
+            ...(updates.name  ? { name: updates.name }   : {}),
+            ...(updates.stage ? { stage: updates.stage } : {}),
+          })
+          .eq('id', targetConvId)
+          .eq('org_id', orgId)
+      }
 
-    if (updates.lead_type || body.lead_type) {
-      const targetType = updates.lead_type || body.lead_type
+      if (targetLeadType) {
+        const { data: conv } = await supabaseAdmin
+          .from('conversations')
+          .select('id, metadata')
+          .eq('id', targetConvId)
+          .eq('org_id', orgId)
+          .maybeSingle()
+
+        if (conv) {
+          let meta = conv.metadata || {}
+          if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta) } catch {}
+          }
+          meta.lead_type = targetLeadType
+          meta.category = targetLeadType
+          meta.user_type = targetLeadType
+          meta.Lead_Type = targetLeadType
+          await supabaseAdmin
+            .from('conversations')
+            .update({ metadata: meta })
+            .eq('id', targetConvId)
+            .eq('org_id', orgId)
+        }
+      }
+    } else if (targetPhone && targetLeadType) {
+      // Find conversation by phone number to sync
+      const phone = String(targetPhone).replace(/\D/g, '').slice(-10)
       const { data: conv } = await supabaseAdmin
         .from('conversations')
         .select('id, metadata')
-        .eq('id', conversation_id)
+        .ilike('phone_number', `%${phone}`)
         .eq('org_id', orgId)
         .maybeSingle()
 
@@ -200,11 +264,14 @@ export async function PATCH(req: NextRequest) {
         if (typeof meta === 'string') {
           try { meta = JSON.parse(meta) } catch {}
         }
-        meta.lead_type = targetType
+        meta.lead_type = targetLeadType
+        meta.category = targetLeadType
+        meta.user_type = targetLeadType
+        meta.Lead_Type = targetLeadType
         await supabaseAdmin
           .from('conversations')
           .update({ metadata: meta })
-          .eq('id', conversation_id)
+          .eq('id', conv.id)
           .eq('org_id', orgId)
       }
     }

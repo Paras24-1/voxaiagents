@@ -48,22 +48,47 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const convId = conversation?.id || lead?.conversation_id
+      const token = session?.access_token || ''
+      const authHeader: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
       if (convId) {
         await fetch(`/api/conversations/${convId}`, {
           method: 'PATCH',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-          },
+          headers: authHeader,
           body: JSON.stringify({ lead_type: newCategory })
         })
       }
+
+      await fetch(`/api/leads`, {
+        method: 'PATCH',
+        headers: authHeader,
+        body: JSON.stringify({
+          id: lead?.id,
+          conversation_id: convId,
+          phone_number: lead?.phone_number || conversation?.phone_number,
+          lead_type: newCategory
+        })
+      })
+
+      if (conversation) {
+        conversation.lead_type = newCategory
+        if (conversation.metadata && typeof conversation.metadata === 'object') {
+          conversation.metadata.lead_type = newCategory
+          conversation.metadata.category = newCategory
+        }
+      }
+
       if (lead) {
+        const currentMeta = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {})
         onLeadUpdate({
           lead_type: newCategory,
           metadata: {
-            ...(typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : lead.metadata || {}),
-            lead_type: newCategory
+            ...currentMeta,
+            lead_type: newCategory,
+            category: newCategory
           }
         })
       }

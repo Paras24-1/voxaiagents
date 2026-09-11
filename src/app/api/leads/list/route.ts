@@ -63,6 +63,27 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Also fetch conversations for cross-matching metadata (e.g. lead_type)
+    const { data: convsData } = await supabaseAdmin
+      .from('conversations')
+      .select('id, phone_number, metadata')
+      .eq('org_id', orgId)
+
+    const convMapById = new Map<string, any>()
+    const convMapByPhone = new Map<string, any>()
+
+    if (convsData && Array.isArray(convsData)) {
+      convsData.forEach((c) => {
+        let meta = c.metadata || {}
+        if (typeof meta === 'string') {
+          try { meta = JSON.parse(meta) } catch {}
+        }
+        if (c.id) convMapById.set(c.id, meta)
+        const cleanPhone = (c.phone_number || '').replace(/\D/g, '').slice(-10)
+        if (cleanPhone) convMapByPhone.set(cleanPhone, meta)
+      })
+    }
+
     // Safely parse metadata on each lead and flatten key fields for API consistency
     const parsedLeads = allLeads.map((lead) => {
       let parsedMetadata: Record<string, any> = {}
@@ -74,6 +95,25 @@ export async function GET(req: NextRequest) {
         } else if (typeof lead.metadata === 'object') {
           parsedMetadata = lead.metadata
         }
+      }
+
+      const cleanPhone = (lead.phone_number || '').replace(/\D/g, '').slice(-10)
+      const matchedConvMeta = (lead.conversation_id ? convMapById.get(lead.conversation_id) : null) ||
+        (cleanPhone ? convMapByPhone.get(cleanPhone) : null) || {}
+
+      const leadType =
+        parsedMetadata.lead_type ||
+        parsedMetadata.Lead_Type ||
+        parsedMetadata.category ||
+        lead.lead_type ||
+        matchedConvMeta.lead_type ||
+        matchedConvMeta.Lead_Type ||
+        matchedConvMeta.category ||
+        ''
+
+      if (leadType) {
+        parsedMetadata.lead_type = leadType
+        parsedMetadata.category = leadType
       }
 
       const score = Number(parsedMetadata.lead_score ?? lead.lead_score) || 0;
@@ -88,6 +128,7 @@ export async function GET(req: NextRequest) {
       return {
         ...lead,
         ...parsedMetadata,
+        lead_type: leadType,
         name: displayName,
         stage: stage,
         lead_quality: quality,

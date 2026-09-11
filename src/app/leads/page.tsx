@@ -202,19 +202,21 @@ function LeadsContent() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          id: lead.id,
           conversation_id: lead.conversation_id,
+          phone_number: lead.phone_number,
           lead_type: newCategory
         })
       })
 
       if (res.ok) {
         setLeads(prev => prev.map(l => {
-          if (l.id === lead.id) {
+          if (l.id === lead.id || (l.phone_number && lead.phone_number && l.phone_number === lead.phone_number)) {
             const currentMeta = typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})
             return {
               ...l,
               lead_type: newCategory,
-              metadata: { ...currentMeta, lead_type: newCategory }
+              metadata: { ...currentMeta, lead_type: newCategory, category: newCategory }
             }
           }
           return l
@@ -238,7 +240,9 @@ function LeadsContent() {
       }
 
       const updates: any = {
+        id: activeLead.id,
         conversation_id: activeLead.conversation_id,
+        phone_number: activeLead.phone_number,
         stage: editStage,
         lead_quality: editQuality || null,
         lead_score: editScore,
@@ -254,10 +258,10 @@ function LeadsContent() {
       if (!res.ok) throw new Error('Failed to update lead')
       
       const currentMeta = typeof activeLead.metadata === 'string' ? JSON.parse(activeLead.metadata || '{}') : (activeLead.metadata || {})
-      const mergedMeta = { ...currentMeta, lead_type: editCategory }
+      const mergedMeta = { ...currentMeta, lead_type: editCategory, category: editCategory }
       
       // Update local state list
-      setLeads(prev => prev.map(l => l.id === activeLead.id ? { ...l, ...updates, metadata: mergedMeta } : l))
+      setLeads(prev => prev.map(l => (l.id === activeLead.id || (l.phone_number && activeLead.phone_number && l.phone_number === activeLead.phone_number)) ? { ...l, ...updates, metadata: mergedMeta } : l))
       setActiveLead(prev => prev ? { ...prev, ...updates, metadata: mergedMeta } : null)
     } catch (err) {
       console.error(err)

@@ -84,7 +84,7 @@ export async function PATCH(
 
     const { data: conv } = await supabaseAdmin
       .from('conversations')
-      .select('id, assigned_to, metadata, phone_number')
+      .select('id, assigned_to, metadata, phone_number, name')
       .eq('id', id)
       .eq('org_id', profile.orgId)
       .maybeSingle()
@@ -97,13 +97,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden: You can only update conversations assigned to you' }, { status: 403 })
     }
 
-    // Only allow updating safe fields
-    const allowedUpdates = isStaffEmployee 
-      ? ['stage', 'notes', 'lead_type', 'metadata'] 
-      : ['stage', 'notes', 'assigned_to', 'assignment_status', 'lead_type', 'metadata']
+    // Only allow updating safe direct DB columns on conversations table
+    const directDbColumns = isStaffEmployee 
+      ? ['stage', 'notes', 'metadata', 'is_blocked'] 
+      : ['stage', 'notes', 'assigned_to', 'assignment_status', 'metadata', 'is_blocked']
     
     const filteredBody: Record<string, any> = {}
-    for (const key of allowedUpdates) {
+    for (const key of directDbColumns) {
       if (key in body) {
         filteredBody[key] = body[key]
       }
@@ -115,26 +115,72 @@ export async function PATCH(
       if (typeof convMeta === 'string') {
         try { convMeta = JSON.parse(convMeta) } catch {}
       }
-      convMeta = { ...convMeta, lead_type: body.lead_type }
+      convMeta = { 
+        ...convMeta, 
+        lead_type: body.lead_type,
+        category: body.lead_type,
+        user_type: body.lead_type,
+        Lead_Type: body.lead_type
+      }
       filteredBody.metadata = convMeta
 
-      // Also update linked lead record metadata if it exists
-      const { data: linkedLead } = await supabaseAdmin
+      // Also update linked lead record metadata if it exists by conversation_id or phone
+      let linkedLead: any = null
+      const { data: leadByConv } = await supabaseAdmin
         .from('leads')
-        .select('id, metadata')
+        .select('id, metadata, phone_number')
         .eq('conversation_id', id)
+        .eq('org_id', profile.orgId)
         .maybeSingle()
+
+      linkedLead = leadByConv
+
+      if (!linkedLead && conv.phone_number) {
+        const phone = conv.phone_number.replace(/\D/g, '').slice(-10)
+        const { data: leadByPhone } = await supabaseAdmin
+          .from('leads')
+          .select('id, metadata, phone_number')
+          .ilike('phone_number', `%${phone}`)
+          .eq('org_id', profile.orgId)
+          .maybeSingle()
+        linkedLead = leadByPhone
+      }
 
       if (linkedLead) {
         let leadMeta = linkedLead.metadata || {}
         if (typeof leadMeta === 'string') {
           try { leadMeta = JSON.parse(leadMeta) } catch {}
         }
-        leadMeta = { ...leadMeta, lead_type: body.lead_type }
+        leadMeta = { 
+          ...leadMeta, 
+          lead_type: body.lead_type,
+          category: body.lead_type,
+          user_type: body.lead_type,
+          Lead_Type: body.lead_type
+        }
         await supabaseAdmin
           .from('leads')
-          .update({ metadata: leadMeta })
+          .update({ 
+            metadata: leadMeta,
+            conversation_id: id // ensure linked
+          })
           .eq('id', linkedLead.id)
+      } else if (conv.phone_number) {
+        // Upsert lead record so it appears in CRM tables
+        await supabaseAdmin
+          .from('leads')
+          .upsert({
+            org_id: profile.orgId,
+            conversation_id: id,
+            phone_number: conv.phone_number,
+            name: conv.name || '',
+            metadata: { 
+              lead_type: body.lead_type,
+              category: body.lead_type,
+              user_type: body.lead_type,
+              Lead_Type: body.lead_type
+            }
+          }, { onConflict: 'conversation_id' })
       }
     }
 
