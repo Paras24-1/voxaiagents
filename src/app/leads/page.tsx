@@ -846,20 +846,22 @@ function LeadsContent() {
                       </select>
                     </div>
 
-                    {/* Category selector */}
-                    <div>
-                      <label className="text-xs text-gray-500 block mb-1">Lead Category (Osmo RO)</label>
-                      <select
-                        value={editCategory}
-                        onChange={(e) => setEditCategory(e.target.value)}
-                        className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm focus:outline-none font-semibold text-gray-900 dark:text-white"
-                      >
-                        <option value="unfiltered">⚪ Unfiltered (Undefined)</option>
-                        <option value="osmo_dealer">🟣 Osmo Dealer</option>
-                        <option value="dealer">🟠 Dealer / Retailer</option>
-                        <option value="customer">🟢 Customer</option>
-                      </select>
-                    </div>
+                    {/* Category selector (Osmo RO only) */}
+                    {isOsmoRo && (
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Lead Category</label>
+                        <select
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm focus:outline-none font-semibold text-gray-900 dark:text-white"
+                        >
+                          <option value="unfiltered">⚪ Unfiltered (Undefined)</option>
+                          <option value="osmo_dealer">🟣 Osmo Dealer</option>
+                          <option value="dealer">🟠 Dealer / Retailer</option>
+                          <option value="customer">🟢 Customer</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   <button

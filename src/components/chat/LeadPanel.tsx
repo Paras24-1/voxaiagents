@@ -589,33 +589,37 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
               <InfoCard icon={Target} label="Source API Number" value={conversation.receiver_phone_number} />
             )}
             <InfoCard icon={User} label="Name" value={data.Name} />
-            {/* Lead Category / Type Card */}
-            <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 hover:shadow-sm transition-all duration-200 space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-emerald-500 border border-gray-150 dark:border-gray-700/55 shadow-inner shrink-0">
-                    <Target className="w-3.5 h-3.5" />
+            {/* Lead Category / Type Card (Osmo RO only) */}
+            {isOsmoRo ? (
+              <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 hover:shadow-sm transition-all duration-200 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-emerald-500 border border-gray-150 dark:border-gray-700/55 shadow-inner shrink-0">
+                      <Target className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-bold text-gray-500 dark:text-gray-400">Lead Category</span>
                   </div>
-                  <span className="font-bold text-gray-500 dark:text-gray-400">Lead Category</span>
+                  <select
+                    value={leadCategory}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    disabled={savingCategory}
+                    className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer disabled:opacity-50 ${
+                      leadCategory === 'osmo_dealer' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
+                      leadCategory === 'dealer' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800' :
+                      leadCategory === 'customer' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border-teal-200 dark:border-teal-800' :
+                      'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <option value="unfiltered">⚪ Unfiltered</option>
+                    <option value="osmo_dealer">🟣 Osmo Dealer</option>
+                    <option value="dealer">🟠 Dealer</option>
+                    <option value="customer">🟢 Customer</option>
+                  </select>
                 </div>
-                <select
-                  value={leadCategory}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  disabled={savingCategory}
-                  className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer disabled:opacity-50 ${
-                    leadCategory === 'osmo_dealer' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
-                    leadCategory === 'dealer' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800' :
-                    leadCategory === 'customer' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border-teal-200 dark:border-teal-800' :
-                    'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700'
-                  }`}
-                >
-                  <option value="unfiltered">⚪ Unfiltered</option>
-                  <option value="osmo_dealer">🟣 Osmo Dealer</option>
-                  <option value="dealer">🟠 Dealer</option>
-                  <option value="customer">🟢 Customer</option>
-                </select>
               </div>
-            </div>
+            ) : data.Lead_Type ? (
+              <InfoCard icon={Target} label="Lead Type" value={data.Lead_Type} badge />
+            ) : null}
             <InfoCard icon={MapPin} label="City" value={data.city} />
             <InfoCard icon={Wrench} label="Machine Interest" value={data.machine_interest} />
             <InfoCard icon={Star} label="Lead Quality" value={data.lead_quality} badge colored />

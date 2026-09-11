@@ -65,7 +65,6 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     org?.name?.toLowerCase().includes('osmo') ||
     org?.slug?.toLowerCase().includes('osmo')
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
-  console.log('DEBUG:', { profile, org, isAdmin, role: profile?.role, isOsmoRo })
 
   const { conversations, loading, refetch } = useConversations({ 
     search, 
