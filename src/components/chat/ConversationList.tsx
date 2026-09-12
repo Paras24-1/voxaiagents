@@ -523,8 +523,8 @@ function ConversationItem({
           })()}
         </p>
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${STAGE_COLORS[conv.stage as Stage] || STAGE_COLORS.new}`}>
-            {conv.stage?.replace(/_/g, ' ')}
+          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${STAGE_COLORS[(conv.stage || 'new') as Stage] || STAGE_COLORS.new}`}>
+            {(conv.stage || 'new').replace(/_/g, ' ')}
           </span>
 
           {/* Platform Badge */}
