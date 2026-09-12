@@ -580,6 +580,8 @@ export async function POST(req: NextRequest) {
 
         // Trigger Async Native WhatsApp AI Chatbot
         // ONLY if n8n is NOT handling this org's inbound messages (to prevent duplicate replies)
+        // DISABLED BY USER: "i want to stop the native ai thing only n8n flows"
+        /*
         if (!isHybridN8n) {
           const origin = req.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://voxaiagents.com'
           console.log(`[webhook:native-ai] Non-blocking dispatch to async-ai-reply | orgId=${orgId} | phone=${phone_number} | conv=${conversation.id}`)
@@ -598,6 +600,7 @@ export async function POST(req: NextRequest) {
             console.error('[webhook:native-ai] Failed to trigger async AI reply:', err)
           })
         }
+        */
       }
 
     // For Osmo RO tenant, trigger auto phonebook sync in background
