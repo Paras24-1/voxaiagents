@@ -76,6 +76,24 @@ export async function PATCH(req: NextRequest) {
       try { parsedMeta = JSON.parse(metadata) } catch (e) {}
     }
 
+    // Preserve existing metadata by merging into existing lead metadata
+    let existingMeta: any = {}
+    if (leadId || conversation_id || phone_number) {
+      let query = supabaseAdmin.from('leads').select('metadata, conversation_id').eq('org_id', orgId)
+      if (leadId) query = query.eq('id', leadId)
+      else if (conversation_id) query = query.eq('conversation_id', conversation_id)
+      else if (phone_number) {
+        const cleanP = phone_number.replace(/\D/g, '').slice(-10)
+        query = query.ilike('phone_number', `%${cleanP}`)
+      }
+      const { data: existingLead } = await query.maybeSingle()
+      if (existingLead?.metadata) {
+        if (typeof existingLead.metadata === 'string') {
+          try { existingMeta = JSON.parse(existingLead.metadata) } catch {}
+        } else existingMeta = existingLead.metadata
+      }
+    }
+
     // Move any fields that aren't valid DB columns into metadata
     const validDbColumns = [
       'id', 'conversation_id', 'phone_number', 'customer_name', 'name', 
@@ -83,7 +101,7 @@ export async function PATCH(req: NextRequest) {
       'followup_notified', 'lead_temperature'
     ];
 
-    let mergedMeta = { ...(parsedMeta || {}) };
+    let mergedMeta = { ...existingMeta, ...(parsedMeta || {}) };
 
     // Only apply lead_type to metadata — no downgrade protection so manual assignment always wins
     let targetLeadType = updates.lead_type || body.lead_type
@@ -93,6 +111,7 @@ export async function PATCH(req: NextRequest) {
       mergedMeta.category = targetLeadType
       mergedMeta.user_type = targetLeadType
       mergedMeta.Lead_Type = targetLeadType
+      console.log(`[DIAG PATCH /api/leads] Setting targetLeadType='${targetLeadType}' for leadId=${leadId} convId=${conversation_id}`)
     }
 
     // Calculate lead_quality & lead_temperature dynamically based on lead_score sent by n8n
@@ -215,12 +234,26 @@ export async function PATCH(req: NextRequest) {
     // Sync conversations table if name, stage, or lead_type was updated
     const targetConvId = conversation_id || data?.conversation_id
     if (targetConvId) {
-      if (updates.name || updates.stage) {
+      if (updates.name || updates.stage || targetLeadType) {
+        const { data: convData } = await supabaseAdmin
+          .from('conversations')
+          .select('metadata')
+          .eq('id', targetConvId)
+          .eq('org_id', orgId)
+          .maybeSingle()
+
+        let convMeta = convData?.metadata || {}
+        if (typeof convMeta === 'string') { try { convMeta = JSON.parse(convMeta) } catch {} }
+        if (targetLeadType) {
+          convMeta = { ...convMeta, category: targetLeadType, lead_type: targetLeadType }
+        }
+
         await supabaseAdmin
           .from('conversations')
           .update({
             ...(updates.name  ? { name: updates.name }   : {}),
             ...(updates.stage ? { stage: updates.stage } : {}),
+            ...(targetLeadType ? { metadata: convMeta } : {})
           })
           .eq('id', targetConvId)
           .eq('org_id', orgId)

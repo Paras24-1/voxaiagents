@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     const assignedTo   = searchParams.get('assigned_to')   || ''
     const assignFilter = searchParams.get('assign_filter') || ''
 
+    console.log(`[DIAG GET /api/conversations] orgId=${orgId} fetching unified contacts...`)
     const unifiedContacts = await fetchUnifiedOsmoContacts(orgId)
 
     const enrichedData = unifiedContacts
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
         }
       })
 
+    console.log(`[DIAG GET /api/conversations] Returning ${enrichedData.length} enriched conversations`)
     return NextResponse.json(enrichedData)
   } catch (err: unknown) {
     const error = err instanceof Error ? err.message : 'Unknown error'

@@ -149,6 +149,13 @@ export async function PATCH(
         Lead_Type: targetLeadType
       }
 
+      let convMeta = (conv as any).metadata || {}
+      if (typeof convMeta === 'string') { try { convMeta = JSON.parse(convMeta) } catch {} }
+      convMeta = { ...convMeta, category: targetLeadType, lead_type: targetLeadType }
+      filteredBody.metadata = convMeta
+
+      console.log(`[DIAG PATCH /api/conversations/${id}] Setting lead_type='${targetLeadType}' on conversation and lead metadata`)
+
       if (linkedLead) {
         await supabaseAdmin
           .from('leads')

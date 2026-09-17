@@ -266,9 +266,12 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
 
   // Process leads first
   leads.forEach(l => {
-    const p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
+    let p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
+    const matchedConv = (l.conversation_id ? convsById.get(l.conversation_id) : null) || (p ? convsByPhone.get(p) : null) || null
+    if ((!p || p.length < 10) && matchedConv?.phone_number) {
+      p = (matchedConv.phone_number || '').replace(/\D/g, '').slice(-10)
+    }
     if (!p || p.length < 10) return
-    const matchedConv = (l.conversation_id ? convsById.get(l.conversation_id) : null) || convsByPhone.get(p) || null
     
     let leadMeta: any = {}
     if (typeof l.metadata === 'string') { try { leadMeta = JSON.parse(l.metadata) } catch {} } 
@@ -281,20 +284,17 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     }
 
     // ── DIAGNOSTIC LOG ──────────────────────────────────────────────
-    // Log the first 5 leads so we can see the real metadata shape.
-    // Remove after confirming fix works.
     const _diagIdx = leads.indexOf(l)
     if (_diagIdx < 5) {
       console.log(`[DIAG] lead[${_diagIdx}] phone=${p}`)
       console.log(`[DIAG]   l.metadata RAW type=${typeof l.metadata}, value=`, l.metadata)
       console.log(`[DIAG]   leadMeta parsed=`, JSON.stringify(leadMeta))
-      console.log(`[DIAG]   leadMeta.category=${leadMeta.category} leadMeta.lead_type=${leadMeta.lead_type} leadMeta.Lead_Type=${leadMeta.Lead_Type} leadMeta.user_type=${leadMeta.user_type}`)
+      console.log(`[DIAG]   leadMeta.category=${leadMeta?.category} leadMeta.lead_type=${leadMeta?.lead_type}`)
     }
     // ────────────────────────────────────────────────────────────────
 
     // Check for a manually saved category first — this always wins over the classifier
-    const VALID_CATEGORIES = new Set(['osmo_dealer', 'dealer', 'customer', 'unfiltered'])
-    const savedCategory = leadMeta.category || leadMeta.lead_type || leadMeta.Lead_Type || leadMeta.user_type
+    const savedCategory = leadMeta.category || leadMeta.lead_type || leadMeta.Lead_Type || leadMeta.user_type || convMeta.category || convMeta.lead_type
     let category: OsmoCategoryKey
 
     if (savedCategory) {
@@ -310,7 +310,6 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
         category = 'unfiltered'
       } else {
         if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] savedCategory not a known key, falling back to classifier`)
-        // Saved value is not a known category — run classifier as fallback
         const combinedForClassification = {
           ...l,
           lead: { ...l, metadata: leadMeta },
@@ -322,7 +321,6 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       }
     } else {
       if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] NO savedCategory → RUNNING CLASSIFIER`)
-      // No saved category — run the keyword-based classifier
       const combinedForClassification = {
         ...l,
         lead: { ...l, metadata: leadMeta },
@@ -364,6 +362,8 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
         convCategory = 'dealer'
       } else if (normalised === 'customer') {
         convCategory = 'customer'
+      } else if (normalised === 'unfiltered') {
+        convCategory = 'unfiltered'
       } else {
         convCategory = classifyOsmoContact({ ...c, lead: null, metadata: convMeta })
       }
