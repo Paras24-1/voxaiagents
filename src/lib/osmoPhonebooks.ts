@@ -280,6 +280,18 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       else convMeta = matchedConv.metadata
     }
 
+    // ── DIAGNOSTIC LOG ──────────────────────────────────────────────
+    // Log the first 5 leads so we can see the real metadata shape.
+    // Remove after confirming fix works.
+    const _diagIdx = leads.indexOf(l)
+    if (_diagIdx < 5) {
+      console.log(`[DIAG] lead[${_diagIdx}] phone=${p}`)
+      console.log(`[DIAG]   l.metadata RAW type=${typeof l.metadata}, value=`, l.metadata)
+      console.log(`[DIAG]   leadMeta parsed=`, JSON.stringify(leadMeta))
+      console.log(`[DIAG]   leadMeta.category=${leadMeta.category} leadMeta.lead_type=${leadMeta.lead_type} leadMeta.Lead_Type=${leadMeta.Lead_Type} leadMeta.user_type=${leadMeta.user_type}`)
+    }
+    // ────────────────────────────────────────────────────────────────
+
     // Check for a manually saved category first — this always wins over the classifier
     const VALID_CATEGORIES = new Set(['osmo_dealer', 'dealer', 'customer', 'unfiltered'])
     const savedCategory = leadMeta.category || leadMeta.lead_type || leadMeta.Lead_Type || leadMeta.user_type
@@ -287,6 +299,7 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
 
     if (savedCategory) {
       const normalised = String(savedCategory).trim().toLowerCase().replace(/\s+/g, '_')
+      if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] savedCategory='${savedCategory}' normalised='${normalised}' → USING SAVED`)
       if (normalised === 'osmo_dealer' || normalised === 'osmo dealer') {
         category = 'osmo_dealer'
       } else if (normalised === 'dealer') {
@@ -296,6 +309,7 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       } else if (normalised === 'unfiltered') {
         category = 'unfiltered'
       } else {
+        if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] savedCategory not a known key, falling back to classifier`)
         // Saved value is not a known category — run classifier as fallback
         const combinedForClassification = {
           ...l,
@@ -307,6 +321,7 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
         category = classifyOsmoContact(combinedForClassification)
       }
     } else {
+      if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] NO savedCategory → RUNNING CLASSIFIER`)
       // No saved category — run the keyword-based classifier
       const combinedForClassification = {
         ...l,
