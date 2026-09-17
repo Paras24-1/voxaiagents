@@ -346,11 +346,18 @@ function LeadsContent() {
     const stage = meta.stage || lead.stage || 'new';
     const quality = meta.lead_quality || (score >= 70 ? 'hot' : score >= 40 ? 'warm' : score > 0 ? 'cold' : lead.lead_quality || 'unknown');
     
+    // Read saved category from metadata first — never re-classify manually-assigned leads
+    const savedCat = meta.category || meta.lead_type || meta.Lead_Type || meta.user_type
+    const KNOWN_CATS = new Set(['osmo_dealer', 'dealer', 'customer', 'unfiltered'])
+    const resolvedCategory = savedCat && KNOWN_CATS.has(String(savedCat).toLowerCase())
+      ? String(savedCat).toLowerCase()
+      : classifyLead(lead)
+
     setActiveLead({ ...lead, metadata: meta })
     setEditStage(stage)
     setEditQuality(quality)
     setEditScore(score)
-    setEditCategory(classifyLead(lead))
+    setEditCategory(resolvedCategory)
     setEditState(meta.state || '')
   }
 

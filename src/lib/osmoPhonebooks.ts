@@ -280,15 +280,43 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       else convMeta = matchedConv.metadata
     }
 
-    const combinedForClassification = {
-      ...l,
-      lead: { ...l, metadata: leadMeta },
-      metadata: convMeta,
-      notes: matchedConv?.notes || l.notes || l.followup_notes,
-      last_message: matchedConv?.last_message
+    // Check for a manually saved category first — this always wins over the classifier
+    const VALID_CATEGORIES = new Set(['osmo_dealer', 'dealer', 'customer', 'unfiltered'])
+    const savedCategory = leadMeta.category || leadMeta.lead_type || leadMeta.Lead_Type || leadMeta.user_type
+    let category: OsmoCategoryKey
+
+    if (savedCategory) {
+      const normalised = String(savedCategory).trim().toLowerCase().replace(/\s+/g, '_')
+      if (normalised === 'osmo_dealer' || normalised === 'osmo dealer') {
+        category = 'osmo_dealer'
+      } else if (normalised === 'dealer') {
+        category = 'dealer'
+      } else if (normalised === 'customer') {
+        category = 'customer'
+      } else if (normalised === 'unfiltered') {
+        category = 'unfiltered'
+      } else {
+        // Saved value is not a known category — run classifier as fallback
+        const combinedForClassification = {
+          ...l,
+          lead: { ...l, metadata: leadMeta },
+          metadata: convMeta,
+          notes: matchedConv?.notes || l.notes || l.followup_notes,
+          last_message: matchedConv?.last_message
+        }
+        category = classifyOsmoContact(combinedForClassification)
+      }
+    } else {
+      // No saved category — run the keyword-based classifier
+      const combinedForClassification = {
+        ...l,
+        lead: { ...l, metadata: leadMeta },
+        metadata: convMeta,
+        notes: matchedConv?.notes || l.notes || l.followup_notes,
+        last_message: matchedConv?.last_message
+      }
+      category = classifyOsmoContact(combinedForClassification)
     }
-    
-    const category = classifyOsmoContact(combinedForClassification)
     
     unifiedMap.set(p, {
       phone: p,
@@ -309,20 +337,31 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     if (typeof c.metadata === 'string') { try { convMeta = JSON.parse(c.metadata) } catch {} } 
     else if (c.metadata) convMeta = c.metadata
 
-    const combinedForClassification = {
-      ...c,
-      lead: null,
-      metadata: convMeta
+    // Check for a manually saved category in the conversation metadata first
+    const savedConvCategory = convMeta.category || convMeta.lead_type || convMeta.Lead_Type
+    let convCategory: OsmoCategoryKey
+
+    if (savedConvCategory) {
+      const normalised = String(savedConvCategory).trim().toLowerCase().replace(/\s+/g, '_')
+      if (normalised === 'osmo_dealer' || normalised === 'osmo dealer') {
+        convCategory = 'osmo_dealer'
+      } else if (normalised === 'dealer') {
+        convCategory = 'dealer'
+      } else if (normalised === 'customer') {
+        convCategory = 'customer'
+      } else {
+        convCategory = classifyOsmoContact({ ...c, lead: null, metadata: convMeta })
+      }
+    } else {
+      convCategory = classifyOsmoContact({ ...c, lead: null, metadata: convMeta })
     }
-    
-    const category = classifyOsmoContact(combinedForClassification)
     
     unifiedMap.set(p, {
       phone: p,
       lead: null,
       conversation: { ...c, metadata: convMeta },
-      category,
-      lead_type: category
+      category: convCategory,
+      lead_type: convCategory
     })
   })
 
