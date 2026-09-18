@@ -389,6 +389,19 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
   })
 
   const result = Array.from(unifiedMap.values())
+  result.sort((a, b) => {
+    const timeA = Math.max(
+      new Date(a.lead?.created_at || 0).getTime(),
+      new Date(a.conversation?.created_at || 0).getTime(),
+      new Date(a.conversation?.updated_at || 0).getTime()
+    )
+    const timeB = Math.max(
+      new Date(b.lead?.created_at || 0).getTime(),
+      new Date(b.conversation?.created_at || 0).getTime(),
+      new Date(b.conversation?.updated_at || 0).getTime()
+    )
+    return timeB - timeA
+  })
   // Store in cache
   unifiedContactsCache.set(orgId, { data: result, expiresAt: Date.now() + CACHE_TTL_MS })
   return result

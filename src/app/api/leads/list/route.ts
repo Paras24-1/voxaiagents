@@ -105,7 +105,12 @@ export async function GET(req: NextRequest) {
       return true
     })
 
-
+    // Explicitly sort newest leads first so newly ingested leads are immediately at the top
+    filteredLeads.sort((a, b) => {
+      const timeA = new Date(a.created_at || (a as any).updated_at || 0).getTime()
+      const timeB = new Date(b.created_at || (b as any).updated_at || 0).getTime()
+      return timeB - timeA
+    })
 
     const slicedLeads = filteredLeads.slice(from, from + limit)
     const hasMore = (from + limit) < filteredLeads.length
