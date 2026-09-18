@@ -22,12 +22,27 @@ export function useConversations(filters: {
   const [orgId, setOrgId] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
   const selectedIdRef = useRef<string | null>(filters.selectedId || null)
+  const readIdsRef = useRef<Set<string>>(new Set())
+  const readPhonesRef = useRef<Set<string>>(new Set())
 
   const markAsRead = useCallback(async (conversationId: string) => {
-    // Optimistic update
-    setConversations(prev =>
-      prev.map(c => c.id === conversationId ? { ...c, unread_count: 0 } : c)
-    )
+    if (!conversationId) return
+    readIdsRef.current.add(conversationId)
+
+    // Optimistic update (both ID and phone variants)
+    setConversations(prev => {
+      const target = prev.find(c => c.id === conversationId)
+      const targetPhone = target?.phone_number ? target.phone_number.replace(/\D/g, '').slice(-10) : ''
+      if (targetPhone) readPhonesRef.current.add(targetPhone)
+
+      return prev.map(c => {
+        if (c.id === conversationId) return { ...c, unread_count: 0 }
+        if (targetPhone && c.phone_number && c.phone_number.replace(/\D/g, '').slice(-10) === targetPhone) {
+          return { ...c, unread_count: 0 }
+        }
+        return c
+      })
+    })
 
     // DB update
     try {
@@ -47,7 +62,16 @@ export function useConversations(filters: {
 
   const markAllAsRead = useCallback(async () => {
     // Optimistically clear all unread
-    setConversations(prev => prev.map(c => ({ ...c, unread_count: 0 })))
+    setConversations(prev => {
+      prev.forEach(c => {
+        readIdsRef.current.add(c.id)
+        if (c.phone_number) {
+          const p = c.phone_number.replace(/\D/g, '').slice(-10)
+          if (p) readPhonesRef.current.add(p)
+        }
+      })
+      return prev.map(c => ({ ...c, unread_count: 0 }))
+    })
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -66,7 +90,7 @@ export function useConversations(filters: {
   useEffect(() => {
     selectedIdRef.current = filters.selectedId || null
     if (filters.selectedId) {
-      setConversations(prev => prev.map(c => c.id === filters.selectedId ? { ...c, unread_count: 0 } : c))
+      readIdsRef.current.add(filters.selectedId)
       markAsRead(filters.selectedId)
     }
   }, [filters.selectedId, markAsRead])
@@ -99,7 +123,13 @@ export function useConversations(filters: {
     const data = await res.json()
     if (Array.isArray(data)) {
       const normalized = data.map(c => {
-        if (selectedIdRef.current && c.id === selectedIdRef.current) {
+        const cleanP = (c.phone_number || '').replace(/\D/g, '').slice(-10)
+        const isRead = 
+          readIdsRef.current.has(c.id) || 
+          (cleanP && readPhonesRef.current.has(cleanP)) ||
+          (selectedIdRef.current && c.id === selectedIdRef.current)
+        
+        if (isRead) {
           return { ...c, unread_count: 0 }
         }
         return c
@@ -118,6 +148,13 @@ export function useConversations(filters: {
     const handleLocalUpdate = (e: any) => {
       const updatedConv = e.detail
       if (!updatedConv || !updatedConv.id) return
+      if (updatedConv.unread_count === 0) {
+        readIdsRef.current.add(updatedConv.id)
+        if (updatedConv.phone_number) {
+          const p = updatedConv.phone_number.replace(/\D/g, '').slice(-10)
+          if (p) readPhonesRef.current.add(p)
+        }
+      }
       setConversations(prev => {
         const list = prev.map(c => c.id === updatedConv.id ? { ...c, ...updatedConv } : c)
         return [...list].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
@@ -157,7 +194,13 @@ export function useConversations(filters: {
               setConversations(prev => prev.filter(c => c.id !== updatedConv.id))
               return
             }
-            if (updatedConv.id === selectedIdRef.current) {
+            const cleanP = (updatedConv.phone_number || '').replace(/\D/g, '').slice(-10)
+            const isRead = 
+              updatedConv.id === selectedIdRef.current || 
+              readIdsRef.current.has(updatedConv.id) ||
+              (cleanP && readPhonesRef.current.has(cleanP))
+
+            if (isRead) {
               const previousUnread = updatedConv.unread_count
               updatedConv.unread_count = 0
               if (previousUnread > 0) {
@@ -167,12 +210,10 @@ export function useConversations(filters: {
             setConversations(prev => {
               const list = prev.map(c => {
                 if (c.id === updatedConv.id) {
-                  // Preserve lead_type/category from local state — the DB conversations table
-                  // does NOT have these columns, so the realtime event would wipe them.
-                  // They are computed from the leads table and must not be overwritten.
                   return { 
                     ...c, 
                     ...updatedConv,
+                    unread_count: isRead ? 0 : updatedConv.unread_count,
                     lead_type: c.lead_type ?? updatedConv.lead_type,
                     category: (c as any).category ?? (updatedConv as any).category
                   }

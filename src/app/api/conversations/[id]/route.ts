@@ -84,12 +84,46 @@ export async function PATCH(
     const body = await req.json()
     const isStaffEmployee = profile.role !== 'owner' && profile.role !== 'admin'
 
-    const { data: conv } = await supabaseAdmin
+    let { data: conv } = await supabaseAdmin
       .from('conversations')
       .select('id, assigned_to, phone_number, name')
       .eq('id', id)
       .eq('org_id', profile.orgId)
       .maybeSingle()
+
+    // Fallback: If not found by conversation id, search if id is a lead id or phone number
+    if (!conv) {
+      const { data: lead } = await supabaseAdmin
+        .from('leads')
+        .select('id, conversation_id, phone_number')
+        .eq('id', id)
+        .eq('org_id', profile.orgId)
+        .maybeSingle()
+
+      if (lead) {
+        if (lead.conversation_id) {
+          const { data: c } = await supabaseAdmin
+            .from('conversations')
+            .select('id, assigned_to, phone_number, name')
+            .eq('id', lead.conversation_id)
+            .eq('org_id', profile.orgId)
+            .maybeSingle()
+          conv = c
+        }
+        if (!conv && lead.phone_number) {
+          const cleanP = lead.phone_number.replace(/\D/g, '').slice(-10)
+          if (cleanP.length >= 10) {
+            const { data: c } = await supabaseAdmin
+              .from('conversations')
+              .select('id, assigned_to, phone_number, name')
+              .ilike('phone_number', `%${cleanP}`)
+              .eq('org_id', profile.orgId)
+              .maybeSingle()
+            conv = c
+          }
+        }
+      }
+    }
 
     if (!conv) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
@@ -118,7 +152,7 @@ export async function PATCH(
       const { data: leadByConv } = await supabaseAdmin
         .from('leads')
         .select('id, metadata, phone_number')
-        .eq('conversation_id', id)
+        .eq('conversation_id', conv.id)
         .eq('org_id', profile.orgId)
         .maybeSingle()
 
@@ -156,7 +190,7 @@ export async function PATCH(
           .from('leads')
           .update({ 
             metadata: leadMeta,
-            conversation_id: id // ensure linked
+            conversation_id: conv.id // ensure linked
           })
           .eq('id', linkedLead.id)
       } else {
@@ -164,7 +198,7 @@ export async function PATCH(
         await supabaseAdmin
           .from('leads')
           .insert({
-            conversation_id: id,
+            conversation_id: conv.id,
             org_id: profile.orgId,
             phone_number: conv.phone_number || '',
             name: conv.name || '',
@@ -173,13 +207,15 @@ export async function PATCH(
       }
     }
 
-    const { error } = await supabaseAdmin
-      .from('conversations')
-      .update(filteredBody)
-      .eq('id', id)
-      .eq('org_id', profile.orgId)
+    if (Object.keys(filteredBody).length > 0) {
+      const { error } = await supabaseAdmin
+        .from('conversations')
+        .update(filteredBody)
+        .eq('id', conv.id)
+        .eq('org_id', profile.orgId)
 
-    if (error) throw error
+      if (error) throw error
+    }
 
     if (body.unread_count === 0 && conv.phone_number) {
       const cleanP = conv.phone_number.replace(/\D/g, '').slice(-10)

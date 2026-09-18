@@ -258,7 +258,9 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
   conversations.forEach(c => {
     if (c.id) convsById.set(c.id, c)
     const p = (c.phone_number || '').replace(/\D/g, '').slice(-10)
-    if (p) convsByPhone.set(p, c)
+    if (p && !convsByPhone.has(p)) {
+      convsByPhone.set(p, c)
+    }
   })
 
   // 3. Merge into unified map
@@ -268,7 +270,11 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
   leads.forEach(l => {
     const p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
     if (!p || p.length < 10) return
-    const matchedConv = (l.conversation_id ? convsById.get(l.conversation_id) : null) || convsByPhone.get(p) || null
+    let matchedConv = l.conversation_id ? convsById.get(l.conversation_id) : null
+    const phoneConv = convsByPhone.get(p)
+    if (!matchedConv || (phoneConv && new Date(phoneConv.updated_at).getTime() > new Date(matchedConv.updated_at).getTime())) {
+      matchedConv = phoneConv || matchedConv
+    }
     
     let leadMeta: any = {}
     if (typeof l.metadata === 'string') { try { leadMeta = JSON.parse(l.metadata) } catch {} } 

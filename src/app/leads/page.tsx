@@ -368,9 +368,10 @@ function LeadsContent() {
     setEditCategory(classifyLead(lead))
     setEditState(meta.state || '')
 
-    if (lead.conversation_id) {
+    const targetConvId = lead.conversation_id || lead.id
+    if (targetConvId) {
       supabase.auth.getSession().then(({ data: { session } }) => {
-        fetch(`/api/conversations/${lead.conversation_id}`, {
+        fetch(`/api/conversations/${targetConvId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

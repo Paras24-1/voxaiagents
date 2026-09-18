@@ -70,6 +70,11 @@ function ChatsPageContent() {
     setMobileView('chat')
     window.dispatchEvent(new CustomEvent('update-conversation', { detail: { ...conv, unread_count: 0 } }))
 
+    const cleanP = (conv.phone_number || '').replace(/\D/g, '').slice(-10)
+    if (cleanP && typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/chats?phone=${cleanP}`)
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
