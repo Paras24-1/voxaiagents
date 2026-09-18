@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getOrgId } from '@/lib/supabase'
+import { cleanPhone as formatCleanPhone } from '@/lib/osmoPhonebooks'
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: phone, template_name, template_lang' }, { status: 400 })
     }
 
-    const cleanPhone = phone.replace(/\D/g, '')
+    const cleanPhone = formatCleanPhone(phone)
     if (!cleanPhone) {
       return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 })
     }

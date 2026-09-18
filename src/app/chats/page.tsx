@@ -78,13 +78,6 @@ function ChatsPageContent() {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
 
-      // Clear unread in DB immediately via API
-      fetch(`/api/conversations/${conv.id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ unread_count: 0 })
-      }).catch(() => {})
-
       const res = await fetch(`/api/leads?conversation_id=${conv.id}`, { headers })
       if (res.ok) {
         const data = await res.json()

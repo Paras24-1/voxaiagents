@@ -1015,18 +1015,23 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         )}
 
         {(() => {
+          const platform = conversation?.platform || 'whatsapp';
           const hasIncomingDate = !!conversation?.last_incoming_message_at;
           const lastIncoming = hasIncomingDate ? new Date(conversation.last_incoming_message_at!) : null;
-          const hoursLeft = lastIncoming ? 24 - (new Date().getTime() - lastIncoming.getTime()) / (1000 * 60 * 60) : 24;
-          const isExpired = lastIncoming ? hoursLeft <= 0 : false;
+          const hoursLeft = lastIncoming ? 24 - (new Date().getTime() - lastIncoming.getTime()) / (1000 * 60 * 60) : 0;
+          const isExpired = platform === 'whatsapp' && (!hasIncomingDate || hoursLeft <= 0);
 
           if (isExpired) {
             return (
-              <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/60 rounded-2xl gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-2xl gap-3">
                 <div className="text-center sm:text-left">
-                  <span className="text-sm font-bold text-red-600 dark:text-red-400 block">24-Hour Messaging Window Expired</span>
-                  <span className="text-xs font-medium text-red-500/80 dark:text-red-400/80 mt-0.5 block">
-                    Freeform text messages are blocked by Meta. Send an approved Template Message to re-open the 24h window.
+                  <span className="text-sm font-bold text-amber-700 dark:text-amber-400 block">
+                    {!hasIncomingDate ? 'Template Required to Initiate Chat' : '24-Hour Messaging Window Expired'}
+                  </span>
+                  <span className="text-xs font-medium text-amber-600/90 dark:text-amber-400/80 mt-0.5 block">
+                    {!hasIncomingDate
+                      ? 'No incoming customer message received yet. Meta requires an approved Template Message to start the conversation.'
+                      : 'Freeform text messages are blocked by Meta after 24h. Send an approved Template Message to re-open the window.'}
                   </span>
                 </div>
                 <button

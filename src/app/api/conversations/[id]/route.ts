@@ -84,7 +84,7 @@ export async function PATCH(
 
     const { data: conv } = await supabaseAdmin
       .from('conversations')
-      .select('id, assigned_to, phone_number, name')
+      .select('id, assigned_to, phone_number, name, metadata')
       .eq('id', id)
       .eq('org_id', profile.orgId)
       .maybeSingle()
