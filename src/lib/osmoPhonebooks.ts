@@ -299,28 +299,16 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
 
     if (savedCategory) {
       const normalised = String(savedCategory).trim().toLowerCase().replace(/\s+/g, '_')
-      if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] savedCategory='${savedCategory}' normalised='${normalised}' → USING SAVED`)
       if (normalised === 'osmo_dealer' || normalised === 'osmo dealer') {
         category = 'osmo_dealer'
       } else if (normalised === 'dealer') {
         category = 'dealer'
       } else if (normalised === 'customer') {
         category = 'customer'
-      } else if (normalised === 'unfiltered') {
-        category = 'unfiltered'
       } else {
-        if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] savedCategory not a known key, falling back to classifier`)
-        const combinedForClassification = {
-          ...l,
-          lead: { ...l, metadata: leadMeta },
-          metadata: convMeta,
-          notes: matchedConv?.notes || l.notes || l.followup_notes,
-          last_message: matchedConv?.last_message
-        }
-        category = classifyOsmoContact(combinedForClassification)
+        category = 'unfiltered'
       }
     } else {
-      if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] NO savedCategory → RUNNING CLASSIFIER`)
       const combinedForClassification = {
         ...l,
         lead: { ...l, metadata: leadMeta },
@@ -334,7 +322,7 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     unifiedMap.set(p, {
       phone: p,
       lead: { ...l, metadata: leadMeta, lead_type: category, category },
-      conversation: matchedConv ? { ...matchedConv, metadata: convMeta } : null,
+      conversation: matchedConv ? { ...matchedConv, metadata: convMeta, lead_type: category, category } : null,
       category,
       lead_type: category
     })
@@ -362,10 +350,8 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
         convCategory = 'dealer'
       } else if (normalised === 'customer') {
         convCategory = 'customer'
-      } else if (normalised === 'unfiltered') {
-        convCategory = 'unfiltered'
       } else {
-        convCategory = classifyOsmoContact({ ...c, lead: null, metadata: convMeta })
+        convCategory = 'unfiltered'
       }
     } else {
       convCategory = classifyOsmoContact({ ...c, lead: null, metadata: convMeta })
@@ -374,7 +360,7 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     unifiedMap.set(p, {
       phone: p,
       lead: null,
-      conversation: { ...c, metadata: convMeta },
+      conversation: { ...c, metadata: convMeta, lead_type: convCategory, category: convCategory },
       category: convCategory,
       lead_type: convCategory
     })

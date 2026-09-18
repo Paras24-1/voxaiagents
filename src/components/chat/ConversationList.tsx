@@ -438,12 +438,6 @@ function ConversationItem({
     if (updatingCat) return
     setUpdatingCat(true)
 
-    // 1. Immediately update local override so UI reflects change right away
-    onCategoryChange(conv.id, newCat)
-    conv.lead_type = newCat
-    window.dispatchEvent(new CustomEvent('update-conversation', { detail: { ...conv, lead_type: newCat, category: newCat } }))
-
-    // 2. Await the actual API call so we know if it succeeded
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const headers = { 
@@ -451,28 +445,21 @@ function ConversationItem({
         ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
       }
       
-      const res = await fetch(`/api/conversations/${conv.id}`, {
-        method: 'PATCH',
+      const res = await fetch(`/api/conversations/category`, {
+        method: 'POST',
         headers,
-        body: JSON.stringify({ lead_type: newCat })
+        body: JSON.stringify({ conversation_id: conv.id, category: newCat })
       })
 
-      fetch(`/api/leads`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ conversation_id: conv.id, phone_number: conv.phone_number, lead_type: newCat })
-      }).catch(console.error)
-
-      if (!res.ok) {
+      if (res.ok) {
+        onCategoryChange(conv.id, newCat)
+        onAssignmentChange()
+      } else {
         const errBody = await res.json().catch(() => ({}))
         console.error('Category save failed:', res.status, errBody)
-        onCategoryChange(conv.id, classifyLeadType(conv))
-      } else {
-        setTimeout(() => onAssignmentChange(), 1500)
       }
     } catch (err) {
       console.error('Failed to change category:', err)
-      onCategoryChange(conv.id, classifyLeadType(conv))
     } finally {
       setUpdatingCat(false)
     }

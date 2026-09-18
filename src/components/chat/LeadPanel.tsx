@@ -113,68 +113,41 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
   const handleCategoryChange = async (newCategory: string) => {
     if (!conversation && !lead) return
+    const convId = conversation?.id || lead?.conversation_id
+    if (!convId) return
 
-    // Set pending immediately - this is what the dropdown displays.
-    // No useEffect can override pendingCategory, so it stays until user switches conversations.
     setPendingCategory(newCategory)
     setSavingCategory(true)
 
-    // Also update the conversation object so the list sidebar reflects the change
-    if (conversation) {
-      conversation.lead_type = newCategory
-      if (conversation.metadata && typeof conversation.metadata === 'object') {
-        conversation.metadata.lead_type = newCategory
-        conversation.metadata.category = newCategory
-      } else {
-        conversation.metadata = { lead_type: newCategory, category: newCategory }
-      }
-      conversation.updated_at = new Date().toISOString()
-      window.dispatchEvent(new CustomEvent('update-conversation', { detail: conversation }))
-    }
-
-    if (lead) {
-      const currentMeta = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {})
-      onLeadUpdate({
-        lead_type: newCategory,
-        metadata: { ...currentMeta, lead_type: newCategory, category: newCategory }
-      })
-    }
-
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      const convId = conversation?.id || lead?.conversation_id
       const token = session?.access_token || ''
-
-      const headers: Record<string, string> = { 
+      const headers = { 
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
 
-      // Primary: save to leads table
-      const leadsRes = await fetch(`/api/leads`, {
-        method: 'PATCH',
+      const res = await fetch('/api/conversations/category', {
+        method: 'POST',
         headers,
-        body: JSON.stringify({
-          id: lead?.id,
-          conversation_id: convId,
-          phone_number: lead?.phone_number || conversation?.phone_number,
-          lead_type: newCategory
-        })
+        body: JSON.stringify({ conversation_id: convId, category: newCategory })
       })
-      if (!leadsRes.ok) {
-        const err = await leadsRes.json().catch(() => ({}))
-        console.error('[Category] leads PATCH failed:', leadsRes.status, err)
-      } else {
-        console.log('[Category] ✅ Saved:', newCategory)
-      }
 
-      // Secondary: also call conversation route (links lead to conversation if needed)
-      if (convId) {
-        await fetch(`/api/conversations/${convId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ lead_type: newCategory })
-        }).catch(console.error)
+      if (res.ok) {
+        if (lead) {
+          const currentMeta = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {})
+          onLeadUpdate({
+            lead_type: newCategory,
+            metadata: { ...currentMeta, lead_type: newCategory, category: newCategory }
+          })
+        }
+        if (conversation) {
+          conversation.lead_type = newCategory
+          if (conversation.metadata && typeof conversation.metadata === 'object') {
+            conversation.metadata.lead_type = newCategory
+            conversation.metadata.category = newCategory
+          }
+        }
       }
     } catch (err) {
       console.error('[Category] error:', err)
