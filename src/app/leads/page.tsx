@@ -531,7 +531,11 @@ function LeadsContent() {
               </div>
 
               {/* Date Filter */}
-              <div className="flex items-center gap-2 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200/60 dark:border-gray-800/60 px-4 py-2 rounded-xl w-full md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
+              <div className={`flex items-center gap-2 border px-4 py-2 rounded-xl w-full md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all ${
+                (startDate || endDate)
+                  ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700'
+                  : 'bg-gray-50/50 dark:bg-gray-950/50 border-gray-200/60 dark:border-gray-800/60 focus-within:border-emerald-500'
+              }`}>
                 <Calendar className="w-4 h-4 text-emerald-500 shrink-0" />
                 <input
                   type="date"
@@ -548,6 +552,15 @@ function LeadsContent() {
                   className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer"
                   title="End Date"
                 />
+                {(startDate || endDate) && (
+                  <button
+                    onClick={() => { setStartDate(''); setEndDate('') }}
+                    className="text-gray-400 hover:text-red-500 transition-colors ml-1 shrink-0"
+                    title="Clear date filter"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               {/* State Filter */}
