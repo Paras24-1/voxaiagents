@@ -102,17 +102,18 @@ function ChatsPageContent() {
     const loadDirectConversation = async () => {
       try {
         const isStaff = profile?.role !== 'admin' && profile?.role !== 'owner'
+        const cleanP = phone.replace(/\D/g, '').slice(-10)
         let query = supabase
           .from('conversations')
           .select('*')
           .eq('org_id', org.id)
-          .eq('phone_number', phone)
+          .ilike('phone_number', `%${cleanP}`)
 
         if (isStaff && profile?.id) {
           query = query.eq('assigned_to', profile.id)
         }
 
-        const { data, error } = await query.maybeSingle()
+        const { data, error } = await query.limit(1).maybeSingle()
 
         if (error) throw error
         if (data) {

@@ -126,7 +126,22 @@ function LeadsContent() {
   const [selectedStage, setSelectedStage] = useState('')
   const [selectedQuality, setSelectedQuality] = useState('')
   const [selectedState, setSelectedState] = useState('')
-  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
+  const [leadTypeFilter, setLeadTypeFilterState] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('osmo_lead_tab')
+      if (savedTab) setLeadTypeFilterState(savedTab)
+    }
+  }, [])
+
+  const setLeadTypeFilter = (tab: string) => {
+    setLeadTypeFilterState(tab)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('osmo_lead_tab', tab)
+    }
+  }
+
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   

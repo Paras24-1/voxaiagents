@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Conversation, Stage } from '@/types'
 import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
-import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown } from 'lucide-react'
+import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown, CheckCheck } from 'lucide-react'
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -62,7 +62,22 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [unread, setUnread] = useState(false)
   const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
   const [channelFilter, setChannelFilter] = useState<string>('all') // all, whatsapp, instagram
-  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
+  const [leadTypeFilter, setLeadTypeFilterState] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('osmo_lead_tab')
+      if (savedTab) setLeadTypeFilterState(savedTab)
+    }
+  }, [])
+
+  const setLeadTypeFilter = (tab: string) => {
+    setLeadTypeFilterState(tab)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('osmo_lead_tab', tab)
+    }
+  }
+
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showAddLead, setShowAddLead] = useState(false)
@@ -88,7 +103,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     org?.slug?.toLowerCase().includes('osmo')
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
 
-  const { conversations, loading, refetch, markAsRead } = useConversations({ 
+  const { conversations, loading, refetch, markAsRead, markAllAsRead } = useConversations({ 
     search, 
     stage, 
     unread,
@@ -346,6 +361,17 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           >
             Unread
           </button>
+
+          {conversations.some(c => (c.unread_count || 0) > 0) && (
+            <button
+              onClick={() => markAllAsRead()}
+              className="text-xs px-2.5 py-1.5 rounded-xl font-semibold border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all duration-200 shadow-sm flex items-center gap-1"
+              title="Mark all conversations as read"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              Mark all read
+            </button>
+          )}
         </div>
       </div>
 

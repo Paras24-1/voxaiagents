@@ -86,6 +86,24 @@ export function useConversations(filters: {
     }
   }, [])
 
+  const markAllAsRead = useCallback(async () => {
+    // Optimistically clear all unread
+    setConversations(prev => prev.map(c => ({ ...c, unread_count: 0 })))
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch('/api/conversations/mark-all-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        }
+      })
+    } catch (err) {
+      console.error('Failed to mark all conversations as read:', err)
+    }
+  }, [])
+
   useEffect(() => {
     const handleLocalUpdate = (e: any) => {
       const updatedConv = e.detail
@@ -163,7 +181,7 @@ export function useConversations(filters: {
     return () => { supabase.removeChannel(channel) }
   }, [orgId, filters.userRole, filters.userId, markAsRead])
 
-  return { conversations, loading, refetch: fetchConversations, markAsRead }
+  return { conversations, loading, refetch: fetchConversations, markAsRead, markAllAsRead }
 }
 
 
