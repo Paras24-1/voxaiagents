@@ -1014,7 +1014,7 @@ function LeadsContent() {
               {/* Drawer Footer Actions */}
               <div className="p-5 border-t border-gray-200/60 dark:border-gray-800/60 bg-white/50 dark:bg-gray-950/50 backdrop-blur-md flex gap-3 shrink-0">
                 <Link
-                  href={`/dashboard?phone=${activeLead.phone_number}`}
+                  href={`/chats?phone=${encodeURIComponent(activeLead.phone_number)}`}
                   className="flex-1 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all"
                 >
                   <MessageSquare className="w-4 h-4" />

@@ -96,6 +96,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     userId: profile?.id,
     isAdmin: !!isAdmin,
     userRole: profile?.role,
+    selectedId,
   })
 
   useEffect(() => {
@@ -358,6 +359,12 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           </div>
         ) : (
           [...conversations]
+            .filter((c) => {
+              if (unread) {
+                return (c.unread_count || 0) > 0 || c.id === selectedId
+              }
+              return true
+            })
             .filter((c) => {
               if (channelFilter === 'whatsapp') return !c.platform || c.platform === 'whatsapp'
               if (channelFilter === 'instagram') return c.platform === 'instagram'
@@ -642,7 +649,7 @@ function ConversationItem({
       )}
 
       {/* Unread badge */}
-      {conv.unread_count > 0 && (
+      {(conv.unread_count || 0) > 0 && !isSelected && (
         <span className="shrink-0 min-w-[18px] h-4.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center px-1 shadow-md animate-pulse">
           {conv.unread_count > 99 ? '99+' : conv.unread_count}
         </span>

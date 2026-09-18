@@ -13,10 +13,11 @@ export default function DashboardPage() {
       if (!user) {
         router.push('/login')
       } else if (profile) {
+        const search = typeof window !== 'undefined' ? window.location.search : ''
         if (profile.role === 'employee') {
-          router.push('/chats')
+          router.push(`/chats${search}`)
         } else {
-          router.push('/analytics')
+          router.push(search ? `/chats${search}` : '/analytics')
         }
       }
     }

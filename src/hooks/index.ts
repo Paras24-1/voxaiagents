@@ -15,11 +15,17 @@ export function useConversations(filters: {
   userId?: string
   isAdmin?: boolean
   userRole?: string
+  selectedId?: string | null
 } = {}) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
+  const selectedIdRef = useRef<string | null>(filters.selectedId || null)
+
+  useEffect(() => {
+    selectedIdRef.current = filters.selectedId || null
+  }, [filters.selectedId])
 
   const fetchConversations = useCallback(async (showLoading = true) => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -57,6 +63,28 @@ export function useConversations(filters: {
   useEffect(() => {
     fetchConversations()
   }, [fetchConversations])
+
+  const markAsRead = useCallback(async (conversationId: string) => {
+    // Optimistic update
+    setConversations(prev =>
+      prev.map(c => c.id === conversationId ? { ...c, unread_count: 0 } : c)
+    )
+
+    // DB update
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch(`/api/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({ unread_count: 0 })
+      })
+    } catch (err) {
+      console.error('Failed to mark conversation as read:', err)
+    }
+  }, [])
 
   useEffect(() => {
     const handleLocalUpdate = (e: any) => {
@@ -101,6 +129,13 @@ export function useConversations(filters: {
               setConversations(prev => prev.filter(c => c.id !== updatedConv.id))
               return
             }
+            if (updatedConv.id === selectedIdRef.current) {
+              const previousUnread = updatedConv.unread_count
+              updatedConv.unread_count = 0
+              if (previousUnread > 0) {
+                markAsRead(updatedConv.id)
+              }
+            }
             setConversations(prev => {
               const list = prev.map(c => {
                 if (c.id === updatedConv.id) {
@@ -126,29 +161,7 @@ export function useConversations(filters: {
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [orgId, filters.userRole, filters.userId])
-
-  const markAsRead = useCallback(async (conversationId: string) => {
-    // Optimistic update
-    setConversations(prev =>
-      prev.map(c => c.id === conversationId ? { ...c, unread_count: 0 } : c)
-    )
-
-    // DB update
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      await fetch(`/api/conversations/${conversationId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-        },
-        body: JSON.stringify({ unread_count: 0 })
-      })
-    } catch (err) {
-      console.error('Failed to mark conversation as read:', err)
-    }
-  }, [])
+  }, [orgId, filters.userRole, filters.userId, markAsRead])
 
   return { conversations, loading, refetch: fetchConversations, markAsRead }
 }
@@ -215,10 +228,24 @@ export function useMessages(conversationId: string | null) {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setMessages((prev) => [...prev, payload.new as Message])
+            const newMsg = payload.new as Message
+            setMessages((prev) => [...prev, newMsg])
             setTimeout(() => {
               bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
             }, 50)
+            if (newMsg.direction === 'incoming') {
+              window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: conversationId, unread_count: 0 } }))
+              supabase.auth.getSession().then(({ data: { session } }) => {
+                fetch(`/api/conversations/${conversationId}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                  },
+                  body: JSON.stringify({ unread_count: 0 })
+                }).catch(() => {})
+              })
+            }
           } else if (payload.eventType === 'UPDATE') {
             setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? payload.new as Message : msg))
           }
