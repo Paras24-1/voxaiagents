@@ -23,47 +23,6 @@ export function useConversations(filters: {
   const tokenRef = useRef<string | null>(null)
   const selectedIdRef = useRef<string | null>(filters.selectedId || null)
 
-  useEffect(() => {
-    selectedIdRef.current = filters.selectedId || null
-  }, [filters.selectedId])
-
-  const fetchConversations = useCallback(async (showLoading = true) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token || null
-    tokenRef.current = token
-    if (!token) { setLoading(false); return }
-    if (showLoading) setLoading(true)
-
-    const params = new URLSearchParams()
-    if (filters.search) params.set('search', filters.search)
-    if (filters.stage)  params.set('stage',  filters.stage)
-    if (filters.unread) params.set('unread', 'true')
-
-    if (filters.userRole === 'employee' && filters.userId) {
-      params.set('assigned_to', filters.userId)
-    } else if (
-      (filters.userRole === 'admin' || filters.userRole === 'owner') &&
-      filters.assignFilter &&
-      filters.assignFilter !== 'all'
-    ) {
-      params.set('assign_filter', filters.assignFilter)
-    }
-
-    const res = await fetch(`/api/conversations?${params}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    const data = await res.json()
-    if (Array.isArray(data)) {
-      setConversations(data)
-      if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
-    }
-    setLoading(false)
-  }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
-
-  useEffect(() => {
-    fetchConversations()
-  }, [fetchConversations])
-
   const markAsRead = useCallback(async (conversationId: string) => {
     // Optimistic update
     setConversations(prev =>
@@ -103,6 +62,57 @@ export function useConversations(filters: {
       console.error('Failed to mark all conversations as read:', err)
     }
   }, [])
+
+  useEffect(() => {
+    selectedIdRef.current = filters.selectedId || null
+    if (filters.selectedId) {
+      setConversations(prev => prev.map(c => c.id === filters.selectedId ? { ...c, unread_count: 0 } : c))
+      markAsRead(filters.selectedId)
+    }
+  }, [filters.selectedId, markAsRead])
+
+  const fetchConversations = useCallback(async (showLoading = true) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token || null
+    tokenRef.current = token
+    if (!token) { setLoading(false); return }
+    if (showLoading) setLoading(true)
+
+    const params = new URLSearchParams()
+    if (filters.search) params.set('search', filters.search)
+    if (filters.stage)  params.set('stage',  filters.stage)
+    if (filters.unread) params.set('unread', 'true')
+
+    if (filters.userRole === 'employee' && filters.userId) {
+      params.set('assigned_to', filters.userId)
+    } else if (
+      (filters.userRole === 'admin' || filters.userRole === 'owner') &&
+      filters.assignFilter &&
+      filters.assignFilter !== 'all'
+    ) {
+      params.set('assign_filter', filters.assignFilter)
+    }
+
+    const res = await fetch(`/api/conversations?${params}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    const data = await res.json()
+    if (Array.isArray(data)) {
+      const normalized = data.map(c => {
+        if (selectedIdRef.current && c.id === selectedIdRef.current) {
+          return { ...c, unread_count: 0 }
+        }
+        return c
+      })
+      setConversations(normalized)
+      if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
+    }
+    setLoading(false)
+  }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
+
+  useEffect(() => {
+    fetchConversations()
+  }, [fetchConversations])
 
   useEffect(() => {
     const handleLocalUpdate = (e: any) => {

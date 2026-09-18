@@ -367,6 +367,19 @@ function LeadsContent() {
     setEditScore(score)
     setEditCategory(classifyLead(lead))
     setEditState(meta.state || '')
+
+    if (lead.conversation_id) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        fetch(`/api/conversations/${lead.conversation_id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+          },
+          body: JSON.stringify({ unread_count: 0 })
+        }).catch(() => {})
+      })
+    }
   }
 
   // Download filtered leads as CSV

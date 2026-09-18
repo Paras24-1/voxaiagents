@@ -413,7 +413,9 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 key={conv.id}
                 conversation={conv}
                 isSelected={conv.id === selectedId}
+                selectedId={selectedId}
                 onClick={() => {
+                  conv.unread_count = 0
                   markAsRead(conv.id)
                   onSelect({ ...conv, unread_count: 0 })
                 }}
@@ -435,6 +437,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 function ConversationItem({
   conversation: conv,
   isSelected,
+  selectedId,
   onClick,
   onDelete,
   isAdmin,
@@ -446,6 +449,7 @@ function ConversationItem({
 }: {
   conversation: Conversation,
   isSelected: boolean
+  selectedId?: string | null
   onClick: () => void
   onDelete: (e: React.MouseEvent) => void
   isAdmin: boolean
@@ -681,7 +685,7 @@ function ConversationItem({
       )}
 
       {/* Unread badge */}
-      {(conv.unread_count || 0) > 0 && !isSelected && (
+      {(conv.unread_count || 0) > 0 && !isSelected && conv.id !== selectedId && (
         <span className="shrink-0 min-w-[18px] h-4.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center px-1 shadow-md animate-pulse">
           {conv.unread_count > 99 ? '99+' : conv.unread_count}
         </span>
