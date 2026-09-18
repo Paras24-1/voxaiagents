@@ -288,7 +288,10 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setLeadTypeFilter(tab.id)}
+                  onClick={() => {
+                    setLeadTypeFilter(tab.id)
+                    setUnread(false)
+                  }}
                   className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all duration-200 select-none cursor-pointer ${
                     active
                       ? tab.activeStyle
@@ -364,7 +367,10 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
           {conversations.some(c => (c.unread_count || 0) > 0) && (
             <button
-              onClick={() => markAllAsRead()}
+              onClick={() => {
+                markAllAsRead()
+                setUnread(false)
+              }}
               className="text-xs px-2.5 py-1.5 rounded-xl font-semibold border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all duration-200 shadow-sm flex items-center gap-1"
               title="Mark all conversations as read"
             >
