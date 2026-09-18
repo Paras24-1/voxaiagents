@@ -294,7 +294,7 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     // ────────────────────────────────────────────────────────────────
 
     // Check for a manually saved category first — this always wins over the classifier
-    const savedCategory = leadMeta.category || leadMeta.lead_type || leadMeta.Lead_Type || leadMeta.user_type || convMeta.category || convMeta.lead_type
+    const savedCategory = l.lead_type || l.category || leadMeta.category || leadMeta.lead_type || leadMeta.Lead_Type || leadMeta.user_type || convMeta.category || convMeta.lead_type
     let category: OsmoCategoryKey
 
     if (savedCategory) {
@@ -350,8 +350,8 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     if (typeof c.metadata === 'string') { try { convMeta = JSON.parse(c.metadata) } catch {} } 
     else if (c.metadata) convMeta = c.metadata
 
-    // Check for a manually saved category in the conversation metadata first
-    const savedConvCategory = convMeta.category || convMeta.lead_type || convMeta.Lead_Type
+    // Check for a manually saved category in the conversation metadata or top-level column first
+    const savedConvCategory = c.lead_type || c.category || convMeta.category || convMeta.lead_type || convMeta.Lead_Type
     let convCategory: OsmoCategoryKey
 
     if (savedConvCategory) {

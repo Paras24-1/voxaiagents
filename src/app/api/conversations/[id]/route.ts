@@ -160,6 +160,7 @@ export async function PATCH(
         await supabaseAdmin
           .from('leads')
           .update({ 
+            lead_type: targetLeadType,
             metadata: leadMeta,
             conversation_id: id // ensure linked
           })
@@ -173,6 +174,7 @@ export async function PATCH(
             org_id: profile.orgId,
             phone_number: conv.phone_number || '',
             name: conv.name || '',
+            lead_type: targetLeadType,
             metadata: leadMeta
           })
       }

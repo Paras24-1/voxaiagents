@@ -98,7 +98,7 @@ export async function PATCH(req: NextRequest) {
     const validDbColumns = [
       'id', 'conversation_id', 'phone_number', 'customer_name', 'name', 
       'created_at', 'org_id', 'metadata', 'followup_date', 'followup_notes', 
-      'followup_notified', 'lead_temperature'
+      'followup_notified', 'lead_temperature', 'lead_type'
     ];
 
     let mergedMeta = { ...existingMeta, ...(parsedMeta || {}) };
