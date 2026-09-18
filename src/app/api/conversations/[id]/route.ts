@@ -149,18 +149,12 @@ export async function PATCH(
         Lead_Type: targetLeadType
       }
 
-      let convMeta = (conv as any).metadata || {}
-      if (typeof convMeta === 'string') { try { convMeta = JSON.parse(convMeta) } catch {} }
-      convMeta = { ...convMeta, category: targetLeadType, lead_type: targetLeadType }
-      filteredBody.metadata = convMeta
-
-      console.log(`[DIAG PATCH /api/conversations/${id}] Setting lead_type='${targetLeadType}' on conversation and lead metadata`)
+      console.log(`[DIAG PATCH /api/conversations/${id}] Setting lead_type='${targetLeadType}' on lead metadata`)
 
       if (linkedLead) {
         await supabaseAdmin
           .from('leads')
           .update({ 
-            lead_type: targetLeadType,
             metadata: leadMeta,
             conversation_id: id // ensure linked
           })
@@ -174,7 +168,6 @@ export async function PATCH(
             org_id: profile.orgId,
             phone_number: conv.phone_number || '',
             name: conv.name || '',
-            lead_type: targetLeadType,
             metadata: leadMeta
           })
       }
