@@ -79,7 +79,12 @@ export async function GET(req: NextRequest) {
       if (leadType && leadType !== 'all') {
         if (l.lead_type !== leadType) return false
       }
-      if (geographicState && l.state !== geographicState) return false
+      // 'state' lives inside metadata — the enriched object spreads parsedMetadata so l.state works
+      // But also check l.metadata.state as a fallback for older records
+      if (geographicState) {
+        const leadState = (l.state || l.metadata?.state || '').trim()
+        if (leadState.toLowerCase() !== geographicState.toLowerCase()) return false
+      }
       
       if (startDate || endDate) {
         if (!l.created_at) return false
