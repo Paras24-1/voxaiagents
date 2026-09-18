@@ -128,8 +128,31 @@ export function useConversations(filters: {
     return () => { supabase.removeChannel(channel) }
   }, [orgId, filters.userRole, filters.userId])
 
-  return { conversations, loading, refetch: fetchConversations }
+  const markAsRead = useCallback(async (conversationId: string) => {
+    // Optimistic update
+    setConversations(prev =>
+      prev.map(c => c.id === conversationId ? { ...c, unread_count: 0 } : c)
+    )
+
+    // DB update
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch(`/api/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({ unread_count: 0 })
+      })
+    } catch (err) {
+      console.error('Failed to mark conversation as read:', err)
+    }
+  }, [])
+
+  return { conversations, loading, refetch: fetchConversations, markAsRead }
 }
+
 
 // ----------------------------------------------------------------
 // useMessages — fetches + subscribes to conversation messages

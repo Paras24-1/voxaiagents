@@ -88,7 +88,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     org?.slug?.toLowerCase().includes('osmo')
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
 
-  const { conversations, loading, refetch } = useConversations({ 
+  const { conversations, loading, refetch, markAsRead } = useConversations({ 
     search, 
     stage, 
     unread,
@@ -98,6 +98,11 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     userRole: profile?.role,
   })
 
+  useEffect(() => {
+    if (selectedId) {
+      markAsRead(selectedId)
+    }
+  }, [selectedId, markAsRead])
 
   // Calculate live count per lead type category for Osmo RO
   const typeCounts = useMemo(() => {
@@ -369,7 +374,10 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 key={conv.id}
                 conversation={conv}
                 isSelected={conv.id === selectedId}
-                onClick={() => onSelect(conv)}
+                onClick={() => {
+                  markAsRead(conv.id)
+                  onSelect({ ...conv, unread_count: 0 })
+                }}
                 onDelete={(e) => handleDelete(e, conv.id)}
                 isAdmin={isAdmin}
                 employees={employees}
