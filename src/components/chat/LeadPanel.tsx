@@ -21,7 +21,6 @@ const getLocalTimeString = (d: Date) => {
 };
 
 import { useOrg } from '@/contexts/OrgContext'
-import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
 
 export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   conversation: Conversation | null
@@ -34,21 +33,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
     org?.name?.toLowerCase().includes('osmo') ||
     org?.slug?.toLowerCase().includes('osmo')
 
-  const [savingCategory, setSavingCategory] = useState(false)
   const [leadState, setLeadState] = useState<string>('')
   const [savingState, setSavingState] = useState(false)
-
-  // pendingCategory holds the user's manual selection until they switch conversations.
-  // We derive the displayed category from this if set, otherwise from DB classification.
-  // This means no useEffect can ever reset a manual choice.
-  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
-  const leadCategory = pendingCategory ?? classifyOsmoContact(conversation || lead)
-
-  // When conversation/lead ID changes (user switches chat), clear the pending category
-  // so the new conversation shows its correct DB-stored category
-  useEffect(() => {
-    setPendingCategory(null)
-  }, [conversation?.id, lead?.id])
 
   // Sync leadState from metadata when conversation/lead changes
   useEffect(() => {
@@ -108,51 +94,6 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
       console.error('Failed to change state:', err)
     } finally {
       setSavingState(false)
-    }
-  }
-
-  const handleCategoryChange = async (newCategory: string) => {
-    if (!conversation && !lead) return
-    const convId = conversation?.id || lead?.conversation_id
-    if (!convId) return
-
-    setPendingCategory(newCategory)
-    setSavingCategory(true)
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token || ''
-      const headers = { 
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
-
-      const res = await fetch('/api/conversations/category', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ conversation_id: convId, category: newCategory })
-      })
-
-      if (res.ok) {
-        if (lead) {
-          const currentMeta = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {})
-          onLeadUpdate({
-            lead_type: newCategory,
-            metadata: { ...currentMeta, lead_type: newCategory, category: newCategory }
-          })
-        }
-        if (conversation) {
-          conversation.lead_type = newCategory
-          if (conversation.metadata && typeof conversation.metadata === 'object') {
-            conversation.metadata.lead_type = newCategory
-            conversation.metadata.category = newCategory
-          }
-        }
-      }
-    } catch (err) {
-      console.error('[Category] error:', err)
-    } finally {
-      setSavingCategory(false)
     }
   }
 
@@ -671,35 +612,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
               <InfoCard icon={Target} label="Source API Number" value={conversation.receiver_phone_number} />
             )}
             <InfoCard icon={User} label="Name" value={data.Name} />
-            {/* Lead Category / Type Card (Osmo RO only) */}
+            {/* Geographic State Card (Osmo RO only) */}
             {isOsmoRo ? (
               <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 hover:shadow-sm transition-all duration-200 space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-emerald-500 border border-gray-150 dark:border-gray-700/55 shadow-inner shrink-0">
-                      <Target className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="font-bold text-gray-500 dark:text-gray-400">Lead Category</span>
-                  </div>
-                  <select
-                    value={leadCategory}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
-                    disabled={savingCategory}
-                    className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer disabled:opacity-50 ${
-                      leadCategory === 'osmo_dealer' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
-                      leadCategory === 'dealer' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800' :
-                      leadCategory === 'customer' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border-teal-200 dark:border-teal-800' :
-                      'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-700'
-                    }`}
-                  >
-                    <option value="unfiltered">⚪ Unfiltered</option>
-                    <option value="osmo_dealer">🟣 Osmo Dealer</option>
-                    <option value="dealer">🟠 Dealer</option>
-                    <option value="customer">🟢 Customer</option>
-                  </select>
-                </div>
-                
-                <div className="flex justify-between items-center text-xs pt-2 border-t border-gray-100 dark:border-gray-800/50">
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-emerald-500 border border-gray-150 dark:border-gray-700/55 shadow-inner shrink-0">
                       <MapPin className="w-3.5 h-3.5" />
