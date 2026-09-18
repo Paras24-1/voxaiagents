@@ -188,7 +188,9 @@ function LeadsContent() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
-      const headers = { 'Authorization': `Bearer ${token}` }
+      const headers: Record<string, string> = {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
 
       const statsParams = new URLSearchParams()
       if (selectedStage) statsParams.set('stage', selectedStage)
@@ -270,30 +272,42 @@ function LeadsContent() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
-      const headers = { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+      const headers: Record<string, string> = { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
       
-      fetch('/api/leads', {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({
-          id: lead.id,
-          conversation_id: lead.conversation_id,
-          phone_number: lead.phone_number,
-          lead_type: newCategory
-        })
-      }).catch(console.error)
-
       const targetConvId = lead.conversation_id || (lead.id && lead.id.length > 20 ? lead.id : null)
-      if (targetConvId) {
-        fetch(`/api/conversations/${targetConvId}`, {
+
+      const promises: Promise<any>[] = [
+        fetch('/api/leads', {
           method: 'PATCH',
           headers,
-          body: JSON.stringify({ lead_type: newCategory })
-        }).catch(console.error)
+          body: JSON.stringify({
+            id: lead.id,
+            conversation_id: lead.conversation_id,
+            phone_number: lead.phone_number,
+            lead_type: newCategory
+          })
+        })
+      ]
+
+      if (targetConvId) {
+        promises.push(
+          fetch(`/api/conversations/${targetConvId}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ lead_type: newCategory })
+          })
+        )
         window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: newCategory, category: newCategory } }))
+      }
+
+      const results = await Promise.all(promises)
+      for (const res of results) {
+        if (!res.ok) {
+          console.error('Lead category update failed:', res.status, await res.text().catch(() => ''))
+        }
       }
     } catch (err) {
       console.error('Failed to change lead category:', err)
@@ -307,9 +321,9 @@ function LeadsContent() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
-      const headers = { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+      const headers: Record<string, string> = { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
 
       const updates: any = {
@@ -330,6 +344,16 @@ function LeadsContent() {
       })
 
       if (!res.ok) throw new Error('Failed to update lead')
+
+      const targetConvId = activeLead.conversation_id || (activeLead.id && activeLead.id.length > 20 ? activeLead.id : null)
+      if (targetConvId) {
+        fetch(`/api/conversations/${targetConvId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ lead_type: editCategory, stage: editStage })
+        }).catch(console.error)
+        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: editCategory, category: editCategory, stage: editStage } }))
+      }
       
       const currentMeta = typeof activeLead.metadata === 'string' ? JSON.parse(activeLead.metadata || '{}') : (activeLead.metadata || {})
       const mergedMeta = { ...currentMeta, lead_type: editCategory, category: editCategory, state: editState }

@@ -79,8 +79,8 @@ export async function PATCH(req: NextRequest) {
         .select('*')
         .eq('id', leadId)
         .eq('org_id', orgId)
-        .maybeSingle()
-      existingLead = data
+        .limit(1)
+      if (data && data.length > 0) existingLead = data[0]
     }
     if (!existingLead && conversation_id) {
       const { data } = await supabaseAdmin
@@ -88,8 +88,8 @@ export async function PATCH(req: NextRequest) {
         .select('*')
         .eq('conversation_id', conversation_id)
         .eq('org_id', orgId)
-        .maybeSingle()
-      existingLead = data
+        .limit(1)
+      if (data && data.length > 0) existingLead = data[0]
     }
     // Fallback: leadId might be a conversation ID
     if (!existingLead && leadId) {
@@ -98,18 +98,18 @@ export async function PATCH(req: NextRequest) {
         .select('*')
         .eq('conversation_id', leadId)
         .eq('org_id', orgId)
-        .maybeSingle()
-      existingLead = data
+        .limit(1)
+      if (data && data.length > 0) existingLead = data[0]
     }
     // Fallback by phone number
-    const targetPhone = phone_number || conversation_id
-    if (!existingLead && targetPhone) {
+    if (!existingLead) {
       let searchPhone = phone_number
-      if (!searchPhone && conversation_id) {
+      if (!searchPhone && (conversation_id || leadId)) {
+        const targetCId = conversation_id || leadId
         const { data: conv } = await supabaseAdmin
           .from('conversations')
           .select('phone_number')
-          .eq('id', conversation_id)
+          .eq('id', targetCId)
           .eq('org_id', orgId)
           .maybeSingle()
         if (conv?.phone_number) searchPhone = conv.phone_number
@@ -122,8 +122,9 @@ export async function PATCH(req: NextRequest) {
             .select('*')
             .ilike('phone_number', `%${cleanP}`)
             .eq('org_id', orgId)
-            .maybeSingle()
-          existingLead = data
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (data && data.length > 0) existingLead = data[0]
         }
       }
     }
@@ -187,11 +188,12 @@ export async function PATCH(req: NextRequest) {
     let error: any = null
 
     if (existingLead) {
+      const shouldUpdateConvId = conversation_id && (!existingLead.conversation_id || existingLead.conversation_id === conversation_id)
       const res = await supabaseAdmin
         .from('leads')
         .update({
           ...finalUpdates,
-          ...(conversation_id ? { conversation_id } : {})
+          ...(shouldUpdateConvId ? { conversation_id } : {})
         })
         .eq('id', existingLead.id)
         .eq('org_id', orgId)
@@ -217,19 +219,45 @@ export async function PATCH(req: NextRequest) {
       const finalName = updates.name || convDetails?.name || ''
       const finalConvId = conversation_id || convDetails?.id || null
 
-      const res = await supabaseAdmin
-        .from('leads')
-        .insert({
-          ...finalUpdates,
-          org_id: orgId,
-          phone_number: finalPhone,
-          name: finalName,
-          ...(finalConvId ? { conversation_id: finalConvId } : {})
-        })
-        .select()
-        .maybeSingle()
-      data = res.data
-      error = res.error
+      if (finalConvId) {
+        const { data: leadByConv } = await supabaseAdmin
+          .from('leads')
+          .select('*')
+          .eq('conversation_id', finalConvId)
+          .eq('org_id', orgId)
+          .limit(1)
+        if (leadByConv && leadByConv.length > 0) {
+          existingLead = leadByConv[0]
+        }
+      }
+
+      if (existingLead) {
+        const res = await supabaseAdmin
+          .from('leads')
+          .update({
+            ...finalUpdates
+          })
+          .eq('id', existingLead.id)
+          .eq('org_id', orgId)
+          .select()
+          .maybeSingle()
+        data = res.data
+        error = res.error
+      } else {
+        const res = await supabaseAdmin
+          .from('leads')
+          .insert({
+            ...finalUpdates,
+            org_id: orgId,
+            phone_number: finalPhone,
+            name: finalName,
+            ...(finalConvId ? { conversation_id: finalConvId } : {})
+          })
+          .select()
+          .maybeSingle()
+        data = res.data
+        error = res.error
+      }
     }
 
     if (error) throw error

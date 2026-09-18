@@ -151,22 +151,29 @@ export async function PATCH(
       let linkedLead: any = null
       const { data: leadByConv } = await supabaseAdmin
         .from('leads')
-        .select('id, metadata, phone_number')
+        .select('id, metadata, phone_number, conversation_id')
         .eq('conversation_id', conv.id)
         .eq('org_id', profile.orgId)
-        .maybeSingle()
+        .limit(1)
 
-      linkedLead = leadByConv
+      if (leadByConv && leadByConv.length > 0) {
+        linkedLead = leadByConv[0]
+      }
 
       if (!linkedLead && conv.phone_number) {
         const phone = conv.phone_number.replace(/\D/g, '').slice(-10)
-        const { data: leadByPhone } = await supabaseAdmin
-          .from('leads')
-          .select('id, metadata, phone_number')
-          .ilike('phone_number', `%${phone}`)
-          .eq('org_id', profile.orgId)
-          .maybeSingle()
-        linkedLead = leadByPhone
+        if (phone.length >= 10) {
+          const { data: leadByPhone } = await supabaseAdmin
+            .from('leads')
+            .select('id, metadata, phone_number, conversation_id')
+            .ilike('phone_number', `%${phone}`)
+            .eq('org_id', profile.orgId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (leadByPhone && leadByPhone.length > 0) {
+            linkedLead = leadByPhone[0]
+          }
+        }
       }
 
       let leadMeta = linkedLead?.metadata || {}
@@ -186,12 +193,13 @@ export async function PATCH(
       }
 
       if (linkedLead) {
+        const updateData: any = { metadata: leadMeta }
+        if (!linkedLead.conversation_id || linkedLead.conversation_id === conv.id) {
+          updateData.conversation_id = conv.id
+        }
         await supabaseAdmin
           .from('leads')
-          .update({ 
-            metadata: leadMeta,
-            conversation_id: conv.id // ensure linked
-          })
+          .update(updateData)
           .eq('id', linkedLead.id)
       } else {
         // Create new lead if it doesn't exist

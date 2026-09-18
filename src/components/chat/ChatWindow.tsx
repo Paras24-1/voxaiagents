@@ -123,17 +123,22 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
       }
 
-      fetch(`/api/conversations/${conversation.id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ lead_type: newCategory })
-      }).catch(console.error)
+      const [resConv, resLeads] = await Promise.all([
+        fetch(`/api/conversations/${conversation.id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ lead_type: newCategory })
+        }),
+        fetch(`/api/leads`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ conversation_id: conversation.id, phone_number: conversation.phone_number, lead_type: newCategory })
+        })
+      ])
 
-      fetch(`/api/leads`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ conversation_id: conversation.id, phone_number: conversation.phone_number, lead_type: newCategory })
-      }).catch(console.error)
+      if (!resConv.ok || !resLeads.ok) {
+        console.error('Category save failed:', resConv.status, resLeads.status)
+      }
     } catch (err) {
       console.error('Failed to change category:', err)
     }

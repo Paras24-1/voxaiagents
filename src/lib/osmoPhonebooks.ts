@@ -312,16 +312,26 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       l.lead_type
     )?.toString().trim().toLowerCase()
 
-    const combinedForClassification = {
-      ...l,
-      lead_type: explicitCat,
-      lead: { ...l, metadata: leadMeta, lead_type: explicitCat },
-      metadata: convMeta,
-      notes: matchedConv?.notes || l.notes || l.followup_notes,
-      last_message: matchedConv?.last_message
+    let category: string
+    if (explicitCat === 'osmo_dealer' || explicitCat === 'osmo dealer') {
+      category = 'osmo_dealer'
+    } else if (explicitCat === 'dealer') {
+      category = 'dealer'
+    } else if (explicitCat === 'customer') {
+      category = 'customer'
+    } else if (explicitCat === 'unfiltered') {
+      category = 'unfiltered'
+    } else {
+      const combinedForClassification = {
+        ...l,
+        lead_type: explicitCat,
+        lead: { ...l, metadata: leadMeta, lead_type: explicitCat },
+        metadata: convMeta,
+        notes: matchedConv?.notes || l.notes || l.followup_notes,
+        last_message: matchedConv?.last_message
+      }
+      category = classifyOsmoContact(combinedForClassification)
     }
-    
-    const category = classifyOsmoContact(combinedForClassification)
     
     unifiedMap.set(p, {
       phone: p,
@@ -350,14 +360,24 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       c.lead_type
     )?.toString().trim().toLowerCase()
 
-    const combinedForClassification = {
-      ...c,
-      lead_type: explicitCat,
-      lead: null,
-      metadata: convMeta
+    let category: string
+    if (explicitCat === 'osmo_dealer' || explicitCat === 'osmo dealer') {
+      category = 'osmo_dealer'
+    } else if (explicitCat === 'dealer') {
+      category = 'dealer'
+    } else if (explicitCat === 'customer') {
+      category = 'customer'
+    } else if (explicitCat === 'unfiltered') {
+      category = 'unfiltered'
+    } else {
+      const combinedForClassification = {
+        ...c,
+        lead_type: explicitCat,
+        lead: null,
+        metadata: convMeta
+      }
+      category = classifyOsmoContact(combinedForClassification)
     }
-    
-    const category = classifyOsmoContact(combinedForClassification)
     
     unifiedMap.set(p, {
       phone: p,

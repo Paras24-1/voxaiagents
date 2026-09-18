@@ -503,21 +503,21 @@ function ConversationItem({
         ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
       }
       
-      const res = await fetch(`/api/conversations/${conv.id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ lead_type: newCat })
-      })
+      const [resConv, resLeads] = await Promise.all([
+        fetch(`/api/conversations/${conv.id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ lead_type: newCat })
+        }),
+        fetch(`/api/leads`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ conversation_id: conv.id, phone_number: conv.phone_number, lead_type: newCat })
+        })
+      ])
 
-      fetch(`/api/leads`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ conversation_id: conv.id, phone_number: conv.phone_number, lead_type: newCat })
-      }).catch(console.error)
-
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}))
-        console.error('Category save failed:', res.status, errBody)
+      if (!resConv.ok || !resLeads.ok) {
+        console.error('Category save failed:', resConv.status, resLeads.status)
         onCategoryChange(conv.id, classifyLeadType(conv))
       } else {
         setTimeout(() => onAssignmentChange(), 1500)

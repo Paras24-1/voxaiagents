@@ -30,9 +30,13 @@ export async function getUserProfile(req: Request): Promise<UserProfile | null> 
     let userId: string | null = null
 
     if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '')
-      const { data } = await supabaseAdmin.auth.getUser(token)
-      userId = data.user?.id || null
+      const token = authHeader.replace('Bearer ', '').trim()
+      if (token) {
+        try {
+          const { data } = await supabaseAdmin.auth.getUser(token)
+          userId = data.user?.id || null
+        } catch {}
+      }
     }
 
     if (!userId) {
