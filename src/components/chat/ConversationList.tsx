@@ -393,7 +393,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           [...conversations]
             .filter((c) => {
               if (unread) {
-                return (c.unread_count || 0) > 0 || c.id === selectedId
+                return (c.unread_count || 0) > 0
               }
               return true
             })

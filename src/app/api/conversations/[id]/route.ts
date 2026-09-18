@@ -181,6 +181,17 @@ export async function PATCH(
 
     if (error) throw error
 
+    if (body.unread_count === 0 && conv.phone_number) {
+      const cleanP = conv.phone_number.replace(/\D/g, '').slice(-10)
+      if (cleanP.length >= 10) {
+        await supabaseAdmin
+          .from('conversations')
+          .update({ unread_count: 0 })
+          .ilike('phone_number', `%${cleanP}`)
+          .eq('org_id', profile.orgId)
+      }
+    }
+
     // Sync Osmo Phonebooks in background if lead_type was updated
     if (body.lead_type !== undefined) {
       isOsmoOrg(profile.orgId).then((isOsmo) => {
