@@ -22,8 +22,33 @@ export function useConversations(filters: {
   const [orgId, setOrgId] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
   const selectedIdRef = useRef<string | null>(filters.selectedId || null)
-  const readIdsRef = useRef<Set<string>>(new Set())
-  const readPhonesRef = useRef<Set<string>>(new Set())
+
+  // Persist read IDs/phones in sessionStorage so they survive page refresh
+  const readIdsRef = useRef<Set<string>>((() => {
+    if (typeof window === 'undefined') return new Set<string>()
+    try {
+      const saved = sessionStorage.getItem('chat_read_ids')
+      return new Set<string>(saved ? JSON.parse(saved) : [])
+    } catch { return new Set<string>() }
+  })())
+  const readPhonesRef = useRef<Set<string>>((() => {
+    if (typeof window === 'undefined') return new Set<string>()
+    try {
+      const saved = sessionStorage.getItem('chat_read_phones')
+      return new Set<string>(saved ? JSON.parse(saved) : [])
+    } catch { return new Set<string>() }
+  })())
+
+  const persistReadState = useCallback(() => {
+    if (typeof window === 'undefined') return
+    try {
+      // Keep only last 200 ids/phones to prevent unbounded growth
+      const ids = Array.from(readIdsRef.current).slice(-200)
+      const phones = Array.from(readPhonesRef.current).slice(-200)
+      sessionStorage.setItem('chat_read_ids', JSON.stringify(ids))
+      sessionStorage.setItem('chat_read_phones', JSON.stringify(phones))
+    } catch {}
+  }, [])
 
   const markAsRead = useCallback(async (conversationId: string) => {
     if (!conversationId) return
@@ -34,6 +59,7 @@ export function useConversations(filters: {
       const target = prev.find(c => c.id === conversationId)
       const targetPhone = target?.phone_number ? target.phone_number.replace(/\D/g, '').slice(-10) : ''
       if (targetPhone) readPhonesRef.current.add(targetPhone)
+      persistReadState()
 
       return prev.map(c => {
         if (c.id === conversationId) return { ...c, unread_count: 0 }
@@ -44,21 +70,23 @@ export function useConversations(filters: {
       })
     })
 
-    // DB update
+    // DB update — use the messages API which also clears unread in DB
     try {
       const { data: { session } } = await supabase.auth.getSession()
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+      }
+      // PATCH the conversation to set unread_count: 0 in DB
       await fetch(`/api/conversations/${conversationId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-        },
+        headers,
         body: JSON.stringify({ unread_count: 0 })
       })
     } catch (err) {
       console.error('Failed to mark conversation as read:', err)
     }
-  }, [])
+  }, [persistReadState])
 
   const markAllAsRead = useCallback(async () => {
     // Optimistically clear all unread
@@ -70,6 +98,7 @@ export function useConversations(filters: {
           if (p) readPhonesRef.current.add(p)
         }
       })
+      persistReadState()
       return prev.map(c => ({ ...c, unread_count: 0 }))
     })
 
@@ -85,15 +114,16 @@ export function useConversations(filters: {
     } catch (err) {
       console.error('Failed to mark all conversations as read:', err)
     }
-  }, [])
+  }, [persistReadState])
 
   useEffect(() => {
     selectedIdRef.current = filters.selectedId || null
     if (filters.selectedId) {
       readIdsRef.current.add(filters.selectedId)
+      persistReadState()
       markAsRead(filters.selectedId)
     }
-  }, [filters.selectedId, markAsRead])
+  }, [filters.selectedId, markAsRead, persistReadState])
 
   const fetchConversations = useCallback(async (showLoading = true) => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -122,6 +152,7 @@ export function useConversations(filters: {
     })
     const data = await res.json()
     if (Array.isArray(data)) {
+      const toReZeroInDB: string[] = []
       const normalized = data.map(c => {
         const cleanP = (c.phone_number || '').replace(/\D/g, '').slice(-10)
         const isRead = 
@@ -130,12 +161,27 @@ export function useConversations(filters: {
           (selectedIdRef.current && c.id === selectedIdRef.current)
         
         if (isRead) {
+          // If the DB still thinks this is unread, re-zero it silently in background
+          if ((c.unread_count || 0) > 0) {
+            toReZeroInDB.push(c.id)
+          }
           return { ...c, unread_count: 0 }
         }
         return c
       })
       setConversations(normalized)
       if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
+
+      // Background cleanup: re-zero DB for any stale conversations that are in our read set
+      if (toReZeroInDB.length > 0 && token) {
+        toReZeroInDB.forEach(convId => {
+          fetch(`/api/conversations/${convId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ unread_count: 0 })
+          }).catch(() => {})
+        })
+      }
     }
     setLoading(false)
   }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
@@ -154,6 +200,7 @@ export function useConversations(filters: {
           const p = updatedConv.phone_number.replace(/\D/g, '').slice(-10)
           if (p) readPhonesRef.current.add(p)
         }
+        persistReadState()
       }
       setConversations(prev => {
         const list = prev.map(c => c.id === updatedConv.id ? { ...c, ...updatedConv } : c)
@@ -162,7 +209,7 @@ export function useConversations(filters: {
     }
     window.addEventListener('update-conversation', handleLocalUpdate)
     return () => window.removeEventListener('update-conversation', handleLocalUpdate)
-  }, [])
+  }, [persistReadState])
 
   // Realtime subscription filtered to this org only
   useEffect(() => {
