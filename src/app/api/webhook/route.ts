@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { isOsmoOrg, syncOsmoPhonebooks } from '@/lib/osmoPhonebooks'
+import { isOsmoOrg, syncOsmoPhonebooks, invalidateUnifiedCache } from '@/lib/osmoPhonebooks'
 
 async function getNextEmployee(orgId: string): Promise<string | null> {
   const { data: employees } = await supabaseAdmin
@@ -362,6 +362,9 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (convError) throw convError
+
+    // Invalidate server-side cache so next API fetch returns fresh data immediately
+    invalidateUnifiedCache(orgId)
 
     // 4. Insert message with org_id
     const { data: msg, error: msgError } = await supabaseAdmin

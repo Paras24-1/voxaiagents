@@ -286,13 +286,14 @@ function LeadsContent() {
         })
       }).catch(console.error)
 
-      if (lead.conversation_id) {
-        fetch(`/api/conversations/${lead.conversation_id}`, {
+      const targetConvId = lead.conversation_id || (lead.id && lead.id.length > 20 ? lead.id : null)
+      if (targetConvId) {
+        fetch(`/api/conversations/${targetConvId}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({ lead_type: newCategory })
         }).catch(console.error)
-        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: lead.conversation_id, lead_type: newCategory, category: newCategory } }))
+        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: newCategory, category: newCategory } }))
       }
     } catch (err) {
       console.error('Failed to change lead category:', err)
@@ -644,7 +645,13 @@ function LeadsContent() {
                 <p className="text-xs text-gray-500 mt-1 max-w-xs">Adjust your search parameters or check your n8n workflow connections.</p>
               </div>
             ) : (() => {
-              const displayedLeads = leads // Server handles filtering now
+              const displayedLeads = leads.filter(l => {
+                if (leadTypeFilter && leadTypeFilter !== 'all') {
+                  const currentCategory = l.lead_type || (l.metadata as any)?.category || 'unfiltered'
+                  if (currentCategory !== leadTypeFilter) return false
+                }
+                return true
+              })
 
               if (displayedLeads.length === 0) {
                 return (

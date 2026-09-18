@@ -218,7 +218,23 @@ export async function isOsmoOrg(orgId: string): Promise<boolean> {
   }
 }
 
+// ─── Server-side in-memory cache for fetchUnifiedOsmoContacts ────────────────
+// Cached per orgId. TTL: 10 seconds. Prevents repeated full DB scan on each
+// API call (page load, tab switch, filter changes all re-use the same fetch).
+const unifiedContactsCache = new Map<string, { data: any[]; expiresAt: number }>()
+const CACHE_TTL_MS = 10_000 // 10 seconds
+
+export function invalidateUnifiedCache(orgId: string) {
+  unifiedContactsCache.delete(orgId)
+}
+
 export async function fetchUnifiedOsmoContacts(orgId: string) {
+  // Return cached result if still fresh
+  const cached = unifiedContactsCache.get(orgId)
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data
+  }
+
   // 1. Fetch all conversations and leads for this org
   let conversations: any[] = []
   let fromConv = 0
@@ -286,9 +302,20 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       else convMeta = matchedConv.metadata
     }
 
+    const explicitCat = (
+      leadMeta.lead_type ||
+      leadMeta.category ||
+      leadMeta.Lead_Type ||
+      leadMeta.user_type ||
+      convMeta.lead_type ||
+      convMeta.category ||
+      l.lead_type
+    )?.toString().trim().toLowerCase()
+
     const combinedForClassification = {
       ...l,
-      lead: { ...l, metadata: leadMeta },
+      lead_type: explicitCat,
+      lead: { ...l, metadata: leadMeta, lead_type: explicitCat },
       metadata: convMeta,
       notes: matchedConv?.notes || l.notes || l.followup_notes,
       last_message: matchedConv?.last_message
@@ -315,8 +342,17 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     if (typeof c.metadata === 'string') { try { convMeta = JSON.parse(c.metadata) } catch {} } 
     else if (c.metadata) convMeta = c.metadata
 
+    const explicitCat = (
+      convMeta.lead_type ||
+      convMeta.category ||
+      convMeta.Lead_Type ||
+      convMeta.user_type ||
+      c.lead_type
+    )?.toString().trim().toLowerCase()
+
     const combinedForClassification = {
       ...c,
+      lead_type: explicitCat,
       lead: null,
       metadata: convMeta
     }
@@ -332,7 +368,10 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     })
   })
 
-  return Array.from(unifiedMap.values())
+  const result = Array.from(unifiedMap.values())
+  // Store in cache
+  unifiedContactsCache.set(orgId, { data: result, expiresAt: Date.now() + CACHE_TTL_MS })
+  return result
 }
 
 /**

@@ -492,6 +492,7 @@ function ConversationItem({
     // 1. Immediately update local override so UI reflects change right away
     onCategoryChange(conv.id, newCat)
     conv.lead_type = newCat
+    ;(conv as any).category = newCat
     window.dispatchEvent(new CustomEvent('update-conversation', { detail: { ...conv, lead_type: newCat, category: newCat } }))
 
     // 2. Await the actual API call so we know if it succeeded

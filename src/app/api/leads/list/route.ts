@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
         ...l,
         ...parsedMetadata,
         id: l.id || c.id || p,
+        conversation_id: l.conversation_id || c.id || null,
         phone_number: p,
         created_at: createdAt,
         lead_type: uc.category,

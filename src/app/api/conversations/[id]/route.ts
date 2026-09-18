@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
-import { isOsmoOrg, syncOsmoPhonebooks } from '@/lib/osmoPhonebooks'
+import { isOsmoOrg, syncOsmoPhonebooks, invalidateUnifiedCache } from '@/lib/osmoPhonebooks'
 
 export const dynamic = 'force-dynamic'
 
@@ -228,8 +228,9 @@ export async function PATCH(
       }
     }
 
-    // Sync Osmo Phonebooks in background if lead_type was updated
+    // Invalidate server cache & sync Osmo Phonebooks in background if lead_type was updated
     if (body.lead_type !== undefined) {
+      invalidateUnifiedCache(profile.orgId)
       isOsmoOrg(profile.orgId).then((isOsmo) => {
         if (isOsmo) syncOsmoPhonebooks(profile.orgId).catch(console.error)
       }).catch(() => {})

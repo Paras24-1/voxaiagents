@@ -190,6 +190,14 @@ export function useConversations(filters: {
     fetchConversations()
   }, [fetchConversations])
 
+  // Silent background poll every 20s — catches any leads missed by realtime
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchConversations(false) // false = no loading spinner
+    }, 20_000)
+    return () => clearInterval(interval)
+  }, [fetchConversations])
+
   useEffect(() => {
     const handleLocalUpdate = (e: any) => {
       const updatedConv = e.detail
