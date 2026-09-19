@@ -218,22 +218,11 @@ export async function isOsmoOrg(orgId: string): Promise<boolean> {
   }
 }
 
-// ─── Server-side in-memory cache for fetchUnifiedOsmoContacts ────────────────
-// Cached per orgId. TTL: 10 seconds. Prevents repeated full DB scan on each
-// API call (page load, tab switch, filter changes all re-use the same fetch).
-const unifiedContactsCache = new Map<string, { data: any[]; expiresAt: number }>()
-const CACHE_TTL_MS = 10_000 // 10 seconds
-
 export function invalidateUnifiedCache(orgId: string) {
-  unifiedContactsCache.delete(orgId)
+  // no-op
 }
 
 export async function fetchUnifiedOsmoContacts(orgId: string) {
-  // Return cached result if still fresh
-  const cached = unifiedContactsCache.get(orgId)
-  if (cached && Date.now() < cached.expiresAt) {
-    return cached.data
-  }
 
   // 1. Fetch all conversations and leads for this org
   let conversations: any[] = []
@@ -402,8 +391,6 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     )
     return timeB - timeA
   })
-  // Store in cache
-  unifiedContactsCache.set(orgId, { data: result, expiresAt: Date.now() + CACHE_TTL_MS })
   return result
 }
 

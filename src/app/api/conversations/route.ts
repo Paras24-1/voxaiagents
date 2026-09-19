@@ -19,40 +19,86 @@ export async function GET(req: NextRequest) {
     const assignedTo   = searchParams.get('assigned_to')   || ''
     const assignFilter = searchParams.get('assign_filter') || ''
 
-    console.log(`[DIAG GET /api/conversations] orgId=${orgId} fetching unified contacts...`)
-    const unifiedContacts = await fetchUnifiedOsmoContacts(orgId)
+    let query = supabaseAdmin
+      .from('conversations')
+      .select('*, leads(*)')
+      .eq('org_id', orgId)
+      .order('updated_at', { ascending: false })
 
-    const enrichedData = unifiedContacts
-      .filter(uc => uc.conversation !== null) // Chats tab only shows actual conversations
-      .filter(uc => {
-        const conv = uc.conversation
-        if (isStaffEmployee && conv.assigned_to !== userId) return false
-        if (!isStaffEmployee) {
-          if (assignedTo && conv.assigned_to !== assignedTo) return false
-          if (assignFilter === 'unassigned' && conv.assigned_to !== null) return false
-          if (assignFilter === 'assigned' && conv.assigned_to === null) return false
-          if (assignFilter && assignFilter !== 'all' && assignFilter !== 'unassigned' && assignFilter !== 'assigned' && conv.assigned_to !== assignFilter) return false
-        }
-        if (stage && conv.stage !== stage) return false
-        if (unread && (conv.unread_count || 0) <= 0) return false
-        if (search) {
-          const srch = search.toLowerCase()
-          const p = (uc.phone || '').toLowerCase()
-          const n = (conv.name || uc.lead?.name || '').toLowerCase()
-          if (!p.includes(srch) && !n.includes(srch)) return false
-        }
-        return true
-      })
-      .map(uc => {
-        return {
-          ...uc.conversation,
-          lead: uc.lead,
-          lead_type: uc.category,
-          category: uc.category
-        }
-      })
+    if (isStaffEmployee) {
+      query = query.eq('assigned_to', userId)
+    } else {
+      if (assignedTo) {
+        query = query.eq('assigned_to', assignedTo)
+      } else if (assignFilter === 'unassigned') {
+        query = query.is('assigned_to', null)
+      } else if (assignFilter === 'assigned') {
+        query = query.not('assigned_to', 'is', null)
+      } else if (assignFilter && assignFilter !== 'all') {
+        query = query.eq('assigned_to', assignFilter)
+      }
+    }
 
-    console.log(`[DIAG GET /api/conversations] Returning ${enrichedData.length} enriched conversations`)
+    if (stage) {
+      query = query.eq('stage', stage)
+    }
+
+    if (unread) {
+      query = query.gt('unread_count', 0)
+    }
+
+    const { data: convs, error } = await query
+
+    if (error) {
+      console.error('[GET /api/conversations] Error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    let enrichedData = (convs || []).map(conv => {
+      const leadObj = Array.isArray(conv.leads) ? conv.leads[0] : conv.leads
+      return {
+        ...conv,
+        lead: leadObj || null
+      }
+    })
+
+    // Fallback: for conversations missing a joined lead, check if a lead exists by phone number
+    const unlinkedConvs = enrichedData.filter(c => !c.lead && c.phone_number)
+    if (unlinkedConvs.length > 0) {
+      const { data: fallbackLeads } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('org_id', orgId)
+
+      if (fallbackLeads && fallbackLeads.length > 0) {
+        const leadByPhone = new Map<string, any>()
+        fallbackLeads.forEach(l => {
+          const p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
+          if (p && !leadByPhone.has(p)) leadByPhone.set(p, l)
+        })
+
+        enrichedData.forEach(c => {
+          if (!c.lead && c.phone_number) {
+            const p = c.phone_number.replace(/\D/g, '').slice(-10)
+            if (leadByPhone.has(p)) {
+              c.lead = leadByPhone.get(p)
+            }
+          }
+        })
+      }
+    }
+
+    // Apply search filter if present
+    if (search) {
+      const srch = search.toLowerCase()
+      enrichedData = enrichedData.filter(conv => {
+        const p = (conv.phone_number || '').toLowerCase()
+        const n = (conv.name || conv.lead?.name || '').toLowerCase()
+        const msg = (conv.last_message || '').toLowerCase()
+        return p.includes(srch) || n.includes(srch) || msg.includes(srch)
+      })
+    }
+
     return NextResponse.json(enrichedData)
   } catch (err: unknown) {
     const error = err instanceof Error ? err.message : 'Unknown error'
