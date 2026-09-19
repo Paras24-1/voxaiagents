@@ -158,7 +158,7 @@ function ChatsPageContent() {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
 
       {/* Top bar */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0 shadow-sm z-10 flex items-center justify-between">
+      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 px-6 py-4 shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.1)] z-10 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Sidebar />
           {mobileView !== 'list' && (
@@ -217,7 +217,7 @@ function ChatsPageContent() {
         {/* LEFT: Conversation list */}
         <div
           className={`
-            flex flex-col overflow-hidden border-r border-gray-200 dark:border-gray-800
+            flex flex-col overflow-hidden border-r border-gray-200/50 dark:border-gray-800/50
             ${mobileView === 'list' ? 'flex' : 'hidden'}
             md:flex md:w-80 md:shrink-0
             w-full
@@ -258,7 +258,7 @@ function ChatsPageContent() {
         {/* RIGHT: Lead panel */}
         <div
           className={`
-            flex flex-col overflow-hidden border-l border-gray-200 dark:border-gray-800
+            flex flex-col overflow-hidden border-l border-gray-200/50 dark:border-gray-800/50
             ${mobileView === 'lead' ? 'flex' : 'hidden'}
             md:flex md:w-72 md:shrink-0
             w-full

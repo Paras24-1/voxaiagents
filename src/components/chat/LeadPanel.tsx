@@ -571,16 +571,16 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   data.lead_quality = dynamicQuality;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950/20 relative border-l border-gray-150 dark:border-gray-800">
+    <div className="flex-1 flex flex-col overflow-hidden bg-white/40 dark:bg-gray-950/40 relative border-l border-white/20 dark:border-gray-800 backdrop-blur-xl">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-150 dark:border-gray-800/85 bg-white dark:bg-gray-900 shadow-sm shrink-0 z-10">
-        <div className="flex items-center gap-2.5 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-md">
-            <User className="w-4 h-4 text-white" />
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800/85 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] shrink-0 z-10">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/20 border border-white/20">
+            <User className="w-4.5 h-4.5 text-white" />
           </div>
-          <h3 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">Lead Details</h3>
+          <h3 className="text-[15px] font-extrabold text-gray-900 dark:text-white tracking-tight">Lead Details</h3>
         </div>
-        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 ml-10.5 uppercase tracking-wider">Live CRM Database Sync</p>
+        <p className="text-[10px] font-bold text-emerald-600/80 dark:text-emerald-400/80 ml-12 uppercase tracking-wider">Live CRM Database Sync</p>
       </div>
 
       {/* Content */}
@@ -1269,12 +1269,12 @@ function InfoCard({ icon: Icon, label, value, badge, colored }: {
   if (!value) return null
 
   return (
-    <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 hover:shadow-sm transition-all duration-200 flex justify-between items-center gap-2">
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 shadow-inner shrink-0">
+    <div className="p-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-xl border border-gray-100 dark:border-gray-800/80 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md transition-all duration-300 flex justify-between items-center gap-2 group">
+      <div className="flex items-center gap-2.5 shrink-0">
+        <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-emerald-500 border border-gray-150 dark:border-gray-700/50 shadow-inner shrink-0 transition-colors">
           <Icon className="w-3.5 h-3.5" />
         </div>
-        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap">{label}</p>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 whitespace-nowrap transition-colors">{label}</p>
       </div>
       {badge ? (
         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${

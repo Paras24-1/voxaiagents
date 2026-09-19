@@ -530,9 +530,9 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   return (
     <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 min-h-0">
       {/* Header */}
-      <div className="px-5 py-3.5 border-b border-gray-200/80 dark:border-gray-800/80 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md flex items-center justify-between shrink-0 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center text-white text-xs font-black shadow-sm border border-white/20 dark:border-gray-900 select-none">
+      <div className="px-5 py-3.5 border-b border-white/10 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl flex items-center justify-between shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-10">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-white text-xs font-black shadow-md shadow-emerald-500/20 border border-white/30 dark:border-white/10 select-none">
             {(conversation.name || conversation.phone_number || 'U').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
           </div>
           <div>
@@ -622,14 +622,14 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                     </div>
                   )}
                   <div
-                    className={`flex ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'} group/msg`}
                   >
-                    <div className={`max-w-[72%] ${msg.direction === 'outgoing' ? 'order-2' : 'order-1'}`}>
+                    <div className={`max-w-[75%] ${msg.direction === 'outgoing' ? 'order-2' : 'order-1'}`}>
                       <div
-                        className={`px-4 py-2.5 shadow-sm text-sm leading-relaxed ${
+                        className={`px-4 py-3 shadow-sm text-[13px] leading-relaxed transition-all ${
                           msg.direction === 'outgoing'
-                            ? 'bg-emerald-500 text-white rounded-2xl rounded-tr-none'
-                            : 'bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 text-gray-850 dark:text-gray-100 rounded-2xl rounded-tl-none'
+                            ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl rounded-br-sm shadow-emerald-500/10'
+                            : 'bg-white/90 dark:bg-gray-800/95 backdrop-blur-md border border-gray-100 dark:border-gray-700/60 text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-sm shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
                         }`}
                       >
                         {(() => {
@@ -783,7 +783,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
       )}
 
       {/* Input Section */}
-      <div className="relative px-5 py-4 border-t border-gray-150 dark:border-gray-800/85 bg-white dark:bg-gray-950 shrink-0">
+      <div className="relative px-5 py-4 bg-white/40 dark:bg-gray-950/40 backdrop-blur-xl shrink-0 z-10 border-t border-white/20 dark:border-gray-800/50">
         
         {/* Hidden File Inputs */}
         <input
@@ -1000,19 +1000,19 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                 </div>
               )}
 
-              <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-800 rounded-2xl p-2.5 shadow-sm transition-all focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white focus-within:border-transparent">
+              <div className="flex items-center gap-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200/60 dark:border-gray-700/60 rounded-full p-2 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all focus-within:ring-2 focus-within:ring-emerald-500/50 focus-within:bg-white dark:focus-within:bg-gray-900 focus-within:border-emerald-500/30 focus-within:shadow-[0_8px_30px_rgba(16,185,129,0.15)]">
                 
                 {/* Paperclip Attachment Menu Trigger (Matching Screenshot 1) */}
                 <button
                   type="button"
                   onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
                   disabled={uploading || sending || !!imageFile}
-                  className={`p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-750 disabled:opacity-50 border border-gray-150 dark:border-gray-700/50 shadow-sm transition-all shrink-0 ${
-                    showAttachmentMenu ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400' : 'bg-white dark:bg-gray-800'
+                  className={`p-2.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 transition-all shrink-0 ${
+                    showAttachmentMenu ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' : 'bg-transparent'
                   }`}
                   title="Attachment Options"
                 >
-                  <Paperclip className="w-4 h-4" />
+                  <Paperclip className="w-4.5 h-4.5" />
                 </button>
 
                 {audioPreview ? (
@@ -1080,12 +1080,12 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                     <button
                       onClick={handleSend}
                       disabled={(!input.trim() && !imageFile) || sending || uploading}
-                      className="p-2.5 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all shrink-0"
+                      className="p-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed shadow-md shadow-emerald-500/20 transition-all shrink-0 ml-1"
                     >
                       {uploading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-4.5 h-4.5 animate-spin" />
                       ) : (
-                        <Send className="w-4 h-4" />
+                        <Send className="w-4.5 h-4.5" />
                       )}
                     </button>
                   </>

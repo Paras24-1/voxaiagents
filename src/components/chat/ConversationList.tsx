@@ -417,10 +417,10 @@ function ConversationItem({
 
   return (
     <div
-      className={`relative flex items-start gap-3 px-3 py-3 cursor-pointer transition-all duration-200 rounded-2xl border ${
+      className={`group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-all duration-300 rounded-2xl border ${
         isSelected
-          ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500/50 dark:border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20'
-          : 'bg-white/60 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/60 hover:bg-gray-100/80 dark:hover:bg-gray-900/80 hover:border-gray-200 dark:hover:border-gray-700'
+          ? 'bg-gradient-to-br from-emerald-50/90 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/10 border-emerald-500/30 dark:border-emerald-500/30 shadow-md shadow-emerald-500/5 ring-1 ring-emerald-500/20 scale-[1.02] backdrop-blur-sm'
+          : 'bg-white/70 dark:bg-gray-900/50 border-transparent dark:border-transparent hover:bg-white dark:hover:bg-gray-900 border-gray-100 hover:border-gray-200 dark:hover:border-gray-800 hover:shadow-sm hover:-translate-y-0.5'
       }`}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
@@ -428,7 +428,7 @@ function ConversationItem({
     >
       {/* Avatar with dynamic AI/Manual Mode Indicator */}
       <div className="relative shrink-0 select-none">
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center text-white text-xs font-black shadow-sm border border-white/20 dark:border-gray-900">
+        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${isSelected ? 'from-emerald-500 to-teal-600 shadow-emerald-500/20' : 'from-emerald-400 to-teal-500'} flex items-center justify-center text-white text-xs font-black shadow-md border border-white/20 dark:border-gray-800 transition-all duration-300 group-hover:scale-105`}>
           {initials}
         </div>
         <span
@@ -442,15 +442,15 @@ function ConversationItem({
       {/* Main Details */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <span className={`text-xs font-bold truncate ${isSelected ? 'text-emerald-900 dark:text-emerald-200' : 'text-gray-900 dark:text-white'}`}>
+          <span className={`text-sm font-bold truncate transition-colors ${isSelected ? 'text-emerald-900 dark:text-emerald-200' : 'text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400'}`}>
             {conv.name || conv.phone_number}
           </span>
-          <span className="text-[9px] text-gray-400 font-semibold shrink-0 ml-2">{timeAgo}</span>
+          <span className={`text-[10px] font-semibold shrink-0 ml-2 transition-colors ${isSelected ? 'text-emerald-600/80 dark:text-emerald-400/80' : 'text-gray-400 group-hover:text-gray-500'}`}>{timeAgo}</span>
         </div>
-        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-mono truncate mb-1">
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 font-mono truncate mb-1 opacity-80">
           {conv.phone_number}
         </p>
-        <p className={`text-xs truncate leading-relaxed ${isSelected ? 'text-gray-700 dark:text-gray-300 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+        <p className={`text-xs truncate leading-relaxed transition-colors ${isSelected ? 'text-gray-700 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
           {(() => {
             const msg = conv.last_message || ''
             if (msg === '[Received image]' || msg.includes('image')) return '📷 Image attachment'
@@ -520,11 +520,12 @@ function ConversationItem({
         </div>
       )}
 
-      {/* Unread badge */}
-      {(conv.unread_count || 0) > 0 && !isSelected && conv.id !== selectedId && (
-        <span className="shrink-0 min-w-[18px] h-4.5 rounded-full bg-emerald-500 text-white text-[9px] font-black flex items-center justify-center px-1 shadow-md animate-pulse">
-          {conv.unread_count > 99 ? '99+' : conv.unread_count}
-        </span>
+      {/* Unread indicator */}
+      {(conv.unread_count || 0) > 0 && !isSelected && (
+        <div className="absolute top-3 right-3 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+        </div>
       )}
 
       {/* Assignment Dropdown */}
