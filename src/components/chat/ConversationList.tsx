@@ -30,19 +30,7 @@ const STAGE_COLORS: Record<Stage, string> = {
   unknown:        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
 }
 
-import { classifyOsmoContact, OsmoCategoryKey as OsmoLeadCategory } from '@/lib/osmoPhonebooks'
-
-function classifyLeadType(conv: Conversation): OsmoLeadCategory {
-  // If the conversation already has an explicitly-stored lead_type from the DB/leads table,
-  // use it directly without running keyword classification (which would override manual assignments)
-  const explicit = (conv.lead_type || (conv as any).category || '').trim().toLowerCase()
-  if (explicit === 'osmo_dealer' || explicit === 'osmo dealer') return 'osmo_dealer'
-  if (explicit === 'dealer') return 'dealer'
-  if (explicit === 'customer') return 'customer'
-  if (explicit === 'unfiltered') return 'unfiltered'
-  // Fall back to full keyword-based classification only if no explicit value stored
-  return classifyOsmoContact(conv)
-}
+import { PropsWithChildren } from 'react'
 
 interface Props {
   selectedId: string | null
@@ -62,45 +50,13 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [unread, setUnread] = useState(false)
   const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
   const [channelFilter, setChannelFilter] = useState<string>('all') // all, whatsapp, instagram
-  const [leadTypeFilter, setLeadTypeFilterState] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedTab = localStorage.getItem('osmo_lead_tab')
-      if (savedTab) setLeadTypeFilterState(savedTab)
-    }
-  }, [])
-
-  const setLeadTypeFilter = (tab: string) => {
-    setLeadTypeFilterState(tab)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('osmo_lead_tab', tab)
-    }
-  }
 
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showAddLead, setShowAddLead] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>([])
-  const [localCategoryOverrides, setLocalCategoryOverrides] = useState<Record<string, OsmoLeadCategory>>({})
 
-  useEffect(() => {
-    const handleUpdate = (e: any) => {
-      const updated = e.detail
-      if (!updated || !updated.id) return
-      const newCat = updated.lead_type || updated.category || (updated.metadata && typeof updated.metadata === 'object' ? (updated.metadata.lead_type || updated.metadata.category) : null)
-      if (newCat) {
-        setLocalCategoryOverrides(prev => ({ ...prev, [updated.id]: newCat }))
-      }
-    }
-    window.addEventListener('update-conversation', handleUpdate)
-    return () => window.removeEventListener('update-conversation', handleUpdate)
-  }, [])
   const { profile, org } = useOrg()
-  const isOsmoRo = 
-    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
-    org?.name?.toLowerCase().includes('osmo') ||
-    org?.slug?.toLowerCase().includes('osmo')
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
 
   const { conversations, loading, refetch, markAsRead, markAllAsRead } = useConversations({ 
@@ -119,29 +75,6 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
       markAsRead(selectedId)
     }
   }, [selectedId, markAsRead])
-
-  // Calculate live count per lead type category for Osmo RO
-  const typeCounts = useMemo(() => {
-    let unfiltered = 0
-    let osmo_dealer = 0
-    let dealer = 0
-    let customer = 0
-
-    conversations.forEach((c) => {
-      const cat = localCategoryOverrides[c.id] ?? classifyLeadType(c)
-      if (cat === 'osmo_dealer') {
-        osmo_dealer++
-      } else if (cat === 'dealer') {
-        dealer++
-      } else if (cat === 'customer') {
-        customer++
-      } else {
-        unfiltered++
-      }
-    })
-
-    return { unfiltered, osmo_dealer, dealer, customer }
-  }, [conversations, localCategoryOverrides])
 
   useEffect(() => {
     if (profile?.role === 'admin' || profile?.role === 'owner') {
@@ -269,46 +202,9 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             type="text"
             placeholder="Search name or number..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
           />
         </div>
-
-        {/* Quick Tap Category Tabs (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
-        {isOsmoRo && (
-          <div className="grid grid-cols-4 gap-1 p-1 mb-3 bg-gray-100/90 dark:bg-gray-850 rounded-xl border border-gray-200/80 dark:border-gray-750 shadow-inner">
-            {[
-              { id: 'unfiltered', label: 'Unfiltered', count: typeCounts.unfiltered, activeStyle: 'bg-slate-700 text-white shadow-sm shadow-slate-500/20' },
-              { id: 'osmo_dealer', label: 'Osmo Dealer', count: typeCounts.osmo_dealer, activeStyle: 'bg-purple-600 text-white shadow-sm shadow-purple-500/20' },
-              { id: 'dealer', label: 'Dealer', count: typeCounts.dealer, activeStyle: 'bg-amber-600 text-white shadow-sm shadow-amber-500/20' },
-              { id: 'customer', label: 'Customer', count: typeCounts.customer, activeStyle: 'bg-teal-600 text-white shadow-sm shadow-teal-500/20' },
-            ].map((tab) => {
-              const active = leadTypeFilter === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => {
-                    setLeadTypeFilter(tab.id)
-                    setUnread(false)
-                  }}
-                  className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-lg transition-all duration-200 select-none cursor-pointer ${
-                    active
-                      ? tab.activeStyle
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-750'
-                  }`}
-                >
-                  <span className="text-[10.5px] font-bold tracking-tight leading-none truncate w-full text-center">
-                    {tab.label}
-                  </span>
-                  <span className={`text-[10px] mt-0.5 font-extrabold ${active ? 'opacity-90' : 'opacity-60'}`}>
-                    {tab.count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        )}
 
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -402,11 +298,6 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               if (channelFilter === 'instagram') return c.platform === 'instagram'
               return true
             })
-            .filter((c) => {
-              if (!isOsmoRo || leadTypeFilter === 'all') return true
-              const cat = localCategoryOverrides[c.id] ?? classifyLeadType(c)
-              return cat === leadTypeFilter
-            })
             .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
             .map((conv) => (
               <ConversationItem
@@ -423,9 +314,6 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 isAdmin={isAdmin}
                 employees={employees}
                 onAssignmentChange={refetch}
-                onCategoryChange={(convId, cat) => setLocalCategoryOverrides(prev => ({ ...prev, [convId]: cat }))}
-                effectiveCategory={localCategoryOverrides[conv.id] ?? classifyLeadType(conv)}
-                isOsmoRo={isOsmoRo}
               />
             ))
         )}
@@ -443,92 +331,19 @@ function ConversationItem({
   isAdmin,
   employees,
   onAssignmentChange,
-  onCategoryChange,
-  effectiveCategory,
-  isOsmoRo,
 }: {
   conversation: Conversation,
   isSelected: boolean
-  selectedId?: string | null
+  selectedId: string | null
   onClick: () => void
   onDelete: (e: React.MouseEvent) => void
   isAdmin: boolean
   employees: Employee[]
   onAssignmentChange: () => void
-  onCategoryChange: (convId: string, cat: OsmoLeadCategory) => void
-  effectiveCategory: OsmoLeadCategory
-  isOsmoRo?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
   const [showAssign, setShowAssign] = useState(false)
   const [assigning, setAssigning] = useState(false)
-
-  const leadCat = effectiveCategory
-  let displayType = ''
-  let typeBadgeColor = ''
-
-  if (leadCat === 'osmo_dealer') {
-    displayType = 'Osmo Dealer'
-    typeBadgeColor = 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-100/10'
-  } else if (leadCat === 'dealer') {
-    displayType = 'Dealer'
-    typeBadgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-100/10'
-  } else if (leadCat === 'customer') {
-    displayType = 'Customer'
-    typeBadgeColor = 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-100/10'
-  } else {
-    displayType = 'Unfiltered'
-    typeBadgeColor = 'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200/50'
-  }
-
-  const [updatingCat, setUpdatingCat] = useState(false)
-
-  const handleCategorySelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    e.stopPropagation()
-    const newCat = e.target.value as OsmoLeadCategory
-    if (updatingCat) return
-    setUpdatingCat(true)
-
-    // 1. Immediately update local override so UI reflects change right away
-    onCategoryChange(conv.id, newCat)
-    conv.lead_type = newCat
-    ;(conv as any).category = newCat
-    window.dispatchEvent(new CustomEvent('update-conversation', { detail: { ...conv, lead_type: newCat, category: newCat } }))
-
-    // 2. Await the actual API call so we know if it succeeded
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers = { 
-        'Content-Type': 'application/json',
-        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-      }
-      
-      const [resConv, resLeads] = await Promise.all([
-        fetch(`/api/conversations/${conv.id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ lead_type: newCat })
-        }),
-        fetch(`/api/leads`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ conversation_id: conv.id, phone_number: conv.phone_number, lead_type: newCat })
-        })
-      ])
-
-      if (!resConv.ok || !resLeads.ok) {
-        console.error('Category save failed:', resConv.status, resLeads.status)
-        onCategoryChange(conv.id, classifyLeadType(conv))
-      } else {
-        setTimeout(() => onAssignmentChange(), 1500)
-      }
-    } catch (err) {
-      console.error('Failed to change category:', err)
-      onCategoryChange(conv.id, classifyLeadType(conv))
-    } finally {
-      setUpdatingCat(false)
-    }
-  }
 
   const initials = (conv.name || conv.phone_number || 'U')
   .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -623,24 +438,6 @@ function ConversationItem({
             {conv.platform || 'whatsapp'}
           </span>
 
-          {/* Lead Type Badge / Manual Category Selector (Osmo RO Dashboard) */}
-          {isOsmoRo && (
-            <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
-              <select
-                value={leadCat}
-                disabled={updatingCat}
-                onChange={handleCategorySelect}
-                className={`text-[9px] font-bold pl-2 pr-4 py-0.5 rounded-full uppercase tracking-wider cursor-pointer border focus:outline-none focus:ring-1 focus:ring-emerald-500 appearance-none ${typeBadgeColor} ${updatingCat ? 'opacity-50 animate-pulse' : ''}`}
-                title="Change Lead Category"
-              >
-                <option value="unfiltered">Unfiltered</option>
-                <option value="osmo_dealer">Osmo Dealer</option>
-                <option value="dealer">Dealer</option>
-                <option value="customer">Customer</option>
-              </select>
-              <ChevronDown className="w-2.5 h-2.5 absolute right-1 pointer-events-none opacity-60" />
-            </div>
-          )}
 
           {/* Blocked Badge */}
           {conv.is_blocked && (

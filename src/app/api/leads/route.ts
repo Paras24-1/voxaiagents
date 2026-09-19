@@ -140,7 +140,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Preserve existing metadata by merging into existing lead metadata
-    let existingMeta: any = {}
+    existingMeta = {}
     if (leadId || conversation_id || phone_number) {
       let query = supabaseAdmin.from('leads').select('metadata, conversation_id').eq('org_id', orgId)
       if (leadId) query = query.eq('id', leadId)

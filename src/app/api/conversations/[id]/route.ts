@@ -104,7 +104,7 @@ export async function PATCH(
         if (lead.conversation_id) {
           const { data: c } = await supabaseAdmin
             .from('conversations')
-            .select('id, assigned_to, phone_number, name')
+            .select('id, assigned_to, phone_number, name, metadata')
             .eq('id', lead.conversation_id)
             .eq('org_id', profile.orgId)
             .maybeSingle()
@@ -115,7 +115,7 @@ export async function PATCH(
           if (cleanP.length >= 10) {
             const { data: c } = await supabaseAdmin
               .from('conversations')
-              .select('id, assigned_to, phone_number, name')
+              .select('id, assigned_to, phone_number, name, metadata')
               .ilike('phone_number', `%${cleanP}`)
               .eq('org_id', profile.orgId)
               .maybeSingle()
