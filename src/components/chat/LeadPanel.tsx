@@ -687,7 +687,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
               const standardKeys = [
                 'Phone', 'Name', 'Lead_Type', 'city', 'machine_interest', 
                 'lead_quality', 'lead_score', 'callback_ready', 'conversation_summary', 
-                'followup_date', 'followup_notes', 'followup_notified', 'id', 'conversation_id', 'stage'
+                'followup_date', 'followup_notes', 'followup_notified', 'id', 'conversation_id', 'stage',
+                'lead_type', 'category', 'user_type', 'Lead_Type', 'lead_temperature'
               ]
               if (standardKeys.includes(key) || !value) return null
               
@@ -1268,15 +1269,15 @@ function InfoCard({ icon: Icon, label, value, badge, colored }: {
   if (!value) return null
 
   return (
-    <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 hover:shadow-sm transition-all duration-200 flex justify-between items-center gap-3">
-      <div className="flex items-center gap-2.5 min-w-0">
+    <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 hover:shadow-sm transition-all duration-200 flex justify-between items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 shadow-inner shrink-0">
           <Icon className="w-3.5 h-3.5" />
         </div>
-        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-tight truncate">{label}</p>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap">{label}</p>
       </div>
       {badge ? (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
           colored
             ? value.toLowerCase() === 'high' || parseInt(value) >= 80
               ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100/10'
@@ -1290,7 +1291,7 @@ function InfoCard({ icon: Icon, label, value, badge, colored }: {
           {value}
         </span>
       ) : (
-        <p className="text-xs text-gray-900 dark:text-white font-bold break-all text-right">{value}</p>
+        <p className="text-xs text-gray-900 dark:text-white font-bold font-mono tracking-tight text-right shrink-0">{value}</p>
       )}
     </div>
   )

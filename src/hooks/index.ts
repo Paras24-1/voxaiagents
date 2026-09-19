@@ -300,11 +300,11 @@ export function useMessages(conversationId: string | null) {
 
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = useCallback(async (showLoading = true) => {
     if (!conversationId) return
 
     try {
-      setLoading(true)
+      if (showLoading) setLoading(true)
 
       const {
         data: { session },
@@ -320,11 +320,18 @@ export function useMessages(conversationId: string | null) {
       )
 
       const data = await res.json()
-      if (Array.isArray(data)) setMessages(data)
+      if (Array.isArray(data)) {
+        setMessages(prev => {
+          if (prev.length === data.length && prev[prev.length - 1]?.id === data[data.length - 1]?.id) {
+            return prev
+          }
+          return data
+        })
+      }
     } catch (error) {
       console.error('Error fetching messages:', error)
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }, [conversationId])
 
@@ -333,7 +340,24 @@ export function useMessages(conversationId: string | null) {
       setMessages([])
       return
     }
-    fetchMessages()
+    fetchMessages(true)
+  }, [conversationId, fetchMessages])
+
+  // Background polling (5s) + window focus listener to catch any missed realtime events
+  useEffect(() => {
+    if (!conversationId) return
+
+    const interval = setInterval(() => {
+      fetchMessages(false)
+    }, 5000)
+
+    const handleFocus = () => fetchMessages(false)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [conversationId, fetchMessages])
 
   // Real-time message subscription
@@ -353,7 +377,10 @@ export function useMessages(conversationId: string | null) {
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const newMsg = payload.new as Message
-            setMessages((prev) => [...prev, newMsg])
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMsg.id)) return prev
+              return [...prev, newMsg]
+            })
             setTimeout(() => {
               bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
             }, 50)
