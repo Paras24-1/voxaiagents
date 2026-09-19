@@ -106,6 +106,7 @@ function ChatsPageContent() {
           .select('*')
           .eq('org_id', org.id)
           .ilike('phone_number', `%${cleanP}`)
+          .order('updated_at', { ascending: false })
 
         if (isStaff && profile?.id) {
           query = query.eq('assigned_to', profile.id)
@@ -115,7 +116,12 @@ function ChatsPageContent() {
 
         if (error) throw error
         if (data) {
-          handleSelect(data)
+          // Only auto-select if we don't already have this phone number selected
+          // to prevent overwriting the specific conversation ID the user clicked
+          const currentCleanP = (selected?.phone_number || '').replace(/\D/g, '').slice(-10)
+          if (currentCleanP !== cleanP) {
+            handleSelect(data)
+          }
         }
       } catch (err) {
         console.error('Failed to auto-select conversation by phone:', err)
