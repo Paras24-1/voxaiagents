@@ -86,7 +86,7 @@ export async function PATCH(
 
     let { data: conv } = await supabaseAdmin
       .from('conversations')
-      .select('id, assigned_to, phone_number, name, metadata')
+      .select('id, assigned_to, phone_number, name')
       .eq('id', id)
       .eq('org_id', profile.orgId)
       .maybeSingle()
@@ -104,7 +104,7 @@ export async function PATCH(
         if (lead.conversation_id) {
           const { data: c } = await supabaseAdmin
             .from('conversations')
-            .select('id, assigned_to, phone_number, name, metadata')
+            .select('id, assigned_to, phone_number, name')
             .eq('id', lead.conversation_id)
             .eq('org_id', profile.orgId)
             .maybeSingle()
@@ -115,7 +115,7 @@ export async function PATCH(
           if (cleanP.length >= 10) {
             const { data: c } = await supabaseAdmin
               .from('conversations')
-              .select('id, assigned_to, phone_number, name, metadata')
+              .select('id, assigned_to, phone_number, name')
               .ilike('phone_number', `%${cleanP}`)
               .eq('org_id', profile.orgId)
               .maybeSingle()
@@ -193,10 +193,8 @@ export async function PATCH(
         Lead_Type: targetLeadType
       }
 
-      let convMeta = (conv as any).metadata || {}
-      if (typeof convMeta === 'string') { try { convMeta = JSON.parse(convMeta) } catch {} }
-      convMeta = { ...convMeta, category: targetLeadType, lead_type: targetLeadType }
-      filteredBody.metadata = convMeta
+      // Do not attempt to update metadata on conversations table since it doesn't exist
+      // Only update metadata on the leads table (handled below)
 
       console.log(`[DIAG PATCH /api/conversations/${id}] Setting lead_type='${targetLeadType}' on conversation and lead metadata`)
 
