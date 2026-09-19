@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
-import { isOsmoOrg, syncOsmoPhonebooks } from '@/lib/osmoPhonebooks'
+import { isOsmoOrg, syncOsmoPhonebooks, invalidateUnifiedCache } from '@/lib/osmoPhonebooks'
+
+export const dynamic = 'force-dynamic'
 
 export async function DELETE(
   req: NextRequest,
@@ -82,12 +84,46 @@ export async function PATCH(
     const body = await req.json()
     const isStaffEmployee = profile.role !== 'owner' && profile.role !== 'admin'
 
-    const { data: conv } = await supabaseAdmin
+    let { data: conv } = await supabaseAdmin
       .from('conversations')
       .select('id, assigned_to, phone_number, name, metadata')
       .eq('id', id)
       .eq('org_id', profile.orgId)
       .maybeSingle()
+
+    // Fallback: If not found by conversation id, search if id is a lead id or phone number
+    if (!conv) {
+      const { data: lead } = await supabaseAdmin
+        .from('leads')
+        .select('id, conversation_id, phone_number')
+        .eq('id', id)
+        .eq('org_id', profile.orgId)
+        .maybeSingle()
+
+      if (lead) {
+        if (lead.conversation_id) {
+          const { data: c } = await supabaseAdmin
+            .from('conversations')
+            .select('id, assigned_to, phone_number, name')
+            .eq('id', lead.conversation_id)
+            .eq('org_id', profile.orgId)
+            .maybeSingle()
+          conv = c
+        }
+        if (!conv && lead.phone_number) {
+          const cleanP = lead.phone_number.replace(/\D/g, '').slice(-10)
+          if (cleanP.length >= 10) {
+            const { data: c } = await supabaseAdmin
+              .from('conversations')
+              .select('id, assigned_to, phone_number, name')
+              .ilike('phone_number', `%${cleanP}`)
+              .eq('org_id', profile.orgId)
+              .maybeSingle()
+            conv = c
+          }
+        }
+      }
+    }
 
     if (!conv) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
@@ -115,22 +151,29 @@ export async function PATCH(
       let linkedLead: any = null
       const { data: leadByConv } = await supabaseAdmin
         .from('leads')
-        .select('id, metadata, phone_number')
-        .eq('conversation_id', id)
+        .select('id, metadata, phone_number, conversation_id')
+        .eq('conversation_id', conv.id)
         .eq('org_id', profile.orgId)
-        .maybeSingle()
+        .limit(1)
 
-      linkedLead = leadByConv
+      if (leadByConv && leadByConv.length > 0) {
+        linkedLead = leadByConv[0]
+      }
 
       if (!linkedLead && conv.phone_number) {
         const phone = conv.phone_number.replace(/\D/g, '').slice(-10)
-        const { data: leadByPhone } = await supabaseAdmin
-          .from('leads')
-          .select('id, metadata, phone_number')
-          .ilike('phone_number', `%${phone}`)
-          .eq('org_id', profile.orgId)
-          .maybeSingle()
-        linkedLead = leadByPhone
+        if (phone.length >= 10) {
+          const { data: leadByPhone } = await supabaseAdmin
+            .from('leads')
+            .select('id, metadata, phone_number, conversation_id')
+            .ilike('phone_number', `%${phone}`)
+            .eq('org_id', profile.orgId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (leadByPhone && leadByPhone.length > 0) {
+            linkedLead = leadByPhone[0]
+          }
+        }
       }
 
       let leadMeta = linkedLead?.metadata || {}
@@ -157,19 +200,20 @@ export async function PATCH(
       console.log(`[DIAG PATCH /api/conversations/${id}] Setting lead_type='${targetLeadType}' on conversation and lead metadata`)
 
       if (linkedLead) {
+        const updateData: any = { metadata: leadMeta }
+        if (!linkedLead.conversation_id || linkedLead.conversation_id === conv.id) {
+          updateData.conversation_id = conv.id
+        }
         await supabaseAdmin
           .from('leads')
-          .update({ 
-            metadata: leadMeta,
-            conversation_id: id // ensure linked
-          })
+          .update(updateData)
           .eq('id', linkedLead.id)
       } else {
         // Create new lead if it doesn't exist
         await supabaseAdmin
           .from('leads')
           .insert({
-            conversation_id: id,
+            conversation_id: conv.id,
             org_id: profile.orgId,
             phone_number: conv.phone_number || '',
             name: conv.name || '',
@@ -178,16 +222,30 @@ export async function PATCH(
       }
     }
 
-    const { error } = await supabaseAdmin
-      .from('conversations')
-      .update(filteredBody)
-      .eq('id', id)
-      .eq('org_id', profile.orgId)
+    if (Object.keys(filteredBody).length > 0) {
+      const { error } = await supabaseAdmin
+        .from('conversations')
+        .update(filteredBody)
+        .eq('id', conv.id)
+        .eq('org_id', profile.orgId)
 
-    if (error) throw error
+      if (error) throw error
+    }
 
-    // Sync Osmo Phonebooks in background if lead_type was updated
+    if (body.unread_count === 0 && conv.phone_number) {
+      const cleanP = conv.phone_number.replace(/\D/g, '').slice(-10)
+      if (cleanP.length >= 10) {
+        await supabaseAdmin
+          .from('conversations')
+          .update({ unread_count: 0 })
+          .ilike('phone_number', `%${cleanP}`)
+          .eq('org_id', profile.orgId)
+      }
+    }
+
+    // Invalidate server cache & sync Osmo Phonebooks in background if lead_type was updated
     if (body.lead_type !== undefined) {
+      invalidateUnifiedCache(profile.orgId)
       isOsmoOrg(profile.orgId).then((isOsmo) => {
         if (isOsmo) syncOsmoPhonebooks(profile.orgId).catch(console.error)
       }).catch(() => {})

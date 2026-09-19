@@ -36,6 +36,8 @@ interface Props {
   onAIToggle: (id: string, mode: boolean) => void
 }
 
+import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
+
 export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const { profile, org } = useOrg()
   const isOsmoRo = 
@@ -74,6 +76,73 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   useEffect(() => {
     setStage(conversation?.stage || 'new')
   }, [conversation?.id, conversation?.stage])
+
+  const CATEGORY_COLORS: Record<string, string> = {
+    unfiltered: 'bg-gray-150 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+    osmo_dealer: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    dealer: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    customer: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300'
+  }
+
+  const [category, setCategory] = useState<string>('unfiltered')
+  const [savingCategory, setSavingCategory] = useState(false)
+
+  useEffect(() => {
+    if (conversation) {
+      setCategory(classifyOsmoContact(conversation))
+    }
+  }, [conversation?.id, (conversation as any)?.metadata, conversation?.lead_type])
+
+  const handleCategoryChange = async (newCategory: string) => {
+    if (!conversation) return
+    setCategory(newCategory)
+    conversation.lead_type = newCategory
+    if (conversation.metadata && typeof conversation.metadata === 'object') {
+      conversation.metadata.lead_type = newCategory
+      conversation.metadata.category = newCategory
+    } else {
+      conversation.metadata = { lead_type: newCategory, category: newCategory }
+    }
+    if (conversation.lead) {
+      const leadObj = Array.isArray(conversation.lead) ? conversation.lead[0] : conversation.lead
+      if (leadObj) {
+        leadObj.lead_type = newCategory
+        if (leadObj.metadata && typeof leadObj.metadata === 'object') {
+          leadObj.metadata.lead_type = newCategory
+          leadObj.metadata.category = newCategory
+        }
+      }
+    }
+
+    try {
+      window.dispatchEvent(new CustomEvent('update-conversation', { detail: { ...conversation, lead_type: newCategory, category: newCategory } }))
+
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers = { 
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+      }
+
+      const [resConv, resLeads] = await Promise.all([
+        fetch(`/api/conversations/${conversation.id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ lead_type: newCategory })
+        }),
+        fetch(`/api/leads`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ conversation_id: conversation.id, phone_number: conversation.phone_number, lead_type: newCategory })
+        })
+      ])
+
+      if (!resConv.ok || !resLeads.ok) {
+        console.error('Category save failed:', resConv.status, resLeads.status)
+      }
+    } catch (err) {
+      console.error('Failed to change category:', err)
+    }
+  }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
@@ -551,6 +620,23 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+          {/* Osmo Category Selector (Osmo RO) */}
+          {isOsmoRo && (
+            <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-2.5 py-1.5 rounded-xl border border-gray-150 dark:border-gray-700/50 shadow-inner select-none">
+              <span className="text-[9px] font-extrabold text-gray-400">CATEGORY:</span>
+              <select
+                value={category}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                disabled={savingCategory}
+                className={`text-[10px] uppercase font-bold tracking-wider px-1 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 ${CATEGORY_COLORS[category] || CATEGORY_COLORS.unfiltered}`}
+              >
+                <option value="unfiltered">Unfiltered</option>
+                <option value="osmo_dealer">Osmo Dealer</option>
+                <option value="dealer">Dealer</option>
+                <option value="customer">Customer</option>
+              </select>
+            </div>
+          )}
 
           {/* Stage Selector */}
           <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-2.5 py-1.5 rounded-xl border border-gray-150 dark:border-gray-700/50 shadow-inner select-none">
@@ -934,23 +1020,18 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         )}
 
         {(() => {
-          const platform = conversation?.platform || 'whatsapp';
           const hasIncomingDate = !!conversation?.last_incoming_message_at;
           const lastIncoming = hasIncomingDate ? new Date(conversation.last_incoming_message_at!) : null;
-          const hoursLeft = lastIncoming ? 24 - (new Date().getTime() - lastIncoming.getTime()) / (1000 * 60 * 60) : 0;
-          const isExpired = platform === 'whatsapp' && (!hasIncomingDate || hoursLeft <= 0);
+          const hoursLeft = lastIncoming ? 24 - (new Date().getTime() - lastIncoming.getTime()) / (1000 * 60 * 60) : 24;
+          const isExpired = lastIncoming ? hoursLeft <= 0 : false;
 
           if (isExpired) {
             return (
-              <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-2xl gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/60 rounded-2xl gap-3">
                 <div className="text-center sm:text-left">
-                  <span className="text-sm font-bold text-amber-700 dark:text-amber-400 block">
-                    {!hasIncomingDate ? 'Template Required to Initiate Chat' : '24-Hour Messaging Window Expired'}
-                  </span>
-                  <span className="text-xs font-medium text-amber-600/90 dark:text-amber-400/80 mt-0.5 block">
-                    {!hasIncomingDate
-                      ? 'No incoming customer message received yet. Meta requires an approved Template Message to start the conversation.'
-                      : 'Freeform text messages are blocked by Meta after 24h. Send an approved Template Message to re-open the window.'}
+                  <span className="text-sm font-bold text-red-600 dark:text-red-400 block">24-Hour Messaging Window Expired</span>
+                  <span className="text-xs font-medium text-red-500/80 dark:text-red-400/80 mt-0.5 block">
+                    Freeform text messages are blocked by Meta. Send an approved Template Message to re-open the 24h window.
                   </span>
                 </div>
                 <button

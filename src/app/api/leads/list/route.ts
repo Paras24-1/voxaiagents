@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
         ...l,
         ...parsedMetadata,
         id: l.id || c.id || p,
+        conversation_id: l.conversation_id || c.id || null,
         phone_number: p,
         created_at: createdAt,
         lead_type: uc.category,
@@ -79,7 +80,12 @@ export async function GET(req: NextRequest) {
       if (leadType && leadType !== 'all') {
         if (l.lead_type !== leadType) return false
       }
-      if (geographicState && l.state !== geographicState) return false
+      // 'state' lives inside metadata — the enriched object spreads parsedMetadata so l.state works
+      // But also check l.metadata.state as a fallback for older records
+      if (geographicState) {
+        const leadState = (l.state || l.metadata?.state || '').trim()
+        if (leadState.toLowerCase() !== geographicState.toLowerCase()) return false
+      }
       
       if (startDate || endDate) {
         if (!l.created_at) return false
@@ -99,7 +105,12 @@ export async function GET(req: NextRequest) {
       return true
     })
 
-
+    // Explicitly sort newest leads first so newly ingested leads are immediately at the top
+    filteredLeads.sort((a, b) => {
+      const timeA = new Date(a.created_at || (a as any).updated_at || 0).getTime()
+      const timeB = new Date(b.created_at || (b as any).updated_at || 0).getTime()
+      return timeB - timeA
+    })
 
     const slicedLeads = filteredLeads.slice(from, from + limit)
     const hasMore = (from + limit) < filteredLeads.length

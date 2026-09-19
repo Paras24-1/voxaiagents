@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getOrgId } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const orgId = await getOrgId(req)
@@ -10,11 +12,29 @@ export async function GET(req: NextRequest) {
     const conversationId = searchParams.get('conversation_id')
     if (!conversationId) return NextResponse.json({ error: 'conversation_id required' }, { status: 400 })
 
+    const { data: conv } = await supabaseAdmin
+      .from('conversations')
+      .select('phone_number')
+      .eq('id', conversationId)
+      .eq('org_id', orgId)
+      .maybeSingle()
+
     await supabaseAdmin
       .from('conversations')
       .update({ unread_count: 0 })
       .eq('id', conversationId)
       .eq('org_id', orgId)
+
+    if (conv?.phone_number) {
+      const cleanP = conv.phone_number.replace(/\D/g, '').slice(-10)
+      if (cleanP.length >= 10) {
+        await supabaseAdmin
+          .from('conversations')
+          .update({ unread_count: 0 })
+          .ilike('phone_number', `%${cleanP}`)
+          .eq('org_id', orgId)
+      }
+    }
 
     const { data, error } = await supabaseAdmin
       .from('messages')

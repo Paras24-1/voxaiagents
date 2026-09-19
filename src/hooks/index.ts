@@ -15,11 +15,115 @@ export function useConversations(filters: {
   userId?: string
   isAdmin?: boolean
   userRole?: string
+  selectedId?: string | null
 } = {}) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [orgId, setOrgId] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
+  const selectedIdRef = useRef<string | null>(filters.selectedId || null)
+
+  // Persist read IDs/phones in sessionStorage so they survive page refresh
+  const readIdsRef = useRef<Set<string>>((() => {
+    if (typeof window === 'undefined') return new Set<string>()
+    try {
+      const saved = sessionStorage.getItem('chat_read_ids')
+      return new Set<string>(saved ? JSON.parse(saved) : [])
+    } catch { return new Set<string>() }
+  })())
+  const readPhonesRef = useRef<Set<string>>((() => {
+    if (typeof window === 'undefined') return new Set<string>()
+    try {
+      const saved = sessionStorage.getItem('chat_read_phones')
+      return new Set<string>(saved ? JSON.parse(saved) : [])
+    } catch { return new Set<string>() }
+  })())
+
+  const persistReadState = useCallback(() => {
+    if (typeof window === 'undefined') return
+    try {
+      // Keep only last 200 ids/phones to prevent unbounded growth
+      const ids = Array.from(readIdsRef.current).slice(-200)
+      const phones = Array.from(readPhonesRef.current).slice(-200)
+      sessionStorage.setItem('chat_read_ids', JSON.stringify(ids))
+      sessionStorage.setItem('chat_read_phones', JSON.stringify(phones))
+    } catch {}
+  }, [])
+
+  const markAsRead = useCallback(async (conversationId: string) => {
+    if (!conversationId) return
+    readIdsRef.current.add(conversationId)
+
+    // Optimistic update (both ID and phone variants)
+    setConversations(prev => {
+      const target = prev.find(c => c.id === conversationId)
+      const targetPhone = target?.phone_number ? target.phone_number.replace(/\D/g, '').slice(-10) : ''
+      if (targetPhone) readPhonesRef.current.add(targetPhone)
+      persistReadState()
+
+      return prev.map(c => {
+        if (c.id === conversationId) return { ...c, unread_count: 0 }
+        if (targetPhone && c.phone_number && c.phone_number.replace(/\D/g, '').slice(-10) === targetPhone) {
+          return { ...c, unread_count: 0 }
+        }
+        return c
+      })
+    })
+
+    // DB update — use the messages API which also clears unread in DB
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+      }
+      // PATCH the conversation to set unread_count: 0 in DB
+      await fetch(`/api/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ unread_count: 0 })
+      })
+    } catch (err) {
+      console.error('Failed to mark conversation as read:', err)
+    }
+  }, [persistReadState])
+
+  const markAllAsRead = useCallback(async () => {
+    // Optimistically clear all unread
+    setConversations(prev => {
+      prev.forEach(c => {
+        readIdsRef.current.add(c.id)
+        if (c.phone_number) {
+          const p = c.phone_number.replace(/\D/g, '').slice(-10)
+          if (p) readPhonesRef.current.add(p)
+        }
+      })
+      persistReadState()
+      return prev.map(c => ({ ...c, unread_count: 0 }))
+    })
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      await fetch('/api/conversations/mark-all-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        }
+      })
+    } catch (err) {
+      console.error('Failed to mark all conversations as read:', err)
+    }
+  }, [persistReadState])
+
+  useEffect(() => {
+    selectedIdRef.current = filters.selectedId || null
+    if (filters.selectedId) {
+      readIdsRef.current.add(filters.selectedId)
+      persistReadState()
+      markAsRead(filters.selectedId)
+    }
+  }, [filters.selectedId, markAsRead, persistReadState])
 
   const fetchConversations = useCallback(async (showLoading = true) => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -48,8 +152,36 @@ export function useConversations(filters: {
     })
     const data = await res.json()
     if (Array.isArray(data)) {
-      setConversations(data)
+      const toReZeroInDB: string[] = []
+      const normalized = data.map(c => {
+        const cleanP = (c.phone_number || '').replace(/\D/g, '').slice(-10)
+        const isRead = 
+          readIdsRef.current.has(c.id) || 
+          (cleanP && readPhonesRef.current.has(cleanP)) ||
+          (selectedIdRef.current && c.id === selectedIdRef.current)
+        
+        if (isRead) {
+          // If the DB still thinks this is unread, re-zero it silently in background
+          if ((c.unread_count || 0) > 0) {
+            toReZeroInDB.push(c.id)
+          }
+          return { ...c, unread_count: 0 }
+        }
+        return c
+      })
+      setConversations(normalized)
       if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
+
+      // Background cleanup: re-zero DB for any stale conversations that are in our read set
+      if (toReZeroInDB.length > 0 && token) {
+        toReZeroInDB.forEach(convId => {
+          fetch(`/api/conversations/${convId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ unread_count: 0 })
+          }).catch(() => {})
+        })
+      }
     }
     setLoading(false)
   }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
@@ -58,10 +190,26 @@ export function useConversations(filters: {
     fetchConversations()
   }, [fetchConversations])
 
+  // Silent background poll every 20s — catches any leads missed by realtime
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchConversations(false) // false = no loading spinner
+    }, 20_000)
+    return () => clearInterval(interval)
+  }, [fetchConversations])
+
   useEffect(() => {
     const handleLocalUpdate = (e: any) => {
       const updatedConv = e.detail
       if (!updatedConv || !updatedConv.id) return
+      if (updatedConv.unread_count === 0) {
+        readIdsRef.current.add(updatedConv.id)
+        if (updatedConv.phone_number) {
+          const p = updatedConv.phone_number.replace(/\D/g, '').slice(-10)
+          if (p) readPhonesRef.current.add(p)
+        }
+        persistReadState()
+      }
       setConversations(prev => {
         const list = prev.map(c => c.id === updatedConv.id ? { ...c, ...updatedConv } : c)
         return [...list].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
@@ -69,7 +217,7 @@ export function useConversations(filters: {
     }
     window.addEventListener('update-conversation', handleLocalUpdate)
     return () => window.removeEventListener('update-conversation', handleLocalUpdate)
-  }, [])
+  }, [persistReadState])
 
   // Realtime subscription filtered to this org only
   useEffect(() => {
@@ -101,18 +249,28 @@ export function useConversations(filters: {
               setConversations(prev => prev.filter(c => c.id !== updatedConv.id))
               return
             }
+            const cleanP = (updatedConv.phone_number || '').replace(/\D/g, '').slice(-10)
+            const isRead = 
+              updatedConv.id === selectedIdRef.current || 
+              readIdsRef.current.has(updatedConv.id) ||
+              (cleanP && readPhonesRef.current.has(cleanP))
+
+            if (isRead) {
+              const previousUnread = updatedConv.unread_count
+              updatedConv.unread_count = 0
+              if (previousUnread > 0) {
+                markAsRead(updatedConv.id)
+              }
+            }
             setConversations(prev => {
               const list = prev.map(c => {
                 if (c.id === updatedConv.id) {
-                  const updatedMeta = (updatedConv as any).metadata || {}
-                  const payloadCategory = updatedMeta.category || updatedMeta.lead_type || (updatedConv as any).lead_type || (updatedConv as any).category
-                  const mergedMeta = typeof c.metadata === 'object' && c.metadata ? { ...c.metadata, ...updatedMeta } : updatedMeta
                   return { 
                     ...c, 
                     ...updatedConv,
-                    metadata: mergedMeta,
-                    lead_type: payloadCategory || c.lead_type,
-                    category: payloadCategory || (c as any).category
+                    unread_count: isRead ? 0 : updatedConv.unread_count,
+                    lead_type: c.lead_type ?? updatedConv.lead_type,
+                    category: (c as any).category ?? (updatedConv as any).category
                   }
                 }
                 return c
@@ -127,10 +285,11 @@ export function useConversations(filters: {
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [orgId, filters.userRole, filters.userId])
+  }, [orgId, filters.userRole, filters.userId, markAsRead])
 
-  return { conversations, loading, refetch: fetchConversations }
+  return { conversations, loading, refetch: fetchConversations, markAsRead, markAllAsRead }
 }
+
 
 // ----------------------------------------------------------------
 // useMessages — fetches + subscribes to conversation messages
@@ -193,10 +352,24 @@ export function useMessages(conversationId: string | null) {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setMessages((prev) => [...prev, payload.new as Message])
+            const newMsg = payload.new as Message
+            setMessages((prev) => [...prev, newMsg])
             setTimeout(() => {
               bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
             }, 50)
+            if (newMsg.direction === 'incoming') {
+              window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: conversationId, unread_count: 0 } }))
+              supabase.auth.getSession().then(({ data: { session } }) => {
+                fetch(`/api/conversations/${conversationId}`, {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+                  },
+                  body: JSON.stringify({ unread_count: 0 })
+                }).catch(() => {})
+              })
+            }
           } else if (payload.eventType === 'UPDATE') {
             setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? payload.new as Message : msg))
           }

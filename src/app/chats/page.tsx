@@ -70,6 +70,11 @@ function ChatsPageContent() {
     setMobileView('chat')
     window.dispatchEvent(new CustomEvent('update-conversation', { detail: { ...conv, unread_count: 0 } }))
 
+    const cleanP = (conv.phone_number || '').replace(/\D/g, '').slice(-10)
+    if (cleanP && typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `/chats?phone=${cleanP}`)
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
@@ -95,17 +100,18 @@ function ChatsPageContent() {
     const loadDirectConversation = async () => {
       try {
         const isStaff = profile?.role !== 'admin' && profile?.role !== 'owner'
+        const cleanP = phone.replace(/\D/g, '').slice(-10)
         let query = supabase
           .from('conversations')
           .select('*')
           .eq('org_id', org.id)
-          .eq('phone_number', phone)
+          .ilike('phone_number', `%${cleanP}`)
 
         if (isStaff && profile?.id) {
           query = query.eq('assigned_to', profile.id)
         }
 
-        const { data, error } = await query.maybeSingle()
+        const { data, error } = await query.limit(1).maybeSingle()
 
         if (error) throw error
         if (data) {

@@ -134,11 +134,20 @@ export async function GET(req: NextRequest) {
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const { data: recentLeads } = await supabaseAdmin
-      .from('conversations')
-      .select('created_at')
-      .eq('org_id', orgId)
-      .gte('created_at', thirtyDaysAgo.toISOString())
+    let recentLeads: any[] = []
+    let fromLead = 0
+    while (true) {
+      const { data, error } = await supabaseAdmin
+        .from('conversations')
+        .select('created_at')
+        .eq('org_id', orgId)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .range(fromLead, fromLead + 999)
+      if (error || !data || data.length === 0) break
+      recentLeads.push(...data)
+      if (data.length < 1000) break
+      fromLead += 1000
+    }
 
     const dailyCounts: Record<string, number> = {}
     for (let i = 29; i >= 0; i--) {

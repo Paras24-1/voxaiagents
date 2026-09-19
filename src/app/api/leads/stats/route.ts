@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || ''
     const startDate = searchParams.get('start_date') || ''
     const endDate = searchParams.get('end_date') || ''
+    const geographicState = searchParams.get('state') || ''
 
     const unifiedContacts = await fetchUnifiedOsmoContacts(orgId)
 
@@ -43,11 +44,11 @@ export async function GET(req: NextRequest) {
       let parsedMeta: Record<string, any> = l.metadata || {}
 
       const leadStage = c.stage || l.stage || parsedMeta.state || parsedMeta.stage || 'new'
-      if (leadStage === 'followup' || !!l.followup_date) stats.followups++
+      if (leadStage === 'followup' || !!(l as any).followup_date) stats.followups++
       if (stage && leadStage !== stage) return
 
       const score = Number(parsedMeta.lead_score ?? 0)
-      let q = (parsedMeta.lead_quality || parsedMeta.lead_temperature || l.lead_temperature || 'cold').toLowerCase()
+      let q = (parsedMeta.lead_quality || parsedMeta.lead_temperature || (l as any).lead_temperature || 'cold').toLowerCase()
       if (score >= 70) q = 'hot'
       else if (score >= 40) q = 'warm'
       else if (score > 0) q = 'cold'
@@ -56,8 +57,14 @@ export async function GET(req: NextRequest) {
       if (q === 'warm') stats.warm++
       if (quality && q !== quality.toLowerCase()) return
 
+      // Apply state filter — state is stored in metadata
+      if (geographicState) {
+        const leadState = (parsedMeta.state || '').trim()
+        if (leadState.toLowerCase() !== geographicState.toLowerCase()) return
+      }
+
       if (startDate || endDate) {
-        const createdAt = l.created_at || c.created_at
+        const createdAt = (l as any).created_at || c.created_at
         if (!createdAt) return
         const dt = new Date(createdAt).getTime()
         if (startDate && dt < new Date(startDate).getTime()) return
@@ -66,9 +73,9 @@ export async function GET(req: NextRequest) {
 
       if (search) {
         const srch = search.toLowerCase()
-        const n = (l.name || c.name || '').toLowerCase()
+        const n = ((l as any).name || c.name || '').toLowerCase()
         const p = (uc.phone || '').toLowerCase()
-        const cst = (l.customer_name || '').toLowerCase()
+        const cst = ((l as any).customer_name || '').toLowerCase()
         if (!n.includes(srch) && !p.includes(srch) && !cst.includes(srch)) return
       }
 

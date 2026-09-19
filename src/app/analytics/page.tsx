@@ -131,18 +131,22 @@ function AnalyticsContent() {
       const endOfDay = new Date(inspectorDate)
       endOfDay.setHours(23, 59, 59, 999)
 
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('id, name, phone_number, created_at, stage')
-        .eq('org_id', org.id)
-        .gte('created_at', startOfDay.toISOString())
-        .lte('created_at', endOfDay.toISOString())
-        .order('created_at', { ascending: false })
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const headers: Record<string, string> = {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
 
-      if (error) throw error
-      setInspectorLeads(data || [])
+      const res = await fetch(
+        `/api/analytics/inspector?date=${inspectorDate}&start=${encodeURIComponent(startOfDay.toISOString())}&end=${encodeURIComponent(endOfDay.toISOString())}`,
+        { headers, cache: 'no-store' }
+      )
+      if (!res.ok) throw new Error('Failed to fetch inspector leads')
+      const json = await res.json()
+      setInspectorLeads(json.leads || [])
     } catch (err) {
       console.error('Failed to inspect daily leads:', err)
+      setInspectorLeads([])
     } finally {
       setInspectorLoading(false)
     }
@@ -164,7 +168,9 @@ function AnalyticsContent() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
-      const headers = { 'Authorization': `Bearer ${token}` }
+      const headers: Record<string, string> = {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
 
       const res = await fetch('/api/analytics', { headers, cache: 'no-store' })
       if (!res.ok) throw new Error('Failed to fetch analytics')

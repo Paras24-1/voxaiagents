@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getOrgId } from '@/lib/supabase'
-import { isOsmoOrg, syncOsmoPhonebooks } from '@/lib/osmoPhonebooks'
+import { isOsmoOrg, syncOsmoPhonebooks, invalidateUnifiedCache } from '@/lib/osmoPhonebooks'
 
 export async function GET(req: NextRequest) {
   try {
@@ -71,6 +71,69 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'lead identifier (id, conversation_id, or phone_number) required' }, { status: 400 })
     }
 
+    // 1. Find existing lead record to preserve existing metadata
+    let existingLead: any = null
+    if (leadId) {
+      const { data } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .eq('org_id', orgId)
+        .limit(1)
+      if (data && data.length > 0) existingLead = data[0]
+    }
+    if (!existingLead && conversation_id) {
+      const { data } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('conversation_id', conversation_id)
+        .eq('org_id', orgId)
+        .limit(1)
+      if (data && data.length > 0) existingLead = data[0]
+    }
+    // Fallback: leadId might be a conversation ID
+    if (!existingLead && leadId) {
+      const { data } = await supabaseAdmin
+        .from('leads')
+        .select('*')
+        .eq('conversation_id', leadId)
+        .eq('org_id', orgId)
+        .limit(1)
+      if (data && data.length > 0) existingLead = data[0]
+    }
+    // Fallback by phone number
+    if (!existingLead) {
+      let searchPhone = phone_number
+      if (!searchPhone && (conversation_id || leadId)) {
+        const targetCId = conversation_id || leadId
+        const { data: conv } = await supabaseAdmin
+          .from('conversations')
+          .select('phone_number')
+          .eq('id', targetCId)
+          .eq('org_id', orgId)
+          .maybeSingle()
+        if (conv?.phone_number) searchPhone = conv.phone_number
+      }
+      if (searchPhone) {
+        const cleanP = String(searchPhone).replace(/\D/g, '').slice(-10)
+        if (cleanP.length >= 10) {
+          const { data } = await supabaseAdmin
+            .from('leads')
+            .select('*')
+            .ilike('phone_number', `%${cleanP}`)
+            .eq('org_id', orgId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+          if (data && data.length > 0) existingLead = data[0]
+        }
+      }
+    }
+
+    let existingMeta = existingLead?.metadata || {}
+    if (typeof existingMeta === 'string') {
+      try { existingMeta = JSON.parse(existingMeta) } catch {}
+    }
+
     let parsedMeta: any = metadata
     if (metadata && typeof metadata === 'string') {
       try { parsedMeta = JSON.parse(metadata) } catch (e) {}
@@ -103,9 +166,8 @@ export async function PATCH(req: NextRequest) {
 
     let mergedMeta = { ...existingMeta, ...(parsedMeta || {}) };
 
-    // Only apply lead_type to metadata — no downgrade protection so manual assignment always wins
+    // Explicit manual lead_type update
     let targetLeadType = updates.lead_type || body.lead_type
-
     if (targetLeadType) {
       mergedMeta.lead_type = targetLeadType
       mergedMeta.category = targetLeadType
@@ -114,7 +176,7 @@ export async function PATCH(req: NextRequest) {
       console.log(`[DIAG PATCH /api/leads] Setting targetLeadType='${targetLeadType}' for leadId=${leadId} convId=${conversation_id}`)
     }
 
-    // Calculate lead_quality & lead_temperature dynamically based on lead_score sent by n8n
+    // Calculate lead_quality & lead_temperature dynamically based on lead_score
     const sentScore = updates.lead_score ?? mergedMeta?.lead_score;
     if (sentScore !== undefined) {
       const numericScore = Number(sentScore);
@@ -144,92 +206,80 @@ export async function PATCH(req: NextRequest) {
     let data: any = null
     let error: any = null
 
-    // 1. Try updating by lead primary ID first if provided
-    if (leadId) {
+    if (existingLead) {
+      const shouldUpdateConvId = conversation_id && (!existingLead.conversation_id || existingLead.conversation_id === conversation_id)
       const res = await supabaseAdmin
         .from('leads')
-        .update(finalUpdates)
-        .eq('id', leadId)
+        .update({
+          ...finalUpdates,
+          ...(shouldUpdateConvId ? { conversation_id } : {})
+        })
+        .eq('id', existingLead.id)
         .eq('org_id', orgId)
         .select()
         .maybeSingle()
       data = res.data
       error = res.error
-    }
-
-    // 2. Try updating by conversation_id if not yet found
-    if (!data && conversation_id) {
-      const res = await supabaseAdmin
-        .from('leads')
-        .update(finalUpdates)
-        .eq('conversation_id', conversation_id)
-        .eq('org_id', orgId)
-        .select()
-        .maybeSingle()
-      data = res.data
-      error = res.error
-    }
-
-    // 3. Fall back to matching by phone number
-    const targetPhone = phone_number || data?.phone_number
-    if (!data) {
-      let searchPhone = targetPhone
-      if (!searchPhone && conversation_id) {
-        const { data: conv } = await supabaseAdmin
+    } else {
+      // Find linked conversation for fallback details
+      const targetConvId = conversation_id || (leadId && leadId.length > 20 ? leadId : null)
+      let convDetails: any = null
+      if (targetConvId) {
+        const { data: c } = await supabaseAdmin
           .from('conversations')
-          .select('phone_number')
-          .eq('id', conversation_id)
+          .select('id, phone_number, name')
+          .eq('id', targetConvId)
           .eq('org_id', orgId)
           .maybeSingle()
-        if (conv?.phone_number) searchPhone = conv.phone_number
+        convDetails = c
       }
 
-      if (searchPhone) {
-        const phone = String(searchPhone).replace(/\D/g, '').slice(-10)
-        const { data: leadData, error: leadError } = await supabaseAdmin
+      const finalPhone = phone_number || convDetails?.phone_number || ''
+      const finalName = updates.name || convDetails?.name || ''
+      const finalConvId = conversation_id || convDetails?.id || null
+
+      if (finalConvId) {
+        const { data: leadByConv } = await supabaseAdmin
+          .from('leads')
+          .select('*')
+          .eq('conversation_id', finalConvId)
+          .eq('org_id', orgId)
+          .limit(1)
+        if (leadByConv && leadByConv.length > 0) {
+          existingLead = leadByConv[0]
+        }
+      }
+
+      if (existingLead) {
+        const res = await supabaseAdmin
           .from('leads')
           .update({
-            ...finalUpdates,
-            ...(conversation_id ? { conversation_id } : {})
+            ...finalUpdates
           })
-          .ilike('phone_number', `%${phone}`)
+          .eq('id', existingLead.id)
           .eq('org_id', orgId)
           .select()
           .maybeSingle()
-
-        if (leadError) throw leadError
-        data = leadData || null
-      }
-    }
-
-    // 4. If still not found and conversation_id exists, upsert a new lead row
-    if (!data && conversation_id) {
-      const { data: conv } = await supabaseAdmin
-        .from('conversations')
-        .select('phone_number, name')
-        .eq('id', conversation_id)
-        .eq('org_id', orgId)
-        .maybeSingle()
-
-      if (conv) {
-        const { data: upsertData, error: upsertError } = await supabaseAdmin
+        data = res.data
+        error = res.error
+      } else {
+        const res = await supabaseAdmin
           .from('leads')
-          .upsert({
+          .insert({
             ...finalUpdates,
-            conversation_id,
             org_id: orgId,
-            phone_number: conv.phone_number,
-            name: conv.name || ''
-          }, { onConflict: 'conversation_id' })
+            phone_number: finalPhone,
+            name: finalName,
+            ...(finalConvId ? { conversation_id: finalConvId } : {})
+          })
           .select()
           .maybeSingle()
-
-        if (upsertError) throw upsertError
-        data = upsertData || null
+        data = res.data
+        error = res.error
       }
     }
 
-    if (error && !data) throw error
+    if (error) throw error
 
     // Sync conversations table if name, stage, or lead_type was updated
     const targetConvId = conversation_id || data?.conversation_id
@@ -260,7 +310,9 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    // State-based assignment logic removed as per user request
+    // Invalidate server cache so immediate refetch reflects updated category
+    invalidateUnifiedCache(orgId)
+
     // For Osmo RO tenant, trigger auto phonebook sync in background
     isOsmoOrg(orgId).then((isOsmo) => {
       if (isOsmo) syncOsmoPhonebooks(orgId).catch(console.error)

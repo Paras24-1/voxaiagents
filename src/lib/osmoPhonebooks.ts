@@ -218,7 +218,23 @@ export async function isOsmoOrg(orgId: string): Promise<boolean> {
   }
 }
 
+// ─── Server-side in-memory cache for fetchUnifiedOsmoContacts ────────────────
+// Cached per orgId. TTL: 10 seconds. Prevents repeated full DB scan on each
+// API call (page load, tab switch, filter changes all re-use the same fetch).
+const unifiedContactsCache = new Map<string, { data: any[]; expiresAt: number }>()
+const CACHE_TTL_MS = 10_000 // 10 seconds
+
+export function invalidateUnifiedCache(orgId: string) {
+  unifiedContactsCache.delete(orgId)
+}
+
 export async function fetchUnifiedOsmoContacts(orgId: string) {
+  // Return cached result if still fresh
+  const cached = unifiedContactsCache.get(orgId)
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data
+  }
+
   // 1. Fetch all conversations and leads for this org
   let conversations: any[] = []
   let fromConv = 0
@@ -258,7 +274,9 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
   conversations.forEach(c => {
     if (c.id) convsById.set(c.id, c)
     const p = (c.phone_number || '').replace(/\D/g, '').slice(-10)
-    if (p) convsByPhone.set(p, c)
+    if (p && !convsByPhone.has(p)) {
+      convsByPhone.set(p, c)
+    }
   })
 
   // 3. Merge into unified map
@@ -266,12 +284,13 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
 
   // Process leads first
   leads.forEach(l => {
-    let p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
-    const matchedConv = (l.conversation_id ? convsById.get(l.conversation_id) : null) || (p ? convsByPhone.get(p) : null) || null
-    if ((!p || p.length < 10) && matchedConv?.phone_number) {
-      p = (matchedConv.phone_number || '').replace(/\D/g, '').slice(-10)
-    }
+    const p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
     if (!p || p.length < 10) return
+    let matchedConv = l.conversation_id ? convsById.get(l.conversation_id) : null
+    const phoneConv = convsByPhone.get(p)
+    if (!matchedConv || (phoneConv && new Date(phoneConv.updated_at).getTime() > new Date(matchedConv.updated_at).getTime())) {
+      matchedConv = phoneConv || matchedConv
+    }
     
     let leadMeta: any = {}
     if (typeof l.metadata === 'string') { try { leadMeta = JSON.parse(l.metadata) } catch {} } 
@@ -283,47 +302,30 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       else convMeta = matchedConv.metadata
     }
 
-    // ── DIAGNOSTIC LOG ──────────────────────────────────────────────
-    const _diagIdx = leads.indexOf(l)
-    if (_diagIdx < 5) {
-      console.log(`[DIAG] lead[${_diagIdx}] phone=${p}`)
-      console.log(`[DIAG]   l.metadata RAW type=${typeof l.metadata}, value=`, l.metadata)
-      console.log(`[DIAG]   leadMeta parsed=`, JSON.stringify(leadMeta))
-      console.log(`[DIAG]   leadMeta.category=${leadMeta?.category} leadMeta.lead_type=${leadMeta?.lead_type}`)
-    }
-    // ────────────────────────────────────────────────────────────────
+    const explicitCat = (
+      leadMeta.lead_type ||
+      leadMeta.category ||
+      leadMeta.Lead_Type ||
+      leadMeta.user_type ||
+      convMeta.lead_type ||
+      convMeta.category ||
+      l.lead_type
+    )?.toString().trim().toLowerCase()
 
-    // Check for a manually saved category first — this always wins over the classifier
-    const savedCategory = leadMeta.category || leadMeta.lead_type || leadMeta.Lead_Type || leadMeta.user_type || convMeta.category || convMeta.lead_type
-    let category: OsmoCategoryKey
-
-    if (savedCategory) {
-      const normalised = String(savedCategory).trim().toLowerCase().replace(/\s+/g, '_')
-      if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] savedCategory='${savedCategory}' normalised='${normalised}' → USING SAVED`)
-      if (normalised === 'osmo_dealer' || normalised === 'osmo dealer') {
-        category = 'osmo_dealer'
-      } else if (normalised === 'dealer') {
-        category = 'dealer'
-      } else if (normalised === 'customer') {
-        category = 'customer'
-      } else if (normalised === 'unfiltered') {
-        category = 'unfiltered'
-      } else {
-        if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] savedCategory not a known key, falling back to classifier`)
-        const combinedForClassification = {
-          ...l,
-          lead: { ...l, metadata: leadMeta },
-          metadata: convMeta,
-          notes: matchedConv?.notes || l.notes || l.followup_notes,
-          last_message: matchedConv?.last_message
-        }
-        category = classifyOsmoContact(combinedForClassification)
-      }
+    let category: string
+    if (explicitCat === 'osmo_dealer' || explicitCat === 'osmo dealer') {
+      category = 'osmo_dealer'
+    } else if (explicitCat === 'dealer') {
+      category = 'dealer'
+    } else if (explicitCat === 'customer') {
+      category = 'customer'
+    } else if (explicitCat === 'unfiltered') {
+      category = 'unfiltered'
     } else {
-      if (_diagIdx < 5) console.log(`[DIAG]   lead[${_diagIdx}] NO savedCategory → RUNNING CLASSIFIER`)
       const combinedForClassification = {
         ...l,
-        lead: { ...l, metadata: leadMeta },
+        lead_type: explicitCat,
+        lead: { ...l, metadata: leadMeta, lead_type: explicitCat },
         metadata: convMeta,
         notes: matchedConv?.notes || l.notes || l.followup_notes,
         last_message: matchedConv?.last_message
@@ -350,37 +352,59 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
     if (typeof c.metadata === 'string') { try { convMeta = JSON.parse(c.metadata) } catch {} } 
     else if (c.metadata) convMeta = c.metadata
 
-    // Check for a manually saved category in the conversation metadata first
-    const savedConvCategory = convMeta.category || convMeta.lead_type || convMeta.Lead_Type
-    let convCategory: OsmoCategoryKey
+    const explicitCat = (
+      convMeta.lead_type ||
+      convMeta.category ||
+      convMeta.Lead_Type ||
+      convMeta.user_type ||
+      c.lead_type
+    )?.toString().trim().toLowerCase()
 
-    if (savedConvCategory) {
-      const normalised = String(savedConvCategory).trim().toLowerCase().replace(/\s+/g, '_')
-      if (normalised === 'osmo_dealer' || normalised === 'osmo dealer') {
-        convCategory = 'osmo_dealer'
-      } else if (normalised === 'dealer') {
-        convCategory = 'dealer'
-      } else if (normalised === 'customer') {
-        convCategory = 'customer'
-      } else if (normalised === 'unfiltered') {
-        convCategory = 'unfiltered'
-      } else {
-        convCategory = classifyOsmoContact({ ...c, lead: null, metadata: convMeta })
-      }
+    let category: string
+    if (explicitCat === 'osmo_dealer' || explicitCat === 'osmo dealer') {
+      category = 'osmo_dealer'
+    } else if (explicitCat === 'dealer') {
+      category = 'dealer'
+    } else if (explicitCat === 'customer') {
+      category = 'customer'
+    } else if (explicitCat === 'unfiltered') {
+      category = 'unfiltered'
     } else {
-      convCategory = classifyOsmoContact({ ...c, lead: null, metadata: convMeta })
+      const combinedForClassification = {
+        ...c,
+        lead_type: explicitCat,
+        lead: null,
+        metadata: convMeta
+      }
+      category = classifyOsmoContact(combinedForClassification)
     }
     
     unifiedMap.set(p, {
       phone: p,
       lead: null,
       conversation: { ...c, metadata: convMeta },
-      category: convCategory,
-      lead_type: convCategory
+      category,
+      lead_type: category
     })
   })
 
-  return Array.from(unifiedMap.values())
+  const result = Array.from(unifiedMap.values())
+  result.sort((a, b) => {
+    const timeA = Math.max(
+      new Date(a.lead?.created_at || 0).getTime(),
+      new Date(a.conversation?.created_at || 0).getTime(),
+      new Date(a.conversation?.updated_at || 0).getTime()
+    )
+    const timeB = Math.max(
+      new Date(b.lead?.created_at || 0).getTime(),
+      new Date(b.conversation?.created_at || 0).getTime(),
+      new Date(b.conversation?.updated_at || 0).getTime()
+    )
+    return timeB - timeA
+  })
+  // Store in cache
+  unifiedContactsCache.set(orgId, { data: result, expiresAt: Date.now() + CACHE_TTL_MS })
+  return result
 }
 
 /**
