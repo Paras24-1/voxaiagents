@@ -124,7 +124,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const hasInstagram = conversations.some(c => c.platform === 'instagram')
 
   return (
-    <aside className="flex flex-col h-full bg-gray-50/50 dark:bg-gray-950">
+    <aside className="flex flex-col h-full bg-white dark:bg-gray-950 border-r border-gray-200/80 dark:border-gray-800/80">
       {/* Add Lead & Initiate Chat Modal */}
       {showAddLead && (
         <AddLeadModal
@@ -140,28 +140,28 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
       {/* Confirm Delete Modal */}
       {confirmId && (
-        <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 w-full max-w-xs shadow-xl">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 w-full max-w-xs shadow-2xl border border-gray-200 dark:border-gray-800">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Delete Conversation?</h3>
-              <button onClick={() => setConfirmId(null)} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Delete Conversation?</h3>
+              <button onClick={() => setConfirmId(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-gray-500 mb-4">
-              This will permanently delete the conversation and all messages. This cannot be undone.
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+              This will permanently delete the conversation and all messages. This action cannot be undone.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmId(null)}
-                className="flex-1 px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="flex-1 px-3 py-2 text-xs font-semibold rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="flex-1 px-3 py-2 text-xs rounded-xl bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 font-medium"
+                className="flex-1 px-3 py-2 text-xs font-bold rounded-xl bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 transition-colors shadow-sm"
               >
                 {deleting ? 'Deleting...' : 'Delete'}
               </button>
@@ -170,55 +170,122 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
         </div>
       )}
 
-      {/* Header */}
-      <div className="p-4 border-b border-gray-150 dark:border-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2 tracking-tight">
-              <span>{isAdmin ? 'All Conversations' : 'My Chats'}</span>
-              <button
-                onClick={() => setShowAddLead(true)}
-                className="p-1.5 rounded-xl text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100/30 hover:bg-emerald-100 transition-colors"
-                title="Add New Lead & Start Chat"
-              >
-                <UserPlus className="w-4 h-4" />
-              </button>
+      {/* Sidebar Header */}
+      <div className="p-4 border-b border-gray-200/80 dark:border-gray-800/80 bg-gray-50/50 dark:bg-gray-900/50">
+        <div className="flex items-center justify-between mb-3.5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">
+              {isAdmin ? 'Conversations' : 'My Inbox'}
             </h2>
-            {!isAdmin && profile?.name && (
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                👤 {profile.name}
-              </p>
-            )}
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
+              {conversations.length}
+            </span>
           </div>
-          <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-full border border-emerald-100/20 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live
-          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAddLead(true)}
+              className="p-1.5 rounded-xl text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all shadow-xs flex items-center gap-1.5 text-xs font-bold"
+              title="Add New Lead & Start Chat"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>New</span>
+            </button>
+          </div>
         </div>
 
+        {/* Search Input */}
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-500" />
           <input
             type="text"
-            placeholder="Search name or number..."
+            placeholder="Search name, phone, message..."
             value={search}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all shadow-inner"
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-2xs"
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
+        {/* Filter Controls Row */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-          
+          {/* Channel Filters */}
+          <div className="flex items-center bg-gray-200/60 dark:bg-gray-800/60 p-0.5 rounded-xl border border-gray-200/50 dark:border-gray-800/50">
+            <button
+              onClick={() => setChannelFilter('all')}
+              className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-all ${
+                channelFilter === 'all'
+                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-2xs'
+                  : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setChannelFilter('whatsapp')}
+              className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-all ${
+                channelFilter === 'whatsapp'
+                  ? 'bg-emerald-500 text-white shadow-2xs'
+                  : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              WhatsApp
+            </button>
+            {hasInstagram && (
+              <button
+                onClick={() => setChannelFilter('instagram')}
+                className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-all ${
+                  channelFilter === 'instagram'
+                    ? 'bg-pink-500 text-white shadow-2xs'
+                    : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                Insta
+              </button>
+            )}
+          </div>
+
+          {/* Unread Toggle */}
+          <button
+            onClick={() => setUnread((u) => !u)}
+            className={`text-[10px] px-2.5 py-1 rounded-xl font-bold border transition-all shadow-2xs flex items-center gap-1 ${
+              unread
+                ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/20'
+                : 'bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <span>Unread</span>
+          </button>
+
+          {/* Stage Dropdown */}
+          <select
+            value={stage}
+            onChange={(e) => setStage(e.target.value)}
+            className="text-[10px] px-2 py-1 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+          >
+            <option value="">All Stages</option>
+            {STAGES.map((s) => (
+              <option key={s} value={s}>{s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
+            ))}
+          </select>
+
           {/* Assignment Filter (Admin only) */}
           {isAdmin && (
             <select
               value={assignedFilter}
               onChange={(e) => setAssignedFilter(e.target.value)}
-              className="text-xs px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              className="text-[10px] px-2 py-1 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
             >
-              <option value="all">All chats</option>
+              <option value="all">All Assignees</option>
               <option value="unassigned">Unassigned</option>
-              <option value="assigned">All Assigned</option>
+              <option value="assigned">Assigned</option>
               {employees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
                   {emp.name}
@@ -226,40 +293,6 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               ))}
             </select>
           )}
-          
-          <select
-            value={stage}
-            onChange={(e) => setStage(e.target.value)}
-            className="text-xs px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-          >
-            <option value="">All stages</option>
-            {STAGES.map((s) => (
-              <option key={s} value={s}>{s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
-            ))}
-          </select>
-
-          {hasInstagram && (
-            <select
-              value={channelFilter}
-              onChange={(e) => setChannelFilter(e.target.value)}
-              className="text-xs px-2 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-            >
-              <option value="all">All Channels</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="instagram">Instagram</option>
-            </select>
-          )}
-          
-          <button
-            onClick={() => setUnread((u) => !u)}
-            className={`text-xs px-2.5 py-1.5 rounded-xl font-medium border transition-all duration-200 shadow-sm ${
-              unread
-                ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/10'
-                : 'bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-50'
-            }`}
-          >
-            Unread
-          </button>
 
           {conversations.some(c => (c.unread_count || 0) > 0) && (
             <button
@@ -267,22 +300,23 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 markAllAsRead()
                 setUnread(false)
               }}
-              className="text-xs px-2.5 py-1.5 rounded-xl font-semibold border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all duration-200 shadow-sm flex items-center gap-1"
+              className="text-[10px] px-2 py-1 rounded-xl font-bold border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-all flex items-center gap-1 ml-auto"
               title="Mark all conversations as read"
             >
-              <CheckCheck className="w-3.5 h-3.5" />
-              Mark all read
+              <CheckCheck className="w-3 h-3" />
+              <span>Read all</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1.5 bg-gray-50/40 dark:bg-gray-950/20">
+      {/* Conversation Cards List */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-1.5 bg-gray-50/30 dark:bg-gray-950/30">
         {loading ? (
           <LoadingSkeleton />
         ) : conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-gray-400 text-sm">
+          <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 text-xs gap-2">
+            <Filter className="w-6 h-6 opacity-30" />
             <span>No conversations found</span>
           </div>
         ) : (
@@ -383,77 +417,81 @@ function ConversationItem({
 
   return (
     <div
-      className={`relative flex items-start gap-3 px-3 py-3 cursor-pointer transition-all duration-200 rounded-xl ${
+      className={`relative flex items-start gap-3 px-3 py-3 cursor-pointer transition-all duration-200 rounded-2xl border ${
         isSelected
-          ? 'bg-emerald-50 dark:bg-emerald-950/20 border-l-4 border-l-emerald-500 shadow-sm'
-          : 'hover:bg-gray-100/70 dark:hover:bg-gray-900/50'
+          ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500/50 dark:border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20'
+          : 'bg-white/60 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800/60 hover:bg-gray-100/80 dark:hover:bg-gray-900/80 hover:border-gray-200 dark:hover:border-gray-700'
       }`}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* Avatar */}
+      {/* Avatar with dynamic AI/Manual Mode Indicator */}
       <div className="relative shrink-0 select-none">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-xs font-bold shadow-md border border-emerald-400/20">
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center text-white text-xs font-black shadow-sm border border-white/20 dark:border-gray-900">
           {initials}
         </div>
-        {!conv.ai_mode && (
-          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-orange-400 border-2 border-white dark:border-gray-950 shadow-sm" />
-        )}
+        <span
+          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-gray-950 shadow-xs ${
+            conv.ai_mode ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+          }`}
+          title={conv.ai_mode ? 'AI Assistant active' : 'Manual takeover active'}
+        />
       </div>
 
-      {/* Content */}
+      {/* Main Details */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <span className={`text-xs font-bold truncate ${isSelected ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-900 dark:text-white'}`}>
-            {conv.name}
+          <span className={`text-xs font-bold truncate ${isSelected ? 'text-emerald-900 dark:text-emerald-200' : 'text-gray-900 dark:text-white'}`}>
+            {conv.name || conv.phone_number}
           </span>
           <span className="text-[9px] text-gray-400 font-semibold shrink-0 ml-2">{timeAgo}</span>
         </div>
-        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mb-1">
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-mono truncate mb-1">
           {conv.phone_number}
         </p>
-        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate leading-relaxed">
+        <p className={`text-xs truncate leading-relaxed ${isSelected ? 'text-gray-700 dark:text-gray-300 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
           {(() => {
             const msg = conv.last_message || ''
-            if (msg === '[Received image]' || msg.includes('image')) return '📷 Image'
-            if (msg === '[Received audio]' || msg.includes('audio')) return '🎵 Audio note'
-            if (msg === '[Received video]' || msg.includes('video')) return '🎥 Video'
-            if (msg === '[Received document]' || msg.includes('document')) return '📄 Document'
+            if (msg === '[Received image]' || msg.includes('image')) return '📷 Image attachment'
+            if (msg === '[Received audio]' || msg.includes('audio')) return '🎵 Audio message'
+            if (msg === '[Received video]' || msg.includes('video')) return '🎥 Video attachment'
+            if (msg === '[Received document]' || msg.includes('document')) return '📄 Document file'
             if (msg === '[Message]') return '💬 Message'
             return msg || 'No messages yet'
           })()}
         </p>
+
+        {/* Badges Container */}
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${STAGE_COLORS[(conv.stage || 'new') as Stage] || STAGE_COLORS.new}`}>
+          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${STAGE_COLORS[(conv.stage || 'new') as Stage] || STAGE_COLORS.new}`}>
             {(conv.stage || 'new').replace(/_/g, ' ')}
           </span>
 
           {/* Platform Badge */}
-          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
             conv.platform === 'instagram'
-              ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border border-pink-100/10'
-              : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border border-green-100/10'
+              ? 'bg-pink-100 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300 border border-pink-200/50'
+              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50'
           }`}>
             {conv.platform || 'whatsapp'}
           </span>
 
-
           {/* Blocked Badge */}
           {conv.is_blocked && (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border border-red-100/10 flex items-center gap-1">
-              <Ban className="w-2.5 h-2.5" /> BLOCKED
+            <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300 border border-red-200/50 flex items-center gap-1">
+              <Ban className="w-2.5 h-2.5" /> Blocked
             </span>
           )}
           
           {/* Assignment Badge */}
           {assignedEmployee && (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-100/10">
-              → {assignedEmployee.name.split(' ')[0]}
+            <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200/50">
+              👤 {assignedEmployee.name.split(' ')[0]}
             </span>
           )}
           {!assignedEmployee && isAdmin && (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-amber-55 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-100/10">
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
               Unassigned
             </span>
           )}

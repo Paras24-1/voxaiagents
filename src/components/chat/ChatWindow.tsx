@@ -530,25 +530,29 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   return (
     <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 min-h-0">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-150 dark:border-gray-800/85 bg-white dark:bg-gray-900 flex items-center justify-between shrink-0 shadow-sm">
-        <div>
-          <h2 className="text-sm font-bold text-gray-900 dark:text-white leading-tight flex items-center gap-2">
-            <span>{conversation.name}</span>
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-              conversation.platform === 'instagram'
-                ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border border-pink-100/10'
-                : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border border-green-100/10'
-            }`}>
-              {conversation.platform || 'whatsapp'}
-            </span>
-          </h2>
-          <p className="text-[11px] text-gray-400 mt-0.5">{conversation.phone_number}</p>
+      <div className="px-5 py-3.5 border-b border-gray-200/80 dark:border-gray-800/80 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md flex items-center justify-between shrink-0 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center text-white text-xs font-black shadow-sm border border-white/20 dark:border-gray-900 select-none">
+            {(conversation.name || conversation.phone_number || 'U').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+          </div>
+          <div>
+            <h2 className="text-sm font-extrabold text-gray-900 dark:text-white leading-tight flex items-center gap-2">
+              <span>{conversation.name}</span>
+              <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                conversation.platform === 'instagram'
+                  ? 'bg-pink-100 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300 border border-pink-200/50'
+                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50'
+              }`}>
+                {conversation.platform || 'whatsapp'}
+              </span>
+            </h2>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 font-mono mt-0.5">{conversation.phone_number}</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-
           {/* Stage Selector */}
-          <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-2.5 py-1.5 rounded-xl border border-gray-150 dark:border-gray-700/50 shadow-inner select-none">
+          <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800/80 px-2.5 py-1.5 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-2xs select-none">
             <Tag className="w-3.5 h-3.5 text-gray-400" />
             <select
               value={stage}
@@ -567,21 +571,21 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
           {/* AI Toggle */}
           <button
             onClick={toggleAI}
-            className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-300 shadow-sm border flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 shadow-sm border flex items-center gap-1.5 cursor-pointer ${
               conversation.ai_mode 
                 ? 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600 shadow-emerald-500/20' 
-                : 'bg-red-500 text-white border-red-400 hover:bg-red-600 shadow-red-500/20'
+                : 'bg-amber-500 text-white border-amber-400 hover:bg-amber-600 shadow-amber-500/20'
             }`}
           >
             {conversation.ai_mode ? (
               <>
                 <Bot className="w-3.5 h-3.5" />
-                AI ACTIVE
+                <span>AI Active</span>
               </>
             ) : (
               <>
                 <User className="w-3.5 h-3.5" />
-                AI PAUSED
+                <span>Human Takeover</span>
               </>
             )}
           </button>
