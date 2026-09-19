@@ -147,8 +147,11 @@ export function useConversations(filters: {
       params.set('assign_filter', filters.assignFilter)
     }
 
-    const res = await fetch(`/api/conversations?${params}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+    params.append('_t', Date.now().toString())
+
+    const res = await fetch(`/api/conversations?${params.toString()}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-store'
     })
     const data = await res.json()
     if (Array.isArray(data)) {
@@ -311,11 +314,12 @@ export function useMessages(conversationId: string | null) {
       } = await supabase.auth.getSession()
 
       const res = await fetch(
-        `/api/messages?conversation_id=${conversationId}`,
+        `/api/messages?conversation_id=${conversationId}&_t=${Date.now()}`,
         {
           headers: session?.access_token
             ? { Authorization: `Bearer ${session.access_token}` }
             : {},
+          cache: 'no-store'
         }
       )
 
