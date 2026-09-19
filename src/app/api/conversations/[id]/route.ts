@@ -126,7 +126,8 @@ export async function PATCH(
     }
 
     if (!conv) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      console.error(`[PATCH DIAGNOSTICS] Conv not found! ID: ${id}, User Org: ${profile.orgId}`);
+      return NextResponse.json({ error: `Conversation not found (Diagnostics Check)` }, { status: 400 })
     }
 
     // Only restrict reassigning assigned_to to other team members for staff employees
