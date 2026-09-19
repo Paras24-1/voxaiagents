@@ -36,8 +36,6 @@ interface Props {
   onAIToggle: (id: string, mode: boolean) => void
 }
 
-import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
-
 export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const { profile, org } = useOrg()
   const isOsmoRo = 
@@ -76,68 +74,6 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   useEffect(() => {
     setStage(conversation?.stage || 'new')
   }, [conversation?.id, conversation?.stage])
-
-  const CATEGORY_COLORS: Record<string, string> = {
-    unfiltered: 'bg-gray-150 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-    osmo_dealer: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-    dealer: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-    customer: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300'
-  }
-
-  const [category, setCategory] = useState<string>('unfiltered')
-  const [savingCategory, setSavingCategory] = useState(false)
-
-  useEffect(() => {
-    if (conversation) {
-      setCategory(classifyOsmoContact(conversation))
-    }
-  }, [conversation?.id, (conversation as any)?.metadata, conversation?.lead_type])
-
-  const handleCategoryChange = async (newCategory: string) => {
-    if (!conversation) return
-    setCategory(newCategory)
-    conversation.lead_type = newCategory
-    if (conversation.metadata && typeof conversation.metadata === 'object') {
-      conversation.metadata.lead_type = newCategory
-      conversation.metadata.category = newCategory
-    } else {
-      conversation.metadata = { lead_type: newCategory, category: newCategory }
-    }
-    if (conversation.lead) {
-      const leadObj = Array.isArray(conversation.lead) ? conversation.lead[0] : conversation.lead
-      if (leadObj) {
-        leadObj.lead_type = newCategory
-        if (leadObj.metadata && typeof leadObj.metadata === 'object') {
-          leadObj.metadata.lead_type = newCategory
-          leadObj.metadata.category = newCategory
-        }
-      }
-    }
-
-    try {
-      window.dispatchEvent(new CustomEvent('update-conversation', { detail: { ...conversation, lead_type: newCategory, category: newCategory } }))
-
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers = { 
-        'Content-Type': 'application/json',
-        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-      }
-
-      fetch(`/api/conversations/${conversation.id}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ lead_type: newCategory })
-      }).catch(console.error)
-
-      fetch(`/api/leads`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ conversation_id: conversation.id, phone_number: conversation.phone_number, lead_type: newCategory })
-      }).catch(console.error)
-    } catch (err) {
-      console.error('Failed to change category:', err)
-    }
-  }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
@@ -615,23 +551,6 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
-          {/* Osmo Category Selector (Osmo RO) */}
-          {isOsmoRo && (
-            <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-2.5 py-1.5 rounded-xl border border-gray-150 dark:border-gray-700/50 shadow-inner select-none">
-              <span className="text-[9px] font-extrabold text-gray-400">CATEGORY:</span>
-              <select
-                value={category}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                disabled={savingCategory}
-                className={`text-[10px] uppercase font-bold tracking-wider px-1 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 ${CATEGORY_COLORS[category] || CATEGORY_COLORS.unfiltered}`}
-              >
-                <option value="unfiltered">Unfiltered</option>
-                <option value="osmo_dealer">Osmo Dealer</option>
-                <option value="dealer">Dealer</option>
-                <option value="customer">Customer</option>
-              </select>
-            </div>
-          )}
 
           {/* Stage Selector */}
           <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 px-2.5 py-1.5 rounded-xl border border-gray-150 dark:border-gray-700/50 shadow-inner select-none">

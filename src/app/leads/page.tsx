@@ -95,12 +95,7 @@ export default function LeadsPage() {
   return <LeadsContent />
 }
 
-import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
 import { INDIAN_STATES } from '@/lib/constants'
-
-function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered' {
-  return classifyOsmoContact(lead)
-}
 
 function LeadsContent() {
   const { profile, org } = useOrg()
@@ -119,14 +114,13 @@ function LeadsContent() {
   const [loadingMore, setLoadingMore] = useState(false)
 
   // Stats
-  const [stats, setStats] = useState({ total: 0, unfiltered: 0, osmo_dealer: 0, dealer: 0, customer: 0, hot: 0, warm: 0, followups: 0 })
+  const [stats, setStats] = useState({ total: 0, hot: 0, warm: 0, followups: 0 })
   
   // Filters
   const [search, setSearch] = useState('')
   const [selectedStage, setSelectedStage] = useState('')
   const [selectedQuality, setSelectedQuality] = useState('')
   const [selectedState, setSelectedState] = useState('')
-  const [leadTypeFilter, setLeadTypeFilter] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   
@@ -137,17 +131,8 @@ function LeadsContent() {
   const [editStage, setEditStage] = useState('')
   const [editQuality, setEditQuality] = useState('')
   const [editScore, setEditScore] = useState(0)
-  const [editCategory, setEditCategory] = useState('unfiltered')
   const [editState, setEditState] = useState('')
   const [savingLead, setSavingLead] = useState(false)
-
-  // Stats loaded from server
-  const typeCounts = {
-    unfiltered: stats.unfiltered,
-    osmo_dealer: stats.osmo_dealer,
-    dealer: stats.dealer,
-    customer: stats.customer,
-  }
 
   const fetchStats = async (headers: any, params: URLSearchParams) => {
     try {
@@ -189,7 +174,6 @@ function LeadsContent() {
       }
 
       const params = new URLSearchParams(statsParams)
-      if (leadTypeFilter !== 'all') params.set('lead_type', leadTypeFilter)
 
       const currentPage = loadMore ? page + 1 : 1
       params.set('page', currentPage.toString())
@@ -217,7 +201,7 @@ function LeadsContent() {
 
   useEffect(() => {
     fetchLeads(false)
-  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter])
+  }, [selectedStage, selectedQuality, selectedState, startDate, endDate])
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -225,66 +209,7 @@ function LeadsContent() {
     }
   }
 
-  // Quick category change directly from table
-  const handleQuickCategoryChange = async (lead: Lead, newCategory: string) => {
-    // Instant optimistic update
-    setLeads(prev => prev.map(l => {
-      if (l.id === lead.id || (l.phone_number && lead.phone_number && l.phone_number === lead.phone_number)) {
-        const currentMeta = typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})
-        return {
-          ...l,
-          lead_type: newCategory,
-          metadata: { ...currentMeta, lead_type: newCategory, category: newCategory }
-        }
-      }
-      return l
-    }))
-
-    const oldCat = typeof lead.metadata === 'string' 
-      ? JSON.parse(lead.metadata || '{}').category || lead.lead_type || 'unfiltered' 
-      : (lead.metadata as any)?.category || lead.lead_type || 'unfiltered'
-    
-    if (oldCat !== newCategory) {
-      setStats(prev => ({
-        ...prev,
-        [oldCat]: Math.max(0, (prev[oldCat as keyof typeof prev] as number) - 1),
-        [newCategory]: (prev[newCategory as keyof typeof prev] as number) + 1
-      }))
-    }
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token || ''
-      const headers = { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-      
-      fetch('/api/leads', {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({
-          id: lead.id,
-          conversation_id: lead.conversation_id,
-          phone_number: lead.phone_number,
-          lead_type: newCategory
-        })
-      }).catch(console.error)
-
-      if (lead.conversation_id) {
-        fetch(`/api/conversations/${lead.conversation_id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ lead_type: newCategory })
-        }).catch(console.error)
-        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: lead.conversation_id, lead_type: newCategory, category: newCategory } }))
-      }
-    } catch (err) {
-      console.error('Failed to change lead category:', err)
-    }
-  }
-
-  // Save Lead changes (Stage / Quality / Score / Category)
+  // Save Lead changes (Stage / Quality / Score / State)
   const handleUpdateLead = async () => {
     if (!activeLead) return
     setSavingLead(true)
@@ -303,7 +228,6 @@ function LeadsContent() {
         stage: editStage,
         lead_quality: editQuality || null,
         lead_score: editScore,
-        lead_type: editCategory,
         state: editState
       }
 
@@ -316,16 +240,7 @@ function LeadsContent() {
       if (!res.ok) throw new Error('Failed to update lead')
       
       const currentMeta = typeof activeLead.metadata === 'string' ? JSON.parse(activeLead.metadata || '{}') : (activeLead.metadata || {})
-      const mergedMeta = { ...currentMeta, lead_type: editCategory, category: editCategory, state: editState }
-      
-      const oldCat = currentMeta.category || activeLead.lead_type || 'unfiltered'
-      if (oldCat !== editCategory) {
-        setStats(prev => ({
-          ...prev,
-          [oldCat]: Math.max(0, (prev[oldCat as keyof typeof prev] as number) - 1),
-          [editCategory]: (prev[editCategory as keyof typeof prev] as number) + 1
-        }))
-      }
+      const mergedMeta = { ...currentMeta, state: editState }
 
       // Update local state list
       setLeads(prev => prev.map(l => (l.id === activeLead.id || (l.phone_number && activeLead.phone_number && l.phone_number === activeLead.phone_number)) ? { ...l, ...updates, metadata: mergedMeta } : l))
@@ -345,19 +260,11 @@ function LeadsContent() {
     const score = Number(meta.lead_score ?? lead.lead_score) || 0;
     const stage = meta.stage || lead.stage || 'new';
     const quality = meta.lead_quality || (score >= 70 ? 'hot' : score >= 40 ? 'warm' : score > 0 ? 'cold' : lead.lead_quality || 'unknown');
-    
-    // Read saved category from metadata first — never re-classify manually-assigned leads
-    const savedCat = meta.category || meta.lead_type || meta.Lead_Type || meta.user_type
-    const KNOWN_CATS = new Set(['osmo_dealer', 'dealer', 'customer', 'unfiltered'])
-    const resolvedCategory = savedCat && KNOWN_CATS.has(String(savedCat).toLowerCase())
-      ? String(savedCat).toLowerCase()
-      : classifyLead(lead)
 
     setActiveLead({ ...lead, metadata: meta })
     setEditStage(stage)
     setEditQuality(quality)
     setEditScore(score)
-    setEditCategory(resolvedCategory)
     setEditState(meta.state || '')
   }
 
@@ -552,41 +459,6 @@ function LeadsContent() {
             </div>
           </div>
 
-          {/* Quick Tap Category Tabs (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
-          {isOsmoRo && (
-            <div className="grid grid-cols-4 gap-3 p-2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-white dark:border-gray-800/50 shadow-sm transition-all">
-              {[
-                { id: 'unfiltered', label: 'Unfiltered', count: typeCounts.unfiltered, activeStyle: 'bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-md shadow-slate-500/30' },
-                { id: 'osmo_dealer', label: 'Osmo Dealer', count: typeCounts.osmo_dealer, activeStyle: 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/30' },
-                { id: 'dealer', label: 'Dealer', count: typeCounts.dealer, activeStyle: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/30' },
-                { id: 'customer', label: 'Customer', count: typeCounts.customer, activeStyle: 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md shadow-teal-500/30' },
-              ].map((tab) => {
-                const active = leadTypeFilter === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setLeadTypeFilter(tab.id)}
-                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-[11px] uppercase tracking-wider font-black transition-all duration-300 select-none cursor-pointer ${
-                      active
-                        ? tab.activeStyle
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50/50 dark:hover:bg-gray-800/50'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-lg font-black ${
-                      active && tab.id !== 'all'
-                        ? 'bg-white/25 text-white shadow-inner'
-                        : 'bg-gray-200/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300'
-                    }`}>
-                      {tab.count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
           {/* CRM Leads Table */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-white/50 dark:border-gray-800/50 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[350px] transition-all relative">
             {loading ? (
@@ -721,27 +593,6 @@ function LeadsContent() {
                             <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 shadow-[inset_-1px_0_0_0_#f3f4f6] dark:shadow-[inset_-1px_0_0_0_#1f2937]">
                               <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <span>{displayName}</span>
-                                {isOsmoRo && (
-                                  <div className="relative inline-flex items-center ml-1" onClick={(e) => e.stopPropagation()}>
-                                    <select
-                                      value={classifyLead(lead)}
-                                      onChange={(e) => handleQuickCategoryChange(lead, e.target.value)}
-                                      className={`text-[9px] font-bold pl-1.5 pr-3.5 py-0.5 rounded-full uppercase tracking-wider border cursor-pointer appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-sm ${
-                                        classifyLead(lead) === 'osmo_dealer' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
-                                        classifyLead(lead) === 'dealer' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800' :
-                                        classifyLead(lead) === 'customer' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border-teal-200 dark:border-teal-800' :
-                                        'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-750'
-                                      }`}
-                                      title="Change Category (Osmo Dealer, Dealer, Customer, Unfiltered)"
-                                    >
-                                      <option value="unfiltered">Unfiltered</option>
-                                      <option value="osmo_dealer">Osmo Dealer</option>
-                                      <option value="dealer">Dealer</option>
-                                      <option value="customer">Customer</option>
-                                    </select>
-                                    <ChevronDown className="w-2 h-2 absolute right-1 pointer-events-none opacity-60" />
-                                  </div>
-                                )}
                               </div>
                               <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                 <Phone className="w-3 h-3" />
@@ -939,36 +790,21 @@ function LeadsContent() {
                       </select>
                     </div>
 
-                    {/* Category & State (Osmo RO only) */}
+                    {/* Geographic State (Osmo RO only) */}
                     {isOsmoRo && (
-                      <>
-                        <div>
-                          <label className="text-xs text-gray-500 block mb-1">Lead Category</label>
-                          <select
-                            value={editCategory}
-                            onChange={(e) => setEditCategory(e.target.value)}
-                            className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm focus:outline-none font-semibold text-gray-900 dark:text-white"
-                          >
-                            <option value="unfiltered">⚪ Unfiltered (Undefined)</option>
-                            <option value="osmo_dealer">🟣 Osmo Dealer</option>
-                            <option value="dealer">🟠 Dealer / Retailer</option>
-                            <option value="customer">🟢 Customer</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-gray-500 block mb-1">Geographic State</label>
-                          <select
-                            value={editState}
-                            onChange={(e) => setEditState(e.target.value)}
-                            className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm focus:outline-none font-semibold text-gray-900 dark:text-white"
-                          >
-                            <option value="">-- Select State --</option>
-                            {INDIAN_STATES.map(s => (
-                              <option key={s} value={s}>{s}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Geographic State</label>
+                        <select
+                          value={editState}
+                          onChange={(e) => setEditState(e.target.value)}
+                          className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm focus:outline-none font-semibold text-gray-900 dark:text-white"
+                        >
+                          <option value="">-- Select State --</option>
+                          {INDIAN_STATES.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
                     )}
                   </div>
 
