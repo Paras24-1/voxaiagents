@@ -354,7 +354,10 @@ export function useMessages(conversationId: string | null) {
             }
           })
           
-          return Array.from(existingMap.values()).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+          // STRICT FILTER: Only keep messages that belong to the active conversation
+          return Array.from(existingMap.values())
+            .filter(m => m.conversation_id === conversationId)
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
         })
       }
     } catch (error) {
@@ -365,10 +368,8 @@ export function useMessages(conversationId: string | null) {
   }, [conversationId])
 
   useEffect(() => {
-    if (!conversationId) {
-      setMessages([])
-      return
-    }
+    setMessages([]) // Instantly clear previous conversation's messages
+    if (!conversationId) return
     fetchMessages(true)
   }, [conversationId, fetchMessages])
 
