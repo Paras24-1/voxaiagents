@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { Conversation, Lead, LeadActivity } from '@/types'
 import { supabase } from '@/lib/supabaseClient'
+import { motion, AnimatePresence } from 'framer-motion'
 
 import { INDIAN_STATES } from '@/lib/constants'
-import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown } from 'lucide-react'
+import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown, Loader2 } from 'lucide-react'
 
 const getLocalDateString = (d: Date) => {
   const year = d.getFullYear();
@@ -35,6 +36,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
   const [leadState, setLeadState] = useState<string>('')
   const [savingState, setSavingState] = useState(false)
+  const [savingCategoryStatus, setSavingCategoryStatus] = useState<'idle' | 'saving' | 'success'>('idle')
+  const [showCategoryToast, setShowCategoryToast] = useState(false)
 
   // Sync leadState from metadata when conversation/lead changes
   useEffect(() => {
@@ -620,8 +623,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 <div className="relative z-10">
                   <select
                     value={lead?.osmo_category || 'unfiltered'}
+                    disabled={savingCategoryStatus === 'saving'}
                     onChange={async (e) => {
                       const val = e.target.value
+                      setSavingCategoryStatus('saving')
                       if (conversation) {
                         const updatedLead = { ...(lead || {}), osmo_category: val }
                         window.dispatchEvent(new CustomEvent('update-conversation', {
@@ -632,16 +637,28 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                       if (lead?.id) {
                         await supabase.from('leads').update({ osmo_category: val }).eq('id', lead.id)
                       }
+                      setSavingCategoryStatus('success')
+                      setShowCategoryToast(true)
+                      setTimeout(() => {
+                        setSavingCategoryStatus('idle')
+                        setShowCategoryToast(false)
+                      }, 3000)
                     }}
-                    className="w-full appearance-none bg-white dark:bg-black/40 border border-emerald-200/60 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 text-emerald-900 dark:text-emerald-100 text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer capitalize shadow-sm"
+                    className={`w-full appearance-none bg-white dark:bg-black/40 border border-emerald-200/60 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 text-emerald-900 dark:text-emerald-100 text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer capitalize shadow-sm ${savingCategoryStatus === 'saving' ? 'opacity-80 cursor-wait' : ''}`}
                   >
                     <option value="unfiltered">⚪ Unfiltered</option>
-                    <option value="Osmo dealer">🟢 Osmo Dealer</option>
+                    <option value="osmo_dealer">🟢 Osmo Dealer</option>
                     <option value="dealer">🔵 Dealer</option>
                     <option value="customer">🟠 Customer</option>
                   </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 bg-emerald-100 dark:bg-emerald-900/60 rounded flex items-center justify-center pointer-events-none">
-                    <ChevronDown className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-emerald-100 dark:bg-emerald-900/60 rounded flex items-center justify-center pointer-events-none transition-all">
+                    {savingCategoryStatus === 'saving' ? (
+                      <Loader2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                    ) : savingCategoryStatus === 'success' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-in zoom-in" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -1295,6 +1312,26 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           </div>
         </div>
       )}
+
+      {/* Success Toast for Category Change */}
+      <AnimatePresence>
+        {showCategoryToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900/90 dark:bg-black/90 backdrop-blur-xl border border-white/10 dark:border-white/5 text-white px-4 py-3 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] pointer-events-none"
+          >
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <Check className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="flex flex-col pr-2">
+              <span className="text-[13px] font-bold tracking-wide">Category Updated</span>
+              <span className="text-[11px] text-gray-300">Lead moved successfully</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

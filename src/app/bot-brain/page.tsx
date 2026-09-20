@@ -3,33 +3,42 @@
 import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import { supabase } from '@/lib/supabaseClient'
-import { 
-  Brain, Cpu, Database, RefreshCw, Save, Sparkles, Check, AlertCircle, 
-  ExternalLink, FileSpreadsheet, Key, Send, Bot, User, Loader2, Code2, Layers, Table
-} from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Brain, Save, Check, Loader2, Sparkles, RefreshCw } from 'lucide-react'
+
+// Modular Components
+import ModelSelect from '@/components/bot-brain/ModelSelect'
+import StatusBadge from '@/components/bot-brain/StatusBadge'
+import ChatPanel, { Message } from '@/components/bot-brain/ChatPanel'
+import SuggestionChips from '@/components/bot-brain/SuggestionChips'
+import AdvancedEditor from '@/components/bot-brain/AdvancedEditor'
 
 export default function BotBrainPage() {
   const [engineMode, setEngineMode] = useState<'native' | 'hybrid_n8n'>('native')
   const [aiProvider, setAiProvider] = useState('gemini')
-  const [aiModelName, setAiModelName] = useState('gemini-2.0-flash')
+  const [aiModelName, setAiModelName] = useState('gemini-3.7-flash')
   const [systemPrompt, setSystemPrompt] = useState(
     'You are a helpful and polite WhatsApp AI sales consultant for Kataria Herbal Remedies.\n\nUse the Knowledge Base price list below to answer user queries accurately. Keep answers concise.'
   )
-  const [googleSheetId, setGoogleSheetId] = useState('')
-  const [googleSheetName, setGoogleSheetName] = useState('Sheet1')
   const [geminiApiKey, setGeminiApiKey] = useState('')
   const [openaiApiKey, setOpenaiApiKey] = useState('')
   const [n8nWebhookUrl, setN8nWebhookUrl] = useState('')
-  
-  const [cachedKb, setCachedKb] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [syncing, setSyncing] = useState(false)
-  const [savedSuccess, setSavedSuccess] = useState(false)
+  
+  // Status states
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'updated' | 'error'>('idle')
+
+  // AI Prompt Builder State
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false)
+  const [builderInput, setBuilderInput] = useState('')
+  const [builderMessages, setBuilderMessages] = useState<Message[]>([
+    { role: 'bot', text: 'Hi! I am your AI Prompt Engineer. Tell me how you want your bot to behave, and I will configure it for you!' }
+  ])
+  const [isBuilding, setIsBuilding] = useState(false)
 
   // AI Sandbox Chat Testing State
   const [sandboxInput, setSandboxInput] = useState('')
-  const [sandboxMessages, setSandboxMessages] = useState<Array<{ role: 'user' | 'bot'; text: string }>>([
+  const [sandboxMessages, setSandboxMessages] = useState<Message[]>([
     { role: 'bot', text: 'Hello! I am your Bot Brain AI assistant. How can I help you today?' }
   ])
   const [testingAi, setTestingAi] = useState(false)
@@ -54,15 +63,16 @@ export default function BotBrainPage() {
         const data = await res.json()
         setEngineMode(data.engine_mode || 'native')
         setAiProvider(data.ai_provider || 'gemini')
-        const model = data.ai_model_name === 'gemini-1.5-flash' ? 'gemini-2.5-flash' : (data.ai_model_name || 'gemini-2.5-flash')
+        // Automatically upgrade deprecated models to current valid ones
+        let model = data.ai_model_name || 'gemini-3.7-flash'
+        if (model.includes('1.5') || model.includes('2.5') || model.includes('3.6')) {
+          model = 'gemini-3.7-flash' 
+        }
         setAiModelName(model)
         if (data.system_prompt) setSystemPrompt(data.system_prompt)
-        setGoogleSheetId(data.google_sheet_id || '')
-        setGoogleSheetName(data.google_sheet_name || 'Sheet1')
         setGeminiApiKey(data.gemini_api_key || '')
         setOpenaiApiKey(data.openai_api_key || '')
         setN8nWebhookUrl(data.n8n_inbound_webhook_url || '')
-        if (data.cached_kb) setCachedKb(data.cached_kb)
       }
     } catch (err) {
       console.error('Fetch bot brain error:', err)
@@ -71,42 +81,8 @@ export default function BotBrainPage() {
     }
   }
 
-  const handleSyncSheet = async () => {
-    if (!googleSheetId) {
-      alert('Please enter a Google Sheet ID or URL first')
-      return
-    }
-    setSyncing(true)
-    try {
-      const token = await getToken()
-      const res = await fetch('/api/bot-brain', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: 'sync_sheet',
-          sheet_id: googleSheetId,
-          sheet_name: googleSheetName
-        })
-      })
-
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to sync sheet')
-
-      setCachedKb(data.cached_kb)
-      alert(`Knowledge Base Synced Successfully! Loaded ${data.cached_kb.totalRows} items.`)
-    } catch (err: any) {
-      console.error('Sync error:', err)
-      alert(`Google Sheet Sync Error: ${err.message || String(err)}`)
-    } finally {
-      setSyncing(false)
-    }
-  }
-
-  const handleSaveSettings = async () => {
-    setSaving(true)
+  const handleSaveSettings = async (overridePrompt?: string) => {
+    setSaveStatus('saving')
     try {
       const token = await getToken()
       const res = await fetch('/api/bot-brain', {
@@ -119,13 +95,10 @@ export default function BotBrainPage() {
           engine_mode: engineMode,
           ai_provider: aiProvider,
           ai_model_name: aiModelName,
-          system_prompt: systemPrompt,
-          google_sheet_id: googleSheetId,
-          google_sheet_name: googleSheetName,
+          system_prompt: overridePrompt || systemPrompt,
           gemini_api_key: geminiApiKey,
           openai_api_key: openaiApiKey,
-          n8n_inbound_webhook_url: n8nWebhookUrl,
-          cached_kb: cachedKb
+          n8n_inbound_webhook_url: n8nWebhookUrl
         })
       })
 
@@ -134,14 +107,63 @@ export default function BotBrainPage() {
         throw new Error(errData.error || 'Failed to save settings')
       }
 
-      setSavedSuccess(true)
-      setTimeout(() => setSavedSuccess(false), 3000)
+      setSaveStatus('updated')
+      setTimeout(() => setSaveStatus('idle'), 3000)
     } catch (err: any) {
       console.error('Save error:', err)
+      setSaveStatus('error')
       alert(`Failed to save Bot Brain settings: ${err.message || String(err)}`)
-    } finally {
-      setSaving(false)
+      setTimeout(() => setSaveStatus('idle'), 3000)
     }
+  }
+
+  // AI Prompt Builder Logic
+  const handleBuilderSend = async (overrideInput?: string) => {
+    const userMsg = (overrideInput || builderInput).trim()
+    if (!userMsg || isBuilding) return
+    setBuilderInput('')
+
+    setBuilderMessages(prev => [...prev, { role: 'user', text: userMsg }])
+    setIsBuilding(true)
+
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/bot-brain/builder', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: userMsg,
+          current_prompt: systemPrompt,
+          api_key: geminiApiKey,
+          openai_api_key: openaiApiKey
+        })
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to reach Prompt Engineer AI')
+      }
+
+      const data = await res.json()
+      
+      setBuilderMessages(prev => [...prev, { role: 'bot', text: data.friendly_message }])
+      setSystemPrompt(data.technical_prompt)
+      
+      // Auto-save the new prompt immediately
+      await handleSaveSettings(data.technical_prompt)
+    } catch (err: any) {
+      console.error('Builder error:', err)
+      setBuilderMessages(prev => [...prev, { role: 'bot', text: `Sorry, I encountered an error: ${err.message}` }])
+    } finally {
+      setIsBuilding(false)
+    }
+  }
+
+  const handleSuggestionClick = (suggestion: string) => {
+    handleBuilderSend(suggestion)
   }
 
   // Sandbox Test AI Response
@@ -154,267 +176,125 @@ export default function BotBrainPage() {
     setTestingAi(true)
 
     setTimeout(() => {
-      // Simulate AI response using cached KB and System Prompt
+      // Simulate AI response using System Prompt
       let replyText = `I have received your query: "${userMsg}". `
-      if (cachedKb?.json && cachedKb.json.length > 0) {
-        const matchedItem = cachedKb.json.find((item: any) => 
-          Object.values(item).some((val: any) => String(val).toLowerCase().includes(userMsg.toLowerCase()))
-        )
-        if (matchedItem) {
-          replyText = `Based on your Knowledge Base: ${Object.entries(matchedItem).map(([k, v]) => `${k}: ${v}`).join(', ')}`
-        } else {
-          replyText = `Thank you for contacting Kataria Herbal Remedies! Our price list includes items like ${cachedKb.json.slice(0, 2).map((i: any) => Object.values(i)[0] || 'item').join(', ')}. How can I assist you further?`
-        }
-      } else {
-        replyText += `(Bot Brain prompt is configured for ${engineMode === 'native' ? 'Native Dashboard AI' : 'Hybrid n8n'}).`
-      }
+      replyText += `(Bot Brain prompt is configured for ${engineMode === 'native' ? 'Native Dashboard AI' : 'Hybrid n8n'}).`
 
       setSandboxMessages(prev => [...prev, { role: 'bot', text: replyText }])
       setTestingAi(false)
     }, 600)
   }
 
+  const handleClearSandbox = () => {
+    setSandboxMessages([{ role: 'bot', text: 'Hello! I am your Bot Brain AI assistant. How can I help you today?' }])
+  }
+
   return (
-    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
-      {/* Top Header */}
-      <header className="px-8 py-5 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex items-center justify-between shrink-0 z-10">
+    <div className="min-h-screen flex flex-col bg-[#020617] text-slate-100 relative selection:bg-purple-500/30">
+      {/* Background Animated Gradient Meshes */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none z-0" />
+
+      {/* Top Header Banner with Hamburger Menu */}
+      <header className="sticky top-0 z-50 w-full px-6 py-3.5 border-b border-slate-800/80 bg-[#020617]/90 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-md">
         <div className="flex items-center gap-4">
           <Sidebar />
-          <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
-            <Brain className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Bot Brain & Knowledge Control Hub</h1>
-            <p className="text-xs text-slate-400">Configure AI System Prompt, 2-Way Google Sheets Knowledge Base, and Engine Modes</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-inner">
+              <Brain className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                Bot Brain Configuration
+              </h1>
+              <p className="text-[11px] text-slate-400 font-medium hidden sm:block">Configure AI Prompt, Model, and test it live</p>
+            </div>
           </div>
         </div>
 
-          <button
-            onClick={handleSaveSettings}
-            disabled={saving}
-            className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : savedSuccess ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-            <span>{savedSuccess ? 'Settings Saved!' : 'Save Bot Brain'}</span>
-          </button>
-        </header>
-
-        {/* Scrollable Workspace */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8">
-          
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
-              <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-              <span className="text-sm">Loading Bot Brain configurations...</span>
-            </div>
+        <button
+          onClick={() => handleSaveSettings()}
+          disabled={saveStatus === 'saving'}
+          className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+        >
+          {saveStatus === 'saving' ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : saveStatus === 'updated' ? (
+            <Check className="w-4 h-4" />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
-              {/* Left & Middle Column: Controls & KB Settings */}
-              <div className="lg:col-span-7 space-y-6">
-                
-                {/* 1. System Prompt & Model Config */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <Sparkles className="w-5 h-5 text-emerald-400" />
-                      <h2 className="text-base font-bold text-white">1. AI System Prompt & Intelligence</h2>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={aiModelName}
-                        onChange={(e) => setAiModelName(e.target.value)}
-                        className="px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs text-emerald-400 font-semibold focus:outline-none"
-                      >
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
-                        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                        <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Latest)</option>
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (High Intelligence)</option>
-                        <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                        <option value="gpt-4o-mini">OpenAI GPT-4o-mini</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Variable insertion buttons */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] text-slate-500 font-bold uppercase">Insert Variables:</span>
-                    {['{{lead_name}}', '{{phone_number}}', '{{assigned_employee}}', '{{assigned_employee_phone}}', '{{knowledge_base}}', '{{stage}}'].map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => {
-                          const textarea = document.getElementById('systemPromptTextarea') as HTMLTextAreaElement | null
-                          if (textarea) {
-                            const start = textarea.selectionStart || 0
-                            const end = textarea.selectionEnd || 0
-                            const textBefore = systemPrompt.substring(0, start)
-                            const textAfter = systemPrompt.substring(end)
-                            const newText = `${textBefore}${tag}${textAfter}`
-                            setSystemPrompt(newText)
-                            setTimeout(() => {
-                              textarea.focus()
-                              textarea.setSelectionRange(start + tag.length, start + tag.length)
-                            }, 10)
-                          } else {
-                            setSystemPrompt((prev) => prev + ` ${tag}`)
-                          }
-                        }}
-                        className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-[11px] font-mono text-emerald-400 hover:border-emerald-500/50 transition-all active:scale-95"
-                      >
-                        + {tag}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Textarea */}
-                  <textarea
-                    id="systemPromptTextarea"
-                    rows={8}
-                    value={systemPrompt}
-                    onChange={(e) => setSystemPrompt(e.target.value)}
-                    placeholder="Enter the AI agent system prompt instructions..."
-                    className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed font-sans"
-                  />
-                </div>
-
-                {/* 2. Live 2-Way Google Sheet Knowledge Base */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-                      <div>
-                        <h2 className="text-base font-bold text-white">2. Live Google Sheets Knowledge Base</h2>
-                        <p className="text-xs text-slate-400">Live sync price lists, FAQs, and products into the AI Bot Brain</p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleSyncSheet}
-                      disabled={syncing}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all disabled:opacity-50 shadow-md shadow-purple-500/20"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-                      <span>{syncing ? 'Syncing...' : 'Sync Sheet Now'}</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                    <div className="sm:col-span-8 space-y-1">
-                      <label className="text-xs font-semibold text-slate-300">Google Sheet ID or Public Share Link:</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 1yrRpQZDvu0vZQBp75v29Re10djci8WJUuIcCSOnAcpo"
-                        value={googleSheetId}
-                        onChange={(e) => setGoogleSheetId(e.target.value)}
-                        className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
-                      />
-                    </div>
-                    <div className="sm:col-span-4 space-y-1">
-                      <label className="text-xs font-semibold text-slate-300">Tab Name:</label>
-                      <input
-                        type="text"
-                        placeholder="Sheet1"
-                        value={googleSheetName}
-                        onChange={(e) => setGoogleSheetName(e.target.value)}
-                        className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Synced Knowledge Base Table Preview */}
-                  {cachedKb ? (
-                    <div className="space-y-2 pt-2">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-400">
-                        <span className="flex items-center gap-1.5 text-emerald-400">
-                          <Table className="w-3.5 h-3.5" />
-                          <span>Synced Knowledge Table ({cachedKb.totalRows || 0} items)</span>
-                        </span>
-                        <span className="text-[10px] text-slate-500">Synced at: {new Date(cachedKb.lastSyncedAt).toLocaleTimeString()}</span>
-                      </div>
-
-                      <div className="bg-slate-950 rounded-xl border border-slate-800 max-h-48 overflow-auto p-3">
-                        <pre className="text-[11px] font-mono text-slate-300 whitespace-pre-wrap leading-relaxed">
-                          {cachedKb.markdown}
-                        </pre>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 border border-dashed border-slate-800 rounded-xl text-slate-500 text-xs">
-                      No Knowledge Base synced yet. Paste your Google Sheet ID and click "Sync Sheet Now".
-                    </div>
-                  )}
-                </div>
-
-              </div>
-
-              {/* Right Column: AI Sandbox Interactive Tester */}
-              <div className="lg:col-span-5 flex flex-col h-[750px] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-                
-                {/* Header */}
-                <div className="p-4 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
-                    <span className="font-bold text-xs text-white uppercase tracking-wider">Bot Brain Sandbox Tester</span>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    REALTIME PREVIEW
-                  </span>
-                </div>
-
-                {/* Chat History */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0b141a]">
-                  {sandboxMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${
-                          msg.role === 'user'
-                            ? 'bg-[#005c4b] text-white rounded-tr-none'
-                            : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'
-                        }`}
-                      >
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))}
-                  {testingAi && (
-                    <div className="flex justify-start">
-                      <div className="bg-slate-800 text-slate-400 p-3 rounded-2xl rounded-tl-none text-xs flex items-center gap-2">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                        <span>Bot Brain is generating response...</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Input */}
-                <div className="p-3 border-t border-slate-800 bg-slate-950 flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Test your Bot Brain with a query (e.g. RO Filter rate?)..."
-                    value={sandboxInput}
-                    onChange={(e) => setSandboxInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleTestSandboxSend()}
-                    className="flex-1 px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                  />
-                  <button
-                    onClick={handleTestSandboxSend}
-                    className="p-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition-all shadow-md"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
-
-              </div>
-
-            </div>
+            <Save className="w-4 h-4" />
           )}
+          <span>{saveStatus === 'updated' ? 'Settings Saved' : 'Save Changes'}</span>
+        </button>
+      </header>
 
-        </div>
+      {/* Scrollable Workspace */}
+      <div className="flex-1 p-4 md:p-6 lg:p-8 relative z-10">
+        
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+            <span className="text-sm font-medium">Initializing Workspace...</span>
+          </div>
+        ) : (
+          <div className="max-w-[1200px] mx-auto space-y-4">
+            
+            {/* Prompt Builder & Settings Workspace */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col space-y-4"
+            >
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/20 shadow-inner">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white tracking-tight">AI System Prompt & Intelligence</h2>
+                  <StatusBadge status={saveStatus} label={saveStatus === 'saving' ? 'Saving' : 'Prompt Updated'} />
+                </div>
+                <ModelSelect
+                  value={aiModelName}
+                  onChange={setAiModelName}
+                  isAdvanced={isAdvancedMode}
+                  onToggleAdvanced={() => setIsAdvancedMode(!isAdvancedMode)}
+                />
+              </div>
+
+              {isAdvancedMode ? (
+                <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800/60 rounded-2xl p-6 shadow-2xl">
+                  <AdvancedEditor
+                    systemPrompt={systemPrompt}
+                    setSystemPrompt={setSystemPrompt}
+                    geminiApiKey={geminiApiKey}
+                    setGeminiApiKey={setGeminiApiKey}
+                    openaiApiKey={openaiApiKey}
+                    setOpenaiApiKey={setOpenaiApiKey}
+                    n8nWebhookUrl={n8nWebhookUrl}
+                    setN8nWebhookUrl={setN8nWebhookUrl}
+                  />
+                </div>
+              ) : (
+                <div className="shadow-2xl rounded-xl">
+                  <ChatPanel
+                    messages={builderMessages}
+                    input={builderInput}
+                    onInputChange={setBuilderInput}
+                    onSend={() => handleBuilderSend()}
+                    isLoading={isBuilding}
+                    loadingText="Prompt Engineer is updating your bot..."
+                    placeholder="E.g. Make the bot offer a 10% discount on first orders..."
+                  >
+                    <SuggestionChips onSelect={handleSuggestionClick} />
+                  </ChatPanel>
+                </div>
+              )}
+            </motion.div>
+
+          </div>
+        )}
+      </div>
     </div>
   )
 }

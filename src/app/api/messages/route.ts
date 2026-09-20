@@ -20,24 +20,6 @@ export async function GET(req: NextRequest) {
       .eq('org_id', orgId)
       .maybeSingle()
 
-    // 2. Clear unread counts for this conversation and all duplicates with same phone
-    await supabaseAdmin
-      .from('conversations')
-      .update({ unread_count: 0 })
-      .eq('id', conversationId)
-      .eq('org_id', orgId)
-
-    if (conv?.phone_number) {
-      const cleanP = conv.phone_number.replace(/\D/g, '').slice(-10)
-      if (cleanP.length >= 10) {
-        await supabaseAdmin
-          .from('conversations')
-          .update({ unread_count: 0 })
-          .ilike('phone_number', `%${cleanP}`)
-          .eq('org_id', orgId)
-      }
-    }
-
     // 3. Find ALL conversation IDs for this phone number in this org
     //    This merges messages across duplicate conversation records
     let allConvIds = [conversationId]

@@ -19,12 +19,15 @@ import {
   RefreshCw,
   AlertCircle,
   ChevronDown,
-  MapPin
+  MapPin,
+  Plus
 } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
 import { useOrg } from '@/contexts/OrgContext'
 import { useRouter } from 'next/navigation'
+import { useLeadStages } from '@/hooks/useLeadStages'
+import CustomStageModal from '@/components/leads/CustomStageModal'
 
 interface Lead {
   id: string
@@ -104,6 +107,9 @@ function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfi
 
 function LeadsContent() {
   const { profile, org } = useOrg()
+  const { stages, customStages, addCustomStage, deleteCustomStage } = useLeadStages()
+  const [isStageModalOpen, setIsStageModalOpen] = useState(false)
+
   const isOsmoRo = 
     profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
     org?.name?.toLowerCase().includes('osmo') ||
@@ -488,14 +494,23 @@ function LeadsContent() {
           </span>
         </div>
 
-        <button
-          onClick={handleDownloadCSV}
-          disabled={leads.length === 0}
-          className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-800/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
-        >
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsStageModalOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm border border-emerald-400/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <Plus className="w-4 h-4" />
+            + Custom Stages
+          </button>
+          <button
+            onClick={handleDownloadCSV}
+            disabled={leads.length === 0}
+            className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-800/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+        </div>
       </header>
 
       {/* Main Content Area */}
@@ -534,8 +549,8 @@ function LeadsContent() {
                   className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer w-full"
                 >
                   <option value="">All Stages</option>
-                  {STAGES.map(s => (
-                    <option key={s} value={s}>{s.replace(/_/g, ' ').toUpperCase()}</option>
+                  {stages.map(s => (
+                    <option key={s.id || s.name} value={s.name}>{s.label.toUpperCase()}</option>
                   ))}
                 </select>
               </div>
@@ -855,10 +870,13 @@ function LeadsContent() {
                               }
                               if (key.toLowerCase() === 'stage' || key.toLowerCase() === 'state') {
                                 const sVal = String(val || allCustomData.state || allCustomData.stage || 'new').toLowerCase();
+                                const matched = stages.find(st => st.name === sVal || st.name.toLowerCase() === sVal || st.id === sVal || st.label.toLowerCase() === sVal)
+                                const badgeColor = matched?.color || STAGE_COLORS[sVal] || 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50'
+                                const badgeLabel = matched?.label || sVal.replace(/_/g, ' ')
                                 return (
                                    <td key={key} className="px-6 py-4 whitespace-nowrap">
-                                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${STAGE_COLORS[sVal] || 'bg-gray-100 text-gray-700'}`}>
-                                        {sVal.replace(/_/g, ' ')}
+                                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${badgeColor}`}>
+                                        {badgeLabel}
                                       </span>
                                    </td>
                                 )
@@ -984,8 +1002,8 @@ function LeadsContent() {
                         onChange={(e) => setEditStage(e.target.value)}
                         className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm focus:outline-none"
                       >
-                        {STAGES.map(s => (
-                          <option key={s} value={s}>{s.replace(/_/g, ' ').toUpperCase()}</option>
+                        {stages.map(s => (
+                          <option key={s.id || s.name} value={s.name}>{s.label.toUpperCase()}</option>
                         ))}
                       </select>
                     </div>
@@ -1099,6 +1117,16 @@ function LeadsContent() {
           </div>
         )}
       </main>
+
+      {/* Tenant Custom Stage Creation Modal */}
+      <CustomStageModal
+        isOpen={isStageModalOpen}
+        onClose={() => setIsStageModalOpen(false)}
+        stages={stages}
+        customStages={customStages}
+        onAddStage={addCustomStage}
+        onDeleteStage={deleteCustomStage}
+      />
     </div>
   )
 }

@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
 
       const category = l.osmo_category || 'unfiltered'
       stats.total++
-      if (category === 'Osmo dealer') {
+      if (category === 'osmo_dealer') {
         stats.osmo_dealer++
       } else if (category === 'dealer') {
         stats.dealer++

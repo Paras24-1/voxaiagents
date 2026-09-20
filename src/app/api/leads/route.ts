@@ -282,7 +282,24 @@ export async function PATCH(req: NextRequest) {
     if (error) throw error
 
     // Sync conversations table if name, stage, or lead_type was updated
-    const targetConvId = conversation_id || data?.conversation_id
+    let targetConvId = conversation_id || data?.conversation_id
+    if (!targetConvId) {
+      const searchPhone = phone_number || existingLead?.phone_number || data?.phone_number
+      if (searchPhone) {
+        const cleanP = String(searchPhone).replace(/\D/g, '').slice(-10)
+        if (cleanP.length >= 10) {
+          const { data: convMatch } = await supabaseAdmin
+            .from('conversations')
+            .select('id')
+            .ilike('phone_number', `%${cleanP}`)
+            .eq('org_id', orgId)
+            .limit(1)
+            .maybeSingle()
+          if (convMatch?.id) targetConvId = convMatch.id
+        }
+      }
+    }
+
     if (targetConvId) {
       if (updates.name || updates.stage || targetLeadType) {
         const { data: convData } = await supabaseAdmin

@@ -480,8 +480,7 @@ export async function POST(req: NextRequest) {
         if (isHybridN8n && orgSettings?.n8n_inbound_webhook_url) {
           console.log(`[webhook] Forwarding Enriched Bot Brain Payload to tenant n8n: ${orgSettings.n8n_inbound_webhook_url}`)
           
-          const kbMarkdown = parsedPromptObj.cached_kb?.markdown || ''
-          const kbJson = parsedPromptObj.cached_kb?.json || []
+
           const rawSystemPrompt = parsedPromptObj.system_prompt || 'You are a helpful AI assistant.'
           const geminiApiKey = orgSettings.gemini_api_key || process.env.GEMINI_API_KEY || ''
           const openaiApiKey = orgSettings.openai_api_key || process.env.OPENAI_API_KEY || ''
@@ -494,7 +493,6 @@ export async function POST(req: NextRequest) {
             .replace(/\{\{assigned_employee_name\}\}/g, assignedEmployeeName || 'Unassigned')
             .replace(/\{\{assigned_employee_phone\}\}/g, assignedEmployeePhone || '')
             .replace(/\{\{stage\}\}/g, 'COLD')
-            .replace(/\{\{knowledge_base\}\}/g, kbMarkdown || '')
 
           // Enriched Hybrid Payload
           const enrichedPayload = {
@@ -517,11 +515,7 @@ export async function POST(req: NextRequest) {
               assigned_employee_name: assignedEmployeeName,
               assigned_employee_phone: assignedEmployeePhone,
               gemini_api_key: geminiApiKey,
-              openai_api_key: openaiApiKey,
-              knowledge_base_markdown: kbMarkdown,
-              knowledge_base_json: kbJson,
-              google_sheet_id: orgSettings.ai_knowledge_base_sheet_id || '',
-              google_sheet_range: orgSettings.ai_knowledge_base_range || 'Sheet1'
+              openai_api_key: openaiApiKey
             }
           }
 

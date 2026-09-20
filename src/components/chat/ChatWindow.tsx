@@ -5,6 +5,7 @@ import { Conversation, Message } from '@/types'
 import { useMessages, useSendMessage } from '@/hooks'
 import { supabase } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
+import { useLeadStages } from '@/hooks/useLeadStages'
 import { formatDistanceToNow } from 'date-fns'
 import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle, Trash2, Clock, AlertCircle } from 'lucide-react'
 import TemplatePickerModal from '@/components/chat/TemplatePickerModal'
@@ -38,6 +39,7 @@ interface Props {
 
 export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const { profile, org } = useOrg()
+  const { stages } = useLeadStages()
   const [input, setInput] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -535,6 +537,9 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         },
         body: JSON.stringify({ stage: newStage })
       })
+      window.dispatchEvent(new CustomEvent('update-conversation', { 
+        detail: { id: conversation.id, stage: newStage } 
+      }))
     } catch (err) {
       console.error('Failed to change stage:', err)
     } finally {
@@ -555,6 +560,14 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
       </div>
     )
   }
+
+  const matchedCurrentStage = stages.find(s => 
+    s.name === stage || 
+    s.name === stage?.toLowerCase() || 
+    s.id === stage || 
+    s.label.toLowerCase() === stage?.toLowerCase()
+  )
+  const currentStageColorClass = matchedCurrentStage?.color || STAGE_COLORS[stage] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200/60 dark:border-gray-700/60'
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 min-h-0">
@@ -581,17 +594,17 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
 
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
           {/* Stage Selector */}
-          <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800/80 px-2.5 py-1.5 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-2xs select-none">
-            <Tag className="w-3.5 h-3.5 text-gray-400" />
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all shadow-2xs select-none ${currentStageColorClass}`}>
+            <Tag className="w-3.5 h-3.5 opacity-80" />
             <select
               value={stage}
               onChange={(e) => handleStageChange(e.target.value)}
               disabled={savingStage}
-              className={`text-[10px] uppercase font-bold tracking-wider px-1 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 ${STAGE_COLORS[stage]}`}
+              className="text-[10px] uppercase font-bold tracking-wider px-0.5 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 text-inherit"
             >
-              {STAGES.map(s => (
-                <option key={s} value={s}>
-                  {s.replace(/_/g, ' ')}
+              {stages.map(s => (
+                <option key={s.id || s.name} value={s.name} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                  {s.label.toUpperCase()}
                 </option>
               ))}
             </select>

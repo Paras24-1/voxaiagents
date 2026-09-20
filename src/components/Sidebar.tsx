@@ -150,10 +150,10 @@ export default function Sidebar() {
       {/* Hamburger Menu Trigger Button */}
       <button
         onClick={toggleSidebar}
-        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all shadow-sm shrink-0"
+        className="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 border border-slate-700/80 hover:border-emerald-500/50 transition-all shadow-md shrink-0 flex items-center gap-2 group active:scale-95"
         title="Open navigation menu"
       >
-        <Menu className="w-5 h-5" />
+        <Menu className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
       </button>
 
       {/* Slide-out Sidebar Drawer Overlay */}

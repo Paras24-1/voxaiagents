@@ -8,6 +8,7 @@ import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown, CheckCheck
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion'
+import { useLeadStages } from '@/hooks/useLeadStages'
 
 const STAGES: Stage[] = ['new', 'interested', 'booking', 'confirmed', 'cancelled', 'completed', 'followup', 'not_interested', 'call_done', 'low_budget', 'hot_customer', 'not_connected', 'joined', 'not_joined', 'contact_save', 'contact_not_save', 'unknown']
 
@@ -46,6 +47,7 @@ interface Employee {
 }
 
 export default function ConversationList({ selectedId, onSelect, onDelete }: Props) {
+  const { stages } = useLeadStages()
   const [search, setSearch] = useState('')
   const [stage, setStage] = useState('')
   const [unread, setUnread] = useState(false)
@@ -274,8 +276,8 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             className="text-[10px] px-2 py-1 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
           >
             <option value="">All Stages</option>
-            {STAGES.map((s) => (
-              <option key={s} value={s}>{s.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
+            {stages.map((s) => (
+              <option key={s.id || s.name} value={s.name}>{s.label}</option>
             ))}
           </select>
 
@@ -297,25 +299,13 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             </select>
           )}
 
-          {conversations.some(c => (c.unread_count || 0) > 0) && (
-            <button
-              onClick={() => {
-                markAllAsRead()
-                setUnread(false)
-              }}
-              className="text-[10px] px-2 py-1 rounded-xl font-bold border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-all flex items-center gap-1 ml-auto"
-              title="Mark all conversations as read"
-            >
-              <CheckCheck className="w-3 h-3" />
-              <span>Read all</span>
-            </button>
-          )}
+
         </div>
 
         {/* Premium Animated Osmo RO Tabs */}
         {isOsmo && (
           <div className="flex bg-gray-900/5 dark:bg-black/20 p-1.5 rounded-2xl mb-4 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 shadow-inner overflow-x-auto scrollbar-hide gap-1">
-            {['unfiltered', 'Osmo dealer', 'dealer', 'customer'].map(tab => {
+            {['unfiltered', 'osmo_dealer', 'dealer', 'customer'].map(tab => {
               const count = conversations.filter(c => {
                 const leadObj = Array.isArray((c as any).leads) ? (c as any).leads[0] : (c as any).leads || c.lead
                 const cat = leadObj?.osmo_category || 'unfiltered'
@@ -341,7 +331,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                     />
                   )}
                   <span className="relative flex justify-center items-center gap-1.5">
-                    {tab}
+                    {tab.replace('_', ' ')}
                     <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${
                       isActive 
                         ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' 
@@ -432,6 +422,7 @@ function ConversationItem({
   onAssignmentChange: () => void
   isOsmo: boolean
 }) {
+  const { stages } = useLeadStages()
   const [hovered, setHovered] = useState(false)
   const [showAssign, setShowAssign] = useState(false)
   const [assigning, setAssigning] = useState(false)
@@ -521,9 +512,22 @@ function ConversationItem({
 
         {/* Badges Container */}
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${STAGE_COLORS[(conv.stage || 'new') as Stage] || STAGE_COLORS.new}`}>
-            {(conv.stage || 'new').replace(/_/g, ' ')}
-          </span>
+          {(() => {
+            const convStageVal = conv.stage || 'new'
+            const matchedStage = stages.find(s => 
+              s.name === convStageVal || 
+              s.name === convStageVal.toLowerCase() || 
+              s.id === convStageVal || 
+              s.label.toLowerCase() === convStageVal.toLowerCase()
+            )
+            const badgeColor = matchedStage?.color || STAGE_COLORS[convStageVal as Stage] || STAGE_COLORS.new
+            const badgeLabel = matchedStage?.label || convStageVal.replace(/_/g, ' ')
+            return (
+              <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${badgeColor}`}>
+                {badgeLabel}
+              </span>
+            )
+          })()}
 
           {/* Osmo Category Badge (Premium) */}
           {isOsmo && (
