@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       .from('messages')
       .select('*')
       .in('conversation_id', allConvIds)
-      .order('timestamp', { ascending: true })
+      .order('timestamp', { ascending: false }) // Fetch newest first to prevent cutting off new messages
       .limit(500)
 
     if (error) throw error
@@ -79,7 +79,8 @@ export async function GET(req: NextRequest) {
       return true
     })
 
-    return NextResponse.json(deduped)
+    // Reverse the array so the oldest messages are first, matching the UI's expected chronological order
+    return NextResponse.json(deduped.reverse())
   } catch (err: unknown) {
     const error = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error }, { status: 500 })
