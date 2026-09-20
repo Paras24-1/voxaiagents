@@ -19,43 +19,60 @@ export async function GET(req: NextRequest) {
     const assignedTo   = searchParams.get('assigned_to')   || ''
     const assignFilter = searchParams.get('assign_filter') || ''
 
-    let query = supabaseAdmin
-      .from('conversations')
-      .select('*, leads(*)')
-      .eq('org_id', orgId)
-      .order('updated_at', { ascending: false })
-      .limit(10000)
+    let allConvs: any[] = []
+    let from = 0
+    const pageSize = 1000
+    let fetchMore = true
 
-    if (isStaffEmployee) {
-      query = query.eq('assigned_to', userId)
-    } else {
-      if (assignedTo) {
-        query = query.eq('assigned_to', assignedTo)
-      } else if (assignFilter === 'unassigned') {
-        query = query.is('assigned_to', null)
-      } else if (assignFilter === 'assigned') {
-        query = query.not('assigned_to', 'is', null)
-      } else if (assignFilter && assignFilter !== 'all') {
-        query = query.eq('assigned_to', assignFilter)
+    while (fetchMore) {
+      let query = supabaseAdmin
+        .from('conversations')
+        .select('*, leads(*)')
+        .eq('org_id', orgId)
+        .order('updated_at', { ascending: false })
+        .range(from, from + pageSize - 1)
+
+      if (isStaffEmployee) {
+        query = query.eq('assigned_to', userId)
+      } else {
+        if (assignedTo) {
+          query = query.eq('assigned_to', assignedTo)
+        } else if (assignFilter === 'unassigned') {
+          query = query.is('assigned_to', null)
+        } else if (assignFilter === 'assigned') {
+          query = query.not('assigned_to', 'is', null)
+        } else if (assignFilter && assignFilter !== 'all') {
+          query = query.eq('assigned_to', assignFilter)
+        }
+      }
+
+      if (stage) {
+        query = query.eq('stage', stage)
+      }
+
+      if (unread) {
+        query = query.gt('unread_count', 0)
+      }
+
+      const { data: convs, error } = await query
+
+      if (error) {
+        console.error('[GET /api/conversations] Error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      if (convs && convs.length > 0) {
+        allConvs.push(...convs)
+      }
+
+      if (!convs || convs.length < pageSize) {
+        fetchMore = false
+      } else {
+        from += pageSize
       }
     }
 
-    if (stage) {
-      query = query.eq('stage', stage)
-    }
-
-    if (unread) {
-      query = query.gt('unread_count', 0)
-    }
-
-    const { data: convs, error } = await query
-
-    if (error) {
-      console.error('[GET /api/conversations] Error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    let enrichedData = (convs || []).map(conv => {
+    let enrichedData = (allConvs || []).map(conv => {
       const leadObj = Array.isArray(conv.leads) ? conv.leads[0] : conv.leads
       return {
         ...conv,
