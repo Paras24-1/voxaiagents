@@ -59,7 +59,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
   const { profile, org } = useOrg()
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
-  const isOsmo = profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' || org?.name?.toLowerCase().includes('osmo') || org?.slug?.toLowerCase().includes('osmo')
+  const isOsmo = !!(profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' || org?.name?.toLowerCase().includes('osmo') || org?.slug?.toLowerCase().includes('osmo'))
 
   const { conversations, loading, refetch, markAsRead, markAllAsRead } = useConversations({ 
     search, 
@@ -314,19 +314,25 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
         {/* Osmo RO Specific Tabs */}
         {isOsmo && (
           <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-3">
-            {['unfiltered', 'Osmo dealer', 'dealer', 'customer'].map(tab => (
+            {['unfiltered', 'Osmo dealer', 'dealer', 'customer'].map(tab => {
+              const count = conversations.filter(c => {
+                const leadObj = Array.isArray((c as any).leads) ? (c as any).leads[0] : (c as any).leads || c.lead
+                const cat = leadObj?.osmo_category || 'unfiltered'
+                return cat.toLowerCase() === tab.toLowerCase()
+              }).length
+              return (
               <button
                 key={tab}
                 onClick={() => setOsmoTab(tab)}
-                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize ${
+                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize whitespace-nowrap ${
                   osmoTab === tab 
                     ? 'bg-white dark:bg-gray-700 text-emerald-600 shadow-xs' 
                     : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
                 }`}
               >
-                {tab}
+                {tab} ({count})
               </button>
-            ))}
+            )})}
           </div>
         )}
       </div>
@@ -376,6 +382,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 isAdmin={isAdmin}
                 employees={employees}
                 onAssignmentChange={refetch}
+                isOsmo={isOsmo}
               />
             ))
         )}
@@ -393,6 +400,7 @@ function ConversationItem({
   isAdmin,
   employees,
   onAssignmentChange,
+  isOsmo,
 }: {
   conversation: Conversation,
   isSelected: boolean
@@ -402,6 +410,7 @@ function ConversationItem({
   isAdmin: boolean
   employees: Employee[]
   onAssignmentChange: () => void
+  isOsmo: boolean
 }) {
   const [hovered, setHovered] = useState(false)
   const [showAssign, setShowAssign] = useState(false)
@@ -495,6 +504,17 @@ function ConversationItem({
           <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${STAGE_COLORS[(conv.stage || 'new') as Stage] || STAGE_COLORS.new}`}>
             {(conv.stage || 'new').replace(/_/g, ' ')}
           </span>
+
+          {/* Osmo Category Badge */}
+          {isOsmo && (
+            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+              ((Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead)?.osmo_category || 'unfiltered') === 'unfiltered'
+                ? 'bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
+                : 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50'
+            }`}>
+              {((Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead)?.osmo_category || 'unfiltered')}
+            </span>
+          )}
 
           {/* Platform Badge */}
           <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
