@@ -314,7 +314,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
         {/* Premium Animated Osmo RO Tabs */}
         {isOsmo && (
-          <div className="flex bg-gray-900/5 dark:bg-black/20 p-1.5 rounded-2xl mb-4 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 shadow-inner">
+          <div className="flex bg-gray-900/5 dark:bg-black/20 p-1.5 rounded-2xl mb-4 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 shadow-inner overflow-x-auto scrollbar-hide gap-1">
             {['unfiltered', 'Osmo dealer', 'dealer', 'customer'].map(tab => {
               const count = conversations.filter(c => {
                 const leadObj = Array.isArray((c as any).leads) ? (c as any).leads[0] : (c as any).leads || c.lead
@@ -327,7 +327,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 <button
                   key={tab}
                   onClick={() => setOsmoTab(tab)}
-                  className={`relative flex-1 py-2 text-[11px] font-bold rounded-xl transition-colors capitalize whitespace-nowrap z-10 ${
+                  className={`relative shrink-0 px-3 py-2 text-[11px] font-bold rounded-xl transition-colors capitalize whitespace-nowrap z-10 ${
                     isActive
                       ? 'text-emerald-700 dark:text-emerald-300'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
