@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
       .select('*, leads(*)')
       .eq('org_id', orgId)
       .order('updated_at', { ascending: false })
+      .limit(10000)
 
     if (isStaffEmployee) {
       query = query.eq('assigned_to', userId)
