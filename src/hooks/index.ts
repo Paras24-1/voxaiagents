@@ -372,13 +372,13 @@ export function useMessages(conversationId: string | null) {
     fetchMessages(true)
   }, [conversationId, fetchMessages])
 
-  // Background polling (5s) + window focus listener to catch any missed realtime events
+  // Background polling (60s safety net) + window focus listener to catch any missed realtime events
   useEffect(() => {
     if (!conversationId) return
 
     const interval = setInterval(() => {
       fetchMessages(false)
-    }, 5000)
+    }, 60000)
 
     const handleFocus = () => fetchMessages(false)
     window.addEventListener('focus', handleFocus)
