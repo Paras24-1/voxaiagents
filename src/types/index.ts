@@ -54,6 +54,8 @@ export interface Message {
   platform?: string
   status?: string // 'sent', 'delivered', 'read', 'failed'
   provider_message_id?: string
+  pending?: boolean
+  failed?: boolean
 }
 
 export interface Lead {

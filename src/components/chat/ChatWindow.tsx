@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, Fragment } from 'react'
-import { Conversation } from '@/types'
+import { Conversation, Message } from '@/types'
 import { useMessages, useSendMessage } from '@/hooks'
 import { supabase } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
 import { formatDistanceToNow } from 'date-fns'
-import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle, Trash2 } from 'lucide-react'
+import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle, Trash2, Clock, AlertCircle } from 'lucide-react'
 import TemplatePickerModal from '@/components/chat/TemplatePickerModal'
 import LocationPickerModal from '@/components/chat/LocationPickerModal'
 import { CannedReplyItem } from '@/components/chat/CannedRepliesModal'
@@ -112,9 +112,47 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const [recordingTime, setRecordingTime] = useState(0)
   const mediaRecorderRef = useRef<any>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const { messages, loading, bottomRef } = useMessages(conversation?.id || null)
+  const { messages, loading, bottomRef, addOptimisticMessage, reconcileOptimisticMessage } = useMessages(conversation?.id || null)
   const { sendMessage, sending } = useSendMessage()
 
+  const sendWithOptimism = async (
+    messageText: string,
+    mediaUrl?: string | null,
+    mediaType?: string | null,
+    extraOptions?: any
+  ) => {
+    if (!conversation) return false
+    
+    const tempId = `optimistic-${Date.now()}`
+    const tempMsg: Message = {
+      id: tempId,
+      conversation_id: conversation.id,
+      phone_number: conversation.phone_number,
+      message: messageText,
+      direction: 'outgoing',
+      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      media_url: mediaUrl,
+      media_type: mediaType,
+      platform: conversation.platform || 'whatsapp',
+      pending: true,
+      ...extraOptions
+    }
+    
+    addOptimisticMessage(tempMsg)
+    
+    const savedMsg = await sendMessage(
+      conversation.id,
+      conversation.phone_number,
+      messageText,
+      mediaUrl,
+      mediaType,
+      extraOptions
+    )
+    
+    reconcileOptimisticMessage(tempId, savedMsg)
+    return !!savedMsg
+  }
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -214,7 +252,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
       const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
       const mediaUrl = urlData.publicUrl
 
-      await sendMessage(conversation.id, conversation.phone_number, '', mediaUrl, 'audio/mpeg')
+      const success = await sendWithOptimism('', mediaUrl, 'audio/mpeg')
     } catch (err) {
       console.error('Failed to send audio:', err)
       alert('Failed to send voice note.')
@@ -274,9 +312,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
 
     // Send message (text and/or image)
     if (input.trim() || mediaUrl) {
-      const success = await sendMessage(
-        conversation.id,
-        conversation.phone_number,
+      const success = await sendWithOptimism(
         input.trim(),
         mediaUrl,
         mediaType
@@ -309,9 +345,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
       const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
       const mediaUrl = urlData.publicUrl
 
-      await sendMessage(
-        conversation.id,
-        conversation.phone_number,
+      await sendWithOptimism(
         '',
         mediaUrl,
         file.type || 'application/pdf',
@@ -346,12 +380,11 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
       const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
       const mediaUrl = urlData.publicUrl
 
-      await sendMessage(
-        conversation.id,
-        conversation.phone_number,
+      await sendWithOptimism(
         '',
         mediaUrl,
-        file.type || 'video/mp4'
+        file.type || 'video/mp4',
+        { filename: file.name }
       )
     } catch (err: any) {
       alert(`Failed to send video: ${err.message || String(err)}`)
@@ -364,9 +397,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   // Send Location Handler
   const handleSendLocation = async (locData: { name: string; address: string; latitude: string; longitude: string }) => {
     if (!conversation) return
-    await sendMessage(
-      conversation.id,
-      conversation.phone_number,
+    await sendWithOptimism(
       `📍 ${locData.name}\n${locData.address}`,
       null,
       null,
@@ -382,9 +413,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
     previewText: string
   }) => {
     if (!conversation) return
-    await sendMessage(
-      conversation.id,
-      conversation.phone_number,
+    await sendWithOptimism(
       tplData.previewText,
       null,
       null,
@@ -404,7 +433,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
     setInput('')
 
     if (item.type === 'text') {
-      await sendMessage(conversation.id, conversation.phone_number, item.content || '')
+      await sendWithOptimism(item.content || '')
     } else if (item.type === 'location' && item.location_data) {
       await handleSendLocation({
         name: item.location_data.name || item.title || 'Location',
@@ -732,7 +761,11 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                         <span>{msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         {msg.direction === 'outgoing' && (
                           <span className="ml-0.5">
-                            {msg.status === 'read' ? (
+                            {msg.pending ? (
+                              <Clock className="w-3.5 h-3.5 text-gray-400 opacity-60" />
+                            ) : msg.failed ? (
+                              <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                            ) : msg.status === 'read' ? (
                               <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
                             ) : msg.status === 'delivered' ? (
                               <CheckCheck className="w-3.5 h-3.5" />

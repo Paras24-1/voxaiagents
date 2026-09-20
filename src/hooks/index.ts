@@ -303,6 +303,19 @@ export function useMessages(conversationId: string | null) {
 
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  const addOptimisticMessage = useCallback((msg: Message) => {
+    setMessages(prev => [...prev, msg])
+  }, [])
+
+  const reconcileOptimisticMessage = useCallback((tempId: string, confirmedMsg: Message | null) => {
+    setMessages(prev => {
+      if (!confirmedMsg) {
+        return prev.map(m => m.id === tempId ? { ...m, failed: true, pending: false } : m)
+      }
+      return prev.map(m => m.id === tempId ? { ...confirmedMsg, pending: false } : m)
+    })
+  }, [])
+
   const fetchMessages = useCallback(async (showLoading = true) => {
     if (!conversationId) return
 
@@ -326,10 +339,22 @@ export function useMessages(conversationId: string | null) {
       const data = await res.json()
       if (Array.isArray(data)) {
         setMessages(prev => {
-          if (prev.length === data.length && prev[prev.length - 1]?.id === data[data.length - 1]?.id) {
-            return prev
-          }
-          return data
+          // Merge by ID
+          const existingMap = new Map(prev.map(m => [m.id, m]))
+          // Keep optimistic messages that aren't in the DB yet
+          const pendingMessages = prev.filter(m => m.pending || m.failed)
+          
+          data.forEach((newMsg: Message) => {
+            existingMap.set(newMsg.id, newMsg)
+          })
+          
+          pendingMessages.forEach(pMsg => {
+            if (!existingMap.has(pMsg.id)) {
+              existingMap.set(pMsg.id, pMsg)
+            }
+          })
+          
+          return Array.from(existingMap.values()).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
         })
       }
     } catch (error) {
@@ -416,7 +441,7 @@ export function useMessages(conversationId: string | null) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  return { messages, loading, bottomRef, refetch: fetchMessages }
+  return { messages, loading, bottomRef, refetch: fetchMessages, addOptimisticMessage, reconcileOptimisticMessage }
 }
 
 // ----------------------------------------------------------------
@@ -440,8 +465,8 @@ export function useSendMessage() {
         filename?: string
         location_data?: any
       }
-    ) => {
-      if (!message.trim() && !mediaUrl && !extraOptions?.template_name && !extraOptions?.location_data) return false
+    ): Promise<Message | null> => {
+      if (!message.trim() && !mediaUrl && !extraOptions?.template_name && !extraOptions?.location_data) return null
       setSending(true)
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -462,10 +487,14 @@ export function useSendMessage() {
             ...extraOptions
           }),
         })
-        return res.ok
+        const data = await res.json()
+        if (res.ok && data.success) {
+          return data.message
+        }
+        return null
       } catch (error) {
         console.error('Error sending message:', error)
-        return false
+        return null
       } finally {
         setSending(false)
       }
