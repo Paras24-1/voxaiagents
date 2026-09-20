@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
-import { fetchUnifiedOsmoContacts } from '@/lib/osmoPhonebooks'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +19,28 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('end_date') || ''
     const geographicState = searchParams.get('state') || ''
 
-    const unifiedContacts = await fetchUnifiedOsmoContacts(orgId)
+    let allLeads: any[] = []
+    let from = 0
+    let fetchMore = true
+
+    while (fetchMore) {
+      let query = supabaseAdmin
+        .from('leads')
+        .select('*, conversations(*)')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+        .range(from, from + 999)
+
+      const { data, error } = await query
+      if (error) throw error
+      if (!data || data.length === 0) {
+        fetchMore = false
+      } else {
+        allLeads.push(...data)
+        if (data.length < 1000) fetchMore = false
+        else from += 1000
+      }
+    }
 
     const stats: Record<string, number> = {
       total: 0,
@@ -33,22 +53,25 @@ export async function GET(req: NextRequest) {
       followups: 0
     }
 
-    unifiedContacts.forEach(uc => {
-      if (isStaffEmployee && uc.conversation?.assigned_to !== userId) {
+    allLeads.forEach(l => {
+      // leads has a single linked conversation, Supabase returns it as an object or array depending on relation type, usually object for many-to-one
+      const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
+
+      if (isStaffEmployee && c.assigned_to !== userId) {
         return
       }
-
-      const l = uc.lead || {}
-      const c = uc.conversation || {}
       
       let parsedMeta: Record<string, any> = l.metadata || {}
+      if (typeof l.metadata === 'string') {
+        try { parsedMeta = JSON.parse(l.metadata) } catch {}
+      }
 
       const leadStage = c.stage || l.stage || parsedMeta.state || parsedMeta.stage || 'new'
-      if (leadStage === 'followup' || !!(l as any).followup_date) stats.followups++
+      if (leadStage === 'followup' || !!l.followup_date) stats.followups++
       if (stage && leadStage !== stage) return
 
       const score = Number(parsedMeta.lead_score ?? 0)
-      let q = (parsedMeta.lead_quality || parsedMeta.lead_temperature || (l as any).lead_temperature || 'cold').toLowerCase()
+      let q = (parsedMeta.lead_quality || parsedMeta.lead_temperature || l.lead_temperature || 'cold').toLowerCase()
       if (score >= 70) q = 'hot'
       else if (score >= 40) q = 'warm'
       else if (score > 0) q = 'cold'
@@ -57,14 +80,13 @@ export async function GET(req: NextRequest) {
       if (q === 'warm') stats.warm++
       if (quality && q !== quality.toLowerCase()) return
 
-      // Apply state filter — state is stored in metadata
       if (geographicState) {
         const leadState = (parsedMeta.state || '').trim()
         if (leadState.toLowerCase() !== geographicState.toLowerCase()) return
       }
 
       if (startDate || endDate) {
-        const createdAt = (l as any).created_at || c.created_at
+        const createdAt = l.created_at || c.created_at
         if (!createdAt) return
         const dt = new Date(createdAt).getTime()
         if (startDate && dt < new Date(startDate).getTime()) return
@@ -73,16 +95,20 @@ export async function GET(req: NextRequest) {
 
       if (search) {
         const srch = search.toLowerCase()
-        const n = ((l as any).name || c.name || '').toLowerCase()
-        const p = (uc.phone || '').toLowerCase()
-        const cst = ((l as any).customer_name || '').toLowerCase()
+        const n = (l.name || c.name || '').toLowerCase()
+        const p = (l.phone_number || c.phone_number || '').toLowerCase()
+        const cst = (l.customer_name || '').toLowerCase()
         if (!n.includes(srch) && !p.includes(srch) && !cst.includes(srch)) return
       }
 
-      const category = uc.category
+      const category = l.osmo_category || 'unfiltered'
       stats.total++
-      if (category in stats) {
-        stats[category]++
+      if (category === 'Osmo dealer') {
+        stats.osmo_dealer++
+      } else if (category === 'dealer') {
+        stats.dealer++
+      } else if (category === 'customer') {
+        stats.customer++
       } else {
         stats.unfiltered++
       }

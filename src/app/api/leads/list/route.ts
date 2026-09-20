@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
-import { classifyOsmoContact, fetchUnifiedOsmoContacts } from '@/lib/osmoPhonebooks'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,21 +25,42 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50', 10)
     const from = (page - 1) * limit
 
-    const unifiedContacts = await fetchUnifiedOsmoContacts(orgId)
+    let allLeads: any[] = []
+    let fromIndex = 0
+    let fetchMore = true
+
+    while (fetchMore) {
+      let query = supabaseAdmin
+        .from('leads')
+        .select('*, conversations(*)')
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false })
+        .range(fromIndex, fromIndex + 999)
+
+      const { data, error } = await query
+      if (error) throw error
+      if (!data || data.length === 0) {
+        fetchMore = false
+      } else {
+        allLeads.push(...data)
+        if (data.length < 1000) fetchMore = false
+        else fromIndex += 1000
+      }
+    }
 
     // Apply staff restriction first
-    let allowedContacts = unifiedContacts
+    let allowedContacts = allLeads
     if (isStaffEmployee) {
-      allowedContacts = unifiedContacts.filter(uc => {
-        return uc.conversation?.assigned_to === userId
+      allowedContacts = allLeads.filter(l => {
+        const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
+        return c.assigned_to === userId
       })
     }
 
     // 3. Process each lead, derive classification, and parse metadata
-    const enrichedLeads = allowedContacts.map((uc) => {
-      const l = uc.lead || {}
-      const c = uc.conversation || {}
-      const p = uc.phone
+    const enrichedLeads = allowedContacts.map((l) => {
+      const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
+      const p = l.phone_number || c.phone_number
 
       let parsedMetadata: Record<string, any> = l.metadata || {}
       
@@ -63,13 +83,13 @@ export async function GET(req: NextRequest) {
         conversation_id: l.conversation_id || c.id || null,
         phone_number: p,
         created_at: createdAt,
-        lead_type: uc.category,
+        lead_type: l.osmo_category || 'unfiltered',
         name: displayName,
         stage: stg,
         lead_quality: q,
         lead_temperature: q.toUpperCase(),
         lead_score: score,
-        metadata: { ...parsedMetadata, lead_type: uc.category, category: uc.category }
+        metadata: { ...parsedMetadata, lead_type: l.osmo_category || 'unfiltered', category: l.osmo_category || 'unfiltered' }
       }
     })
 
