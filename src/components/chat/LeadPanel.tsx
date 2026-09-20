@@ -5,7 +5,7 @@ import { Conversation, Lead, LeadActivity } from '@/types'
 import { supabase } from '@/lib/supabaseClient'
 
 import { INDIAN_STATES } from '@/lib/constants'
-import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban } from 'lucide-react'
+import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown } from 'lucide-react'
 
 const getLocalDateString = (d: Date) => {
   const year = d.getFullYear();
@@ -606,6 +606,43 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 WhatsApp Lead
               </a>
             </div>
+            
+            {/* Osmo RO Specific Category Dropdown */}
+            {isOsmoRo && (
+              <div className="bg-white/80 dark:bg-gray-900/80 rounded-xl p-3 border border-emerald-100 dark:border-emerald-900/30 shadow-[0_2px_10px_rgba(16,185,129,0.05)]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Lead Category</span>
+                </div>
+                <div className="relative">
+                  <select
+                    value={lead?.osmo_category || 'unfiltered'}
+                    onChange={async (e) => {
+                      const val = e.target.value
+                      // Optimistic local update via event dispatch
+                      if (conversation) {
+                        const updatedLead = { ...(lead || {}), osmo_category: val }
+                        window.dispatchEvent(new CustomEvent('update-conversation', {
+                          detail: { id: conversation.id, lead: updatedLead }
+                        }))
+                        if (onLeadUpdate) onLeadUpdate(updatedLead)
+                      }
+                      // Background sync
+                      if (lead?.id) {
+                        await supabase.from('leads').update({ osmo_category: val }).eq('id', lead.id)
+                      }
+                    }}
+                    className="w-full appearance-none bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all cursor-pointer capitalize"
+                  >
+                    <option value="unfiltered">Unfiltered</option>
+                    <option value="Osmo dealer">Osmo Dealer</option>
+                    <option value="dealer">Dealer</option>
+                    <option value="customer">Customer</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-2 w-4 h-4 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
+                </div>
+              </div>
+            )}
 
             <InfoCard icon={Phone} label="Phone Number" value={data.Phone} />
             {conversation?.receiver_phone_number && (

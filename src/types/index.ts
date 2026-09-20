@@ -62,6 +62,7 @@ export interface Lead {
   id?: string
   conversation_id?: string
   org_id?: string
+  osmo_category?: string
   phone_number: string
   customer_name?: string
   name?: string

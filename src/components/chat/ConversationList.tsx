@@ -50,6 +50,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [unread, setUnread] = useState(false)
   const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
   const [channelFilter, setChannelFilter] = useState<string>('all') // all, whatsapp, instagram
+  const [osmoTab, setOsmoTab] = useState<string>('unfiltered')
 
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -58,6 +59,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
   const { profile, org } = useOrg()
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+  const isOsmo = profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' || org?.name?.toLowerCase().includes('osmo') || org?.slug?.toLowerCase().includes('osmo')
 
   const { conversations, loading, refetch, markAsRead, markAllAsRead } = useConversations({ 
     search, 
@@ -308,6 +310,25 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             </button>
           )}
         </div>
+
+        {/* Osmo RO Specific Tabs */}
+        {isOsmo && (
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-3">
+            {['unfiltered', 'Osmo dealer', 'dealer', 'customer'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setOsmoTab(tab)}
+                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize ${
+                  osmoTab === tab 
+                    ? 'bg-white dark:bg-gray-700 text-emerald-600 shadow-xs' 
+                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Conversation Cards List */}
@@ -321,6 +342,13 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           </div>
         ) : (
           [...conversations]
+            .filter(c => {
+              if (!isOsmo) return true
+              // In Supabase joins, leads might be an array or an object depending on the query
+              const leadObj = Array.isArray((c as any).leads) ? (c as any).leads[0] : (c as any).leads || c.lead
+              const cat = leadObj?.osmo_category || 'unfiltered'
+              return cat.toLowerCase() === osmoTab.toLowerCase()
+            })
             .filter((c) => {
               if (unread) {
                 return (c.unread_count || 0) > 0
