@@ -607,19 +607,21 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
               </a>
             </div>
             
-            {/* Osmo RO Specific Category Dropdown */}
+            {/* Osmo RO Specific Category Dropdown (Premium) */}
             {isOsmoRo && (
-              <div className="bg-white/80 dark:bg-gray-900/80 rounded-xl p-3 border border-emerald-100 dark:border-emerald-900/30 shadow-[0_2px_10px_rgba(16,185,129,0.05)]">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-4 h-4 text-emerald-500" />
-                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Lead Category</span>
+              <div className="bg-gradient-to-br from-white/90 to-gray-50/90 dark:from-gray-900/90 dark:to-gray-950/90 rounded-2xl p-4 border border-emerald-500/20 shadow-lg shadow-emerald-500/5 backdrop-blur-xl relative overflow-hidden group">
+                <div className="absolute inset-0 bg-emerald-500/5 group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
+                <div className="flex items-center gap-2 mb-3 relative z-10">
+                  <div className="w-6 h-6 rounded-md bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center border border-emerald-200/50 dark:border-emerald-800/50">
+                    <Target className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">Lead Category</span>
                 </div>
-                <div className="relative">
+                <div className="relative z-10">
                   <select
                     value={lead?.osmo_category || 'unfiltered'}
                     onChange={async (e) => {
                       const val = e.target.value
-                      // Optimistic local update via event dispatch
                       if (conversation) {
                         const updatedLead = { ...(lead || {}), osmo_category: val }
                         window.dispatchEvent(new CustomEvent('update-conversation', {
@@ -627,19 +629,20 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                         }))
                         if (onLeadUpdate) onLeadUpdate(updatedLead)
                       }
-                      // Background sync
                       if (lead?.id) {
                         await supabase.from('leads').update({ osmo_category: val }).eq('id', lead.id)
                       }
                     }}
-                    className="w-full appearance-none bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300 text-xs font-bold py-2 pl-3 pr-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all cursor-pointer capitalize"
+                    className="w-full appearance-none bg-white dark:bg-black/40 border border-emerald-200/60 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 text-emerald-900 dark:text-emerald-100 text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer capitalize shadow-sm"
                   >
-                    <option value="unfiltered">Unfiltered</option>
-                    <option value="Osmo dealer">Osmo Dealer</option>
-                    <option value="dealer">Dealer</option>
-                    <option value="customer">Customer</option>
+                    <option value="unfiltered">⚪ Unfiltered</option>
+                    <option value="Osmo dealer">🟢 Osmo Dealer</option>
+                    <option value="dealer">🔵 Dealer</option>
+                    <option value="customer">🟠 Customer</option>
                   </select>
-                  <ChevronDown className="absolute right-2.5 top-2 w-4 h-4 text-emerald-600 dark:text-emerald-400 pointer-events-none" />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 bg-emerald-100 dark:bg-emerald-900/60 rounded flex items-center justify-center pointer-events-none">
+                    <ChevronDown className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
+                  </div>
                 </div>
               </div>
             )}

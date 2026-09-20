@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown, CheckCheck } from 'lucide-react'
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase } from '@/lib/supabaseClient'
+import { motion } from 'framer-motion'
 
 const STAGES: Stage[] = ['new', 'interested', 'booking', 'confirmed', 'cancelled', 'completed', 'followup', 'not_interested', 'call_done', 'low_budget', 'hot_customer', 'not_connected', 'joined', 'not_joined', 'contact_save', 'contact_not_save', 'unknown']
 
@@ -311,28 +312,47 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           )}
         </div>
 
-        {/* Osmo RO Specific Tabs */}
+        {/* Premium Animated Osmo RO Tabs */}
         {isOsmo && (
-          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 mb-3">
+          <div className="flex bg-gray-900/5 dark:bg-black/20 p-1.5 rounded-2xl mb-4 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 shadow-inner">
             {['unfiltered', 'Osmo dealer', 'dealer', 'customer'].map(tab => {
               const count = conversations.filter(c => {
                 const leadObj = Array.isArray((c as any).leads) ? (c as any).leads[0] : (c as any).leads || c.lead
                 const cat = leadObj?.osmo_category || 'unfiltered'
                 return cat.toLowerCase() === tab.toLowerCase()
               }).length
+              const isActive = osmoTab === tab
+              
               return (
-              <button
-                key={tab}
-                onClick={() => setOsmoTab(tab)}
-                className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all capitalize whitespace-nowrap ${
-                  osmoTab === tab 
-                    ? 'bg-white dark:bg-gray-700 text-emerald-600 shadow-xs' 
-                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
-                }`}
-              >
-                {tab} ({count})
-              </button>
-            )})}
+                <button
+                  key={tab}
+                  onClick={() => setOsmoTab(tab)}
+                  className={`relative flex-1 py-2 text-[11px] font-bold rounded-xl transition-colors capitalize whitespace-nowrap z-10 ${
+                    isActive
+                      ? 'text-emerald-700 dark:text-emerald-300'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="osmoTabIndicator"
+                      className="absolute inset-0 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-black/5 dark:border-white/5 -z-10"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  <span className="relative flex justify-center items-center gap-1.5">
+                    {tab}
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${
+                      isActive 
+                        ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' 
+                        : 'bg-gray-200/50 dark:bg-gray-800 text-gray-500'
+                    }`}>
+                      {count}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
           </div>
         )}
       </div>
@@ -505,13 +525,14 @@ function ConversationItem({
             {(conv.stage || 'new').replace(/_/g, ' ')}
           </span>
 
-          {/* Osmo Category Badge */}
+          {/* Osmo Category Badge (Premium) */}
           {isOsmo && (
-            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 ${
               ((Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead)?.osmo_category || 'unfiltered') === 'unfiltered'
-                ? 'bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
-                : 'bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50'
+                ? 'bg-gray-100 text-gray-500 border border-gray-200/60 dark:bg-gray-800/80 dark:text-gray-400 dark:border-gray-700/50'
+                : 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border border-emerald-200/60 dark:from-emerald-950/80 dark:to-teal-950/80 dark:text-emerald-300 dark:border-emerald-800/50 shadow-sm shadow-emerald-500/5'
             }`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${((Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead)?.osmo_category || 'unfiltered') === 'unfiltered' ? 'bg-gray-400' : 'bg-emerald-500'}`} />
               {((Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead)?.osmo_category || 'unfiltered')}
             </span>
           )}
