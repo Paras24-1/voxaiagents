@@ -402,7 +402,7 @@ export function useMessages(conversationId: string | null) {
               })
             }
           } else if (payload.eventType === 'UPDATE') {
-            setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? payload.new as Message : msg))
+            setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? { ...msg, ...(payload.new as Partial<Message>) } : msg))
           }
         }
       )
