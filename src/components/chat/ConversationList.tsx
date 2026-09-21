@@ -46,6 +46,24 @@ interface Employee {
   email: string
 }
 
+const extractOsmoCategory = (conv: any): string => {
+  if (!conv) return 'unfiltered'
+  const leadObj = Array.isArray(conv.leads) ? conv.leads[0] : conv.leads || conv.lead || {}
+  const meta = typeof leadObj?.metadata === 'object' ? leadObj.metadata : (typeof conv.metadata === 'object' ? conv.metadata : {})
+  const cat = 
+    leadObj?.osmo_category || 
+    leadObj?.category || 
+    leadObj?.lead_type || 
+    meta?.osmo_category || 
+    meta?.category || 
+    meta?.lead_type || 
+    conv.osmo_category || 
+    conv.category || 
+    conv.lead_type || 
+    'unfiltered'
+  return String(cat).toLowerCase()
+}
+
 export default function ConversationList({ selectedId, onSelect, onDelete }: Props) {
   const { stages } = useLeadStages()
   const [search, setSearch] = useState('')
@@ -306,11 +324,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
         {isOsmo && (
           <div className="flex bg-gray-900/5 dark:bg-black/20 p-1.5 rounded-2xl mb-4 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 shadow-inner overflow-x-auto scrollbar-hide gap-1">
             {['unfiltered', 'osmo_dealer', 'dealer', 'customer'].map(tab => {
-              const count = conversations.filter(c => {
-                const leadObj = Array.isArray((c as any).leads) ? (c as any).leads[0] : (c as any).leads || c.lead
-                const cat = leadObj?.osmo_category || 'unfiltered'
-                return cat.toLowerCase() === tab.toLowerCase()
-              }).length
+              const count = conversations.filter(c => extractOsmoCategory(c) === tab.toLowerCase()).length
               const isActive = osmoTab === tab
               
               return (
@@ -360,10 +374,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           [...conversations]
             .filter(c => {
               if (!isOsmo) return true
-              // In Supabase joins, leads might be an array or an object depending on the query
-              const leadObj = Array.isArray((c as any).leads) ? (c as any).leads[0] : (c as any).leads || c.lead
-              const cat = leadObj?.osmo_category || 'unfiltered'
-              return cat.toLowerCase() === osmoTab.toLowerCase()
+              return extractOsmoCategory(c) === osmoTab.toLowerCase()
             })
             .filter((c) => {
               if (unread) {
@@ -393,6 +404,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 employees={employees}
                 onAssignmentChange={refetch}
                 isOsmo={isOsmo}
+                stages={stages}
               />
             ))
         )}
@@ -411,6 +423,7 @@ function ConversationItem({
   employees,
   onAssignmentChange,
   isOsmo,
+  stages,
 }: {
   conversation: Conversation,
   isSelected: boolean
@@ -421,8 +434,8 @@ function ConversationItem({
   employees: Employee[]
   onAssignmentChange: () => void
   isOsmo: boolean
+  stages: any[]
 }) {
-  const { stages } = useLeadStages()
   const [hovered, setHovered] = useState(false)
   const [showAssign, setShowAssign] = useState(false)
   const [assigning, setAssigning] = useState(false)
@@ -532,12 +545,12 @@ function ConversationItem({
           {/* Osmo Category Badge (Premium) */}
           {isOsmo && (
             <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 ${
-              ((Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead)?.osmo_category || 'unfiltered') === 'unfiltered'
+              extractOsmoCategory(conv) === 'unfiltered'
                 ? 'bg-gray-100 text-gray-500 border border-gray-200/60 dark:bg-gray-800/80 dark:text-gray-400 dark:border-gray-700/50'
                 : 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border border-emerald-200/60 dark:from-emerald-950/80 dark:to-teal-950/80 dark:text-emerald-300 dark:border-emerald-800/50 shadow-sm shadow-emerald-500/5'
             }`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${((Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead)?.osmo_category || 'unfiltered') === 'unfiltered' ? 'bg-gray-400' : 'bg-emerald-500'}`} />
-              {((Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead)?.osmo_category || 'unfiltered')}
+              <div className={`w-1.5 h-1.5 rounded-full ${extractOsmoCategory(conv) === 'unfiltered' ? 'bg-gray-400' : 'bg-emerald-500'}`} />
+              {extractOsmoCategory(conv).replace('_', ' ')}
             </span>
           )}
 

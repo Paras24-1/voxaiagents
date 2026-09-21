@@ -161,14 +161,17 @@ export async function PATCH(req: NextRequest) {
     const validDbColumns = [
       'id', 'conversation_id', 'phone_number', 'customer_name', 'name', 
       'created_at', 'org_id', 'metadata', 'followup_date', 'followup_notes', 
-      'followup_notified', 'lead_temperature'
+      'followup_notified', 'lead_temperature', 'osmo_category', 'lead_type'
     ];
 
     let mergedMeta = { ...existingMeta, ...(parsedMeta || {}) };
 
-    // Explicit manual lead_type update
-    let targetLeadType = updates.lead_type || body.lead_type
+    // Explicit manual lead_type / osmo_category update
+    let targetLeadType = updates.osmo_category || updates.lead_type || body.osmo_category || body.lead_type || body.category
     if (targetLeadType) {
+      updates.osmo_category = targetLeadType
+      updates.lead_type = targetLeadType
+      mergedMeta.osmo_category = targetLeadType
       mergedMeta.lead_type = targetLeadType
       mergedMeta.category = targetLeadType
       mergedMeta.user_type = targetLeadType

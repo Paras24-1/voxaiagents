@@ -622,27 +622,59 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 </div>
                 <div className="relative z-10">
                   <select
-                    value={lead?.osmo_category || 'unfiltered'}
+                    value={(lead as any)?.osmo_category || (lead as any)?.category || (lead as any)?.lead_type || (typeof lead?.metadata === 'object' ? (lead?.metadata as any)?.osmo_category || (lead?.metadata as any)?.category || (lead?.metadata as any)?.lead_type : '') || 'unfiltered'}
                     disabled={savingCategoryStatus === 'saving'}
                     onChange={async (e) => {
                       const val = e.target.value
                       setSavingCategoryStatus('saving')
+                      
+                      const currentMeta = typeof lead?.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead?.metadata || {})
+                      const updatedMeta = { ...currentMeta, osmo_category: val, category: val, lead_type: val }
+                      const updatedLead = { ...(lead || {}), osmo_category: val, category: val, lead_type: val, metadata: updatedMeta }
+                      
                       if (conversation) {
-                        const updatedLead = { ...(lead || {}), osmo_category: val }
+                        const updatedConv = {
+                          ...conversation,
+                          lead: updatedLead,
+                          osmo_category: val,
+                          category: val,
+                          lead_type: val
+                        }
                         window.dispatchEvent(new CustomEvent('update-conversation', {
-                          detail: { id: conversation.id, lead: updatedLead }
+                          detail: updatedConv
                         }))
                         if (onLeadUpdate) onLeadUpdate(updatedLead)
                       }
-                      if (lead?.id) {
-                        await supabase.from('leads').update({ osmo_category: val }).eq('id', lead.id)
-                      }
-                      setSavingCategoryStatus('success')
-                      setShowCategoryToast(true)
-                      setTimeout(() => {
+                      
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession()
+                        const token = session?.access_token || ''
+                        const headers: Record<string, string> = {
+                          'Content-Type': 'application/json',
+                          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        }
+                        await fetch('/api/leads', {
+                          method: 'PATCH',
+                          headers,
+                          body: JSON.stringify({
+                            id: lead?.id,
+                            conversation_id: conversation?.id || lead?.conversation_id,
+                            phone_number: conversation?.phone_number || lead?.phone_number,
+                            osmo_category: val,
+                            lead_type: val,
+                            category: val
+                          })
+                        })
+                        setSavingCategoryStatus('success')
+                        setShowCategoryToast(true)
+                        setTimeout(() => {
+                          setSavingCategoryStatus('idle')
+                          setShowCategoryToast(false)
+                        }, 3000)
+                      } catch (err) {
+                        console.error('Failed to update category:', err)
                         setSavingCategoryStatus('idle')
-                        setShowCategoryToast(false)
-                      }, 3000)
+                      }
                     }}
                     className={`w-full appearance-none bg-white dark:bg-black/40 border border-emerald-200/60 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 text-emerald-900 dark:text-emerald-100 text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer capitalize shadow-sm ${savingCategoryStatus === 'saving' ? 'opacity-80 cursor-wait' : ''}`}
                   >

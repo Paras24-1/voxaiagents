@@ -31,17 +31,35 @@ export const DEFAULT_STAGES: LeadStage[] = [
   { id: 'unknown', name: 'unknown', label: 'Unknown', color: 'bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-400' }
 ]
 
-export function useLeadStages() {
-  const [stages, setStages] = useState<LeadStage[]>(DEFAULT_STAGES)
-  const [customStages, setCustomStages] = useState<LeadStage[]>([])
-  const [loading, setLoading] = useState(true)
+// Singleton module cache to deduplicate API calls across 1000s of components
+let globalStages: LeadStage[] = DEFAULT_STAGES
+let globalCustomStages: LeadStage[] = []
+let globalLoading = true
+let fetchInFlight: Promise<any> | null = null
+let hasAuthListener = false
+let hasFetchedSuccessfully = false
+let lastFetchTime = 0
 
-  const fetchStages = async () => {
+const listeners = new Set<() => void>()
+
+const notifyListeners = () => {
+  listeners.forEach(cb => cb())
+}
+
+async function sharedFetchStages(force = false) {
+  const now = Date.now()
+  if (!force && hasFetchedSuccessfully) return
+  if (!force && now - lastFetchTime < 10000) return
+  if (fetchInFlight && !force) return fetchInFlight
+
+  lastFetchTime = now
+  fetchInFlight = (async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       if (!token) {
-        setLoading(false)
+        globalLoading = false
+        notifyListeners()
         return
       }
 
@@ -51,15 +69,50 @@ export function useLeadStages() {
 
       if (res.ok) {
         const data = await res.json()
-        setStages(data.stages && data.stages.length > 0 ? data.stages : DEFAULT_STAGES)
-        setCustomStages(data.customStages || [])
+        globalStages = data.stages && data.stages.length > 0 ? data.stages : DEFAULT_STAGES
+        globalCustomStages = data.customStages || []
+        globalLoading = false
+        hasFetchedSuccessfully = true
+        notifyListeners()
       }
     } catch (err) {
       console.error('Failed to load lead stages:', err)
     } finally {
-      setLoading(false)
+      fetchInFlight = null
     }
-  }
+  })()
+
+  return fetchInFlight
+}
+
+export function useLeadStages() {
+  const [stages, setStages] = useState<LeadStage[]>(globalStages)
+  const [customStages, setCustomStages] = useState<LeadStage[]>(globalCustomStages)
+  const [loading, setLoading] = useState(globalLoading)
+
+  useEffect(() => {
+    const handleChange = () => {
+      setStages(globalStages)
+      setCustomStages(globalCustomStages)
+      setLoading(globalLoading)
+    }
+
+    listeners.add(handleChange)
+    sharedFetchStages()
+
+    if (!hasAuthListener) {
+      hasAuthListener = true
+      supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.access_token) {
+          sharedFetchStages(true)
+        }
+      })
+    }
+
+    return () => {
+      listeners.delete(handleChange)
+    }
+  }, [])
 
   const addCustomStage = async (label: string, color?: string) => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -78,8 +131,9 @@ export function useLeadStages() {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to add custom stage')
 
-    setStages(data.stages || [])
-    setCustomStages(data.customStages || [])
+    globalStages = data.stages || []
+    globalCustomStages = data.customStages || []
+    notifyListeners()
     return data.newStage
   }
 
@@ -100,29 +154,16 @@ export function useLeadStages() {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to delete custom stage')
 
-    setStages(data.stages || [])
-    setCustomStages(data.customStages || [])
+    globalStages = data.stages || []
+    globalCustomStages = data.customStages || []
+    notifyListeners()
   }
-
-  useEffect(() => {
-    fetchStages()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.access_token) {
-        fetchStages()
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
 
   return {
     stages,
     customStages,
     loading,
-    refreshStages: fetchStages,
+    refreshStages: () => sharedFetchStages(true),
     addCustomStage,
     deleteCustomStage
   }
