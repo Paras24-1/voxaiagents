@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getOrgId } from '@/lib/supabase'
 import { isOsmoOrg, syncOsmoPhonebooks, invalidateUnifiedCache } from '@/lib/osmoPhonebooks'
+import { handleApiError } from '@/lib/apiErrors'
 
 export async function GET(req: NextRequest) {
   try {
@@ -55,8 +56,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data || {})
   } catch (err: unknown) {
-    const error = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error }, { status: 500 })
+    return handleApiError('GET /api/leads', err)
   }
 }
 
@@ -161,7 +161,7 @@ export async function PATCH(req: NextRequest) {
     const validDbColumns = [
       'id', 'conversation_id', 'phone_number', 'customer_name', 'name', 
       'created_at', 'org_id', 'metadata', 'followup_date', 'followup_notes', 
-      'followup_notified', 'lead_temperature', 'osmo_category', 'lead_type'
+      'followup_notified', 'lead_temperature', 'osmo_category'
     ];
 
     let mergedMeta = { ...existingMeta, ...(parsedMeta || {}) };
@@ -340,7 +340,6 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json(data || {})
   } catch (err: unknown) {
-    const error = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error }, { status: 500 })
+    return handleApiError('PATCH /api/leads', err)
   }
 }

@@ -36,7 +36,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
   const [leadState, setLeadState] = useState<string>('')
   const [savingState, setSavingState] = useState(false)
-  const [savingCategoryStatus, setSavingCategoryStatus] = useState<'idle' | 'saving' | 'success'>('idle')
+  const [savingCategoryStatus, setSavingCategoryStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+  const [categoryError, setCategoryError] = useState<string | null>(null)
   const [showCategoryToast, setShowCategoryToast] = useState(false)
 
   // Sync leadState from metadata when conversation/lead changes
@@ -625,8 +626,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                     value={(lead as any)?.osmo_category || (lead as any)?.category || (lead as any)?.lead_type || (typeof lead?.metadata === 'object' ? (lead?.metadata as any)?.osmo_category || (lead?.metadata as any)?.category || (lead?.metadata as any)?.lead_type : '') || 'unfiltered'}
                     disabled={savingCategoryStatus === 'saving'}
                     onChange={async (e) => {
+                      const previousVal = (lead as any)?.osmo_category || (lead as any)?.category || (lead as any)?.lead_type || (typeof lead?.metadata === 'object' ? (lead?.metadata as any)?.osmo_category || (lead?.metadata as any)?.category || (lead?.metadata as any)?.lead_type : '') || 'unfiltered'
                       const val = e.target.value
                       setSavingCategoryStatus('saving')
+                      setCategoryError(null)
                       
                       const currentMeta = typeof lead?.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead?.metadata || {})
                       const updatedMeta = { ...currentMeta, osmo_category: val, category: val, lead_type: val }
@@ -653,7 +656,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                           'Content-Type': 'application/json',
                           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                         }
-                        await fetch('/api/leads', {
+                        const res = await fetch('/api/leads', {
                           method: 'PATCH',
                           headers,
                           body: JSON.stringify({
@@ -665,18 +668,45 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                             category: val
                           })
                         })
+                        const json = await res.json()
+                        if (!res.ok) {
+                          throw new Error(json.error || 'Failed to update category')
+                        }
+
                         setSavingCategoryStatus('success')
                         setShowCategoryToast(true)
                         setTimeout(() => {
                           setSavingCategoryStatus('idle')
                           setShowCategoryToast(false)
                         }, 3000)
-                      } catch (err) {
+                      } catch (err: any) {
                         console.error('Failed to update category:', err)
-                        setSavingCategoryStatus('idle')
+                        // Revert UI to previous category
+                        const revertedMeta = { ...currentMeta, osmo_category: previousVal, category: previousVal, lead_type: previousVal }
+                        const revertedLead = { ...(lead || {}), osmo_category: previousVal, category: previousVal, lead_type: previousVal, metadata: revertedMeta }
+                        if (conversation) {
+                          const revertedConv = {
+                            ...conversation,
+                            lead: revertedLead,
+                            osmo_category: previousVal,
+                            category: previousVal,
+                            lead_type: previousVal
+                          }
+                          window.dispatchEvent(new CustomEvent('update-conversation', { detail: revertedConv }))
+                          if (onLeadUpdate) onLeadUpdate(revertedLead)
+                        }
+                        setCategoryError(err.message || 'Failed to update category')
+                        setSavingCategoryStatus('error')
+                        setTimeout(() => {
+                          setSavingCategoryStatus('idle')
+                        }, 4000)
                       }
                     }}
-                    className={`w-full appearance-none bg-white dark:bg-black/40 border border-emerald-200/60 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 text-emerald-900 dark:text-emerald-100 text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all cursor-pointer capitalize shadow-sm ${savingCategoryStatus === 'saving' ? 'opacity-80 cursor-wait' : ''}`}
+                    className={`w-full appearance-none bg-white dark:bg-black/40 border text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none transition-all cursor-pointer capitalize shadow-sm ${
+                      savingCategoryStatus === 'error'
+                        ? 'border-red-400 dark:border-red-600 text-red-900 dark:text-red-200'
+                        : 'border-emerald-200/60 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 text-emerald-900 dark:text-emerald-100'
+                    } ${savingCategoryStatus === 'saving' ? 'opacity-80 cursor-wait' : ''}`}
                   >
                     <option value="unfiltered">⚪ Unfiltered</option>
                     <option value="osmo_dealer">🟢 Osmo Dealer</option>
@@ -688,11 +718,18 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                       <Loader2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-spin" />
                     ) : savingCategoryStatus === 'success' ? (
                       <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-in zoom-in" />
+                    ) : savingCategoryStatus === 'error' ? (
+                      <X className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                     ) : (
                       <ChevronDown className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
                     )}
                   </div>
                 </div>
+                {savingCategoryStatus === 'error' && categoryError && (
+                  <p className="text-[11px] font-semibold text-red-500 mt-1 flex items-center gap-1">
+                    ⚠️ {categoryError} (reverted to previous category)
+                  </p>
+                )}
               </div>
             )}
 
