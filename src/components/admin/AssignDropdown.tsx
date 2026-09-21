@@ -63,54 +63,27 @@ export default function AssignDropdown({
   const handleAssign = async (employeeId: string | null) => {
     setAssigning(true)
     try {
-      // Update conversation
-      await supabase
-        .from('conversations')
-        .update({
-          assigned_to: employeeId,
-          assignment_status: employeeId ? 'assigned' : 'unassigned'
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      const res = await fetch('/api/assignments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          assigned_to: employeeId
         })
-        .eq('id', conversationId)
+      })
 
-      // Upsert assignment record
-      if (employeeId) {
-        await supabase
-          .from('conversation_assignments')
-          .upsert({
-            conversation_id: conversationId,
-            assigned_to: employeeId,
-            assigned_by: profile?.id,
-            status: 'active',
-            assigned_at: new Date().toISOString()
-          }, { onConflict: 'conversation_id' })
-
-        // Log the action
-        await supabase
-          .from('assignment_logs')
-          .insert({
-            conversation_id: conversationId,
-            user_id: profile?.id,
-            action: 'assigned',
-            details: `Assigned to employee`
-          })
+      if (res.ok) {
+        onAssigned()
       } else {
-        // Unassign
-        await supabase
-          .from('conversation_assignments')
-          .delete()
-          .eq('conversation_id', conversationId)
-
-        await supabase
-          .from('assignment_logs')
-          .insert({
-            conversation_id: conversationId,
-            user_id: profile?.id,
-            action: 'unassigned',
-            details: 'Removed assignment'
-          })
+        const errData = await res.json()
+        console.error('Assignment failed:', errData)
       }
-
-      onAssigned()
     } catch (err) {
       console.error('Assignment error:', err)
     } finally {

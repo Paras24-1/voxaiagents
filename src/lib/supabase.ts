@@ -23,23 +23,26 @@ export interface UserProfile {
   email: string
 }
 
+interface CachedProfile {
+  profile: UserProfile
+  expiresAt: number
+}
+
+// In-memory token profile cache to eliminate 300-600ms auth waterfalls on every API request
+const profileCache = new Map<string, CachedProfile>()
+const PROFILE_CACHE_TTL_MS = 60 * 1000 // 60 seconds
+
 // Helper: get current user profile (userId, orgId, role, email) from session
 export async function getUserProfile(req: Request): Promise<UserProfile | null> {
   try {
     const authHeader = req.headers.get('authorization')
-    let userId: string | null = null
+    let rawToken: string | null = null
 
     if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '').trim()
-      if (token) {
-        try {
-          const { data } = await supabaseAdmin.auth.getUser(token)
-          userId = data.user?.id || null
-        } catch {}
-      }
+      rawToken = authHeader.replace('Bearer ', '').trim()
     }
 
-    if (!userId) {
+    if (!rawToken) {
       const cookieStr = req.headers.get('cookie') || ''
       const projectId = supabaseUrl.replace('https://', '').split('.')[0]
       
@@ -57,26 +60,29 @@ export async function getUserProfile(req: Request): Promise<UserProfile | null> 
           try {
             const combined = chunks.join('')
             const parsed = JSON.parse(combined)
-            const accessToken = parsed.access_token || parsed[0]?.access_token
-            if (accessToken) {
-              const { data } = await supabaseAdmin.auth.getUser(accessToken)
-              userId = data.user?.id || null
-            }
+            rawToken = parsed.access_token || parsed[0]?.access_token || null
           } catch {}
         }
       } else {
         const token = decodeURIComponent(tokenMatch[1])
         try {
           const parsed = JSON.parse(token)
-          const accessToken = parsed.access_token || parsed[0]?.access_token
-          if (accessToken) {
-            const { data } = await supabaseAdmin.auth.getUser(accessToken)
-            userId = data.user?.id || null
-          }
+          rawToken = parsed.access_token || parsed[0]?.access_token || null
         } catch {}
       }
     }
 
+    if (!rawToken) return null
+
+    // Check fast in-memory cache
+    const cacheKey = rawToken.slice(-32)
+    const cached = profileCache.get(cacheKey)
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.profile
+    }
+
+    const { data } = await supabaseAdmin.auth.getUser(rawToken)
+    const userId = data.user?.id
     if (!userId) return null
 
     const { data: profile } = await supabaseAdmin
@@ -87,12 +93,19 @@ export async function getUserProfile(req: Request): Promise<UserProfile | null> 
 
     if (!profile || !profile.org_id) return null
 
-    return {
+    const userProf: UserProfile = {
       userId: profile.id,
       orgId: profile.org_id,
       role: profile.role || 'employee',
       email: profile.email || ''
     }
+
+    profileCache.set(cacheKey, {
+      profile: userProf,
+      expiresAt: Date.now() + PROFILE_CACHE_TTL_MS
+    })
+
+    return userProf
   } catch {
     return null
   }

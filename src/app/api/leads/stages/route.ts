@@ -24,16 +24,19 @@ const DEFAULT_STAGES = [
 ]
 
 // Helper to parse organization settings JSON
-function parseSettings(aiSystemPrompt: string | null) {
+function parseSettings(aiSystemPrompt: any) {
   if (!aiSystemPrompt) return {}
-  try {
-    if (aiSystemPrompt.startsWith('{')) {
-      return JSON.parse(aiSystemPrompt)
+  if (typeof aiSystemPrompt === 'object') return aiSystemPrompt
+  if (typeof aiSystemPrompt === 'string') {
+    try {
+      if (aiSystemPrompt.trim().startsWith('{')) {
+        return JSON.parse(aiSystemPrompt)
+      }
+    } catch (e) {
+      return { system_prompt: aiSystemPrompt }
     }
-  } catch (e) {
-    return { system_prompt: aiSystemPrompt }
   }
-  return { system_prompt: aiSystemPrompt }
+  return { system_prompt: String(aiSystemPrompt) }
 }
 
 export async function GET(req: NextRequest) {
