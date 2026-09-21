@@ -3,6 +3,8 @@ import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
 import { fetchUnifiedOsmoContacts } from '@/lib/osmoPhonebooks'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 export async function GET(req: NextRequest) {
   try {
@@ -117,7 +119,11 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    return NextResponse.json(enrichedData)
+    return NextResponse.json(enrichedData, {
+      headers: {
+        'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0'
+      }
+    })
   } catch (err: unknown) {
     const error = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error }, { status: 500 })
