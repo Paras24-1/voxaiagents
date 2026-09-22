@@ -732,8 +732,11 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                   >
                     {msg.direction === 'outgoing' && (
                       <button
-                        onClick={() => setDeleteConfirmMsgId(msg.id)}
-                        className="opacity-0 group-hover/msg:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200/50 dark:hover:bg-gray-800 transition-all shrink-0 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirmMsgId(msg.id)
+                        }}
+                        className="opacity-60 hover:opacity-100 group-hover/msg:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-all shrink-0 cursor-pointer"
                         title="Delete message from dashboard"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -862,12 +865,25 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                             )}
                           </span>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteConfirmMsgId(msg.id)
+                          }}
+                          className="opacity-60 hover:opacity-100 text-gray-400 hover:text-red-500 p-0.5 rounded transition-all cursor-pointer ml-1.5"
+                          title="Delete message from dashboard"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                     {msg.direction === 'incoming' && (
                       <button
-                        onClick={() => setDeleteConfirmMsgId(msg.id)}
-                        className="opacity-0 group-hover/msg:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200/50 dark:hover:bg-gray-800 transition-all shrink-0 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirmMsgId(msg.id)
+                        }}
+                        className="opacity-60 hover:opacity-100 group-hover/msg:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-all shrink-0 cursor-pointer"
                         title="Delete message from dashboard"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
