@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin
       .from('conversations')
       .update({ 
-        last_message: message || (media_type?.startsWith('image') ? '📸 Image' : '📎 Attachment'), 
+        last_message: message || (media_type?.startsWith('image') ? '📸 Image' : media_type?.startsWith('audio') ? '🎵 Voice note' : '📎 Attachment'), 
         updated_at: timestamp
       })
       .eq('id', conversation_id)
@@ -131,30 +131,8 @@ export async function POST(req: NextRequest) {
       } else if (payload.type === 'text') {
         payload.text = { body: message }
       } else if (payload.type === 'audio') {
-        console.log(`[reply] Uploading audio to Meta Media API first...`)
-        const audioRes = await fetch(media_url)
-        const audioBuffer = await audioRes.arrayBuffer()
-        
-        const formData = new FormData()
-        formData.append('messaging_product', 'whatsapp')
-        formData.append('type', media_type || 'audio/mpeg')
-        formData.append('file', new Blob([audioBuffer], { type: media_type || 'audio/mpeg' }), 'voicenote.mp3')
-
-        const uploadRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/media`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${whatsapp_token}` },
-          body: formData
-        })
-
-        if (!uploadRes.ok) {
-          const uploadErr = await uploadRes.text()
-          console.error(`[reply] Meta Media Upload Error: ${uploadErr}`)
-          throw new Error(`Meta Media Upload Error: ${uploadErr}`)
-        }
-
-        const uploadData = await uploadRes.json()
-        console.log(`[reply] Audio uploaded to Meta, media_id: ${uploadData.id}`)
-        payload.audio = { id: uploadData.id }
+        // Meta Cloud API supports direct HTTPS links for audio
+        payload.audio = { link: media_url }
       } else if (payload.type === 'document') {
         payload.document = { 
           link: media_url,
@@ -167,7 +145,7 @@ export async function POST(req: NextRequest) {
         if (message) payload[payload.type].caption = message
       }
 
-      const metaRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/messages`, {
+      let metaRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/messages`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${whatsapp_token}`,
@@ -176,9 +154,51 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify(payload)
       })
 
+      // Fallback for audio: If direct link fails, upload to Meta Media API using native File
+      if (!metaRes.ok && payload.type === 'audio' && media_url) {
+        console.warn(`[reply] Direct link audio send returned error, trying Meta Media API upload fallback...`)
+        try {
+          const audioRes = await fetch(media_url)
+          if (audioRes.ok) {
+            const audioBuffer = await audioRes.arrayBuffer()
+            const audioFile = new File([audioBuffer], filename || 'voicenote.mp3', { type: media_type || 'audio/mpeg' })
+            
+            const formData = new FormData()
+            formData.append('messaging_product', 'whatsapp')
+            formData.append('type', media_type || 'audio/mpeg')
+            formData.append('file', audioFile)
+
+            const uploadRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/media`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${whatsapp_token}` },
+              body: formData
+            })
+
+            if (uploadRes.ok) {
+              const uploadData = await uploadRes.json()
+              console.log(`[reply] Audio uploaded to Meta fallback, media_id: ${uploadData.id}`)
+              payload.audio = { id: uploadData.id }
+              
+              metaRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/messages`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${whatsapp_token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+              })
+            }
+          }
+        } catch (fallbackErr) {
+          console.error(`[reply] Meta audio upload fallback failed:`, fallbackErr)
+        }
+      }
+
       if (!metaRes.ok) {
         const errorText = await metaRes.text()
         console.error(`[reply] Meta API Error: ${errorText}`)
+        // Rollback inserted message so phantom messages don't remain in DB
+        await supabaseAdmin.from('messages').delete().eq('id', msg.id)
         throw new Error(`Meta API Error: ${errorText}`)
       }
 
@@ -196,11 +216,15 @@ export async function POST(req: NextRequest) {
     // Priority 2: Legacy n8n Webhook Fallback
     else if (n8n_reply_webhook_url) {
       console.log(`[reply] Sending via n8n fallback for org: ${orgId}`)
-      await fetch(n8n_reply_webhook_url, {
+      const n8nRes = await fetch(n8n_reply_webhook_url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone_number, message, media_url, media_type, direction: 'outgoing', timestamp, platform }),
       })
+      if (!n8nRes.ok) {
+        await supabaseAdmin.from('messages').delete().eq('id', msg.id)
+        throw new Error(`n8n webhook error: ${await n8nRes.text()}`)
+      }
     }
 
     return NextResponse.json({ success: true, message: msg })
