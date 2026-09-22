@@ -300,28 +300,46 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
     }
   }
 
+  const uploadMediaFile = async (fileOrBlob: File | Blob, defaultName = 'voicenote'): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token || ''
+
+    const formData = new FormData()
+    if (fileOrBlob instanceof File) {
+      formData.append('file', fileOrBlob)
+    } else {
+      const ext = fileOrBlob.type?.includes('webm') ? 'webm' : 'mp3'
+      const audioFile = new File([fileOrBlob], `${defaultName}-${Date.now()}.${ext}`, { type: fileOrBlob.type || 'audio/mpeg' })
+      formData.append('file', audioFile)
+    }
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    })
+
+    if (!res.ok) {
+      const errData = await res.json()
+      throw new Error(errData.error || 'Failed to upload media file.')
+    }
+
+    const data = await res.json()
+    return data.url
+  }
+
   const handleSendAudio = async (blob: Blob) => {
     if (!conversation) return
     setUploading(true)
     try {
-      const orgId = profile?.org_id
-      if (!orgId) throw new Error('User organization not found')
-
-      // Use .mp3 extension which WhatsApp natively supports for Voice Notes
-      const filename = `${orgId}/${Date.now()}-voicenote.mp3`
-      const { data, error } = await supabase.storage
-        .from('chat-media')
-        .upload(filename, blob, { contentType: 'audio/mpeg', upsert: false })
-
-      if (error) throw error
-
-      const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
-      const mediaUrl = urlData.publicUrl
-
-      const success = await sendWithOptimism('', mediaUrl, 'audio/mpeg')
-    } catch (err) {
+      const mediaUrl = await uploadMediaFile(blob, 'voicenote')
+      const mimeType = blob.type || 'audio/mpeg'
+      await sendWithOptimism('', mediaUrl, mimeType)
+    } catch (err: any) {
       console.error('Failed to send audio:', err)
-      alert('Failed to send voice note.')
+      alert(`Failed to send voice note: ${err.message || String(err)}`)
     } finally {
       setUploading(false)
     }
@@ -337,36 +355,8 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
     if (imageFile) {
       setUploading(true)
       try {
-        const orgId = profile?.org_id
-        if (!orgId) {
-          throw new Error('User organization not found')
-        }
-
-        const timestamp = Date.now()
-        const randomStr = Math.random().toString(36).substring(7)
-        const extension = imageFile.name.split('.').pop()
-        const filename = `${orgId}/${timestamp}-${randomStr}.${extension}`
-
-        const { data, error } = await supabase.storage
-          .from('chat-media')
-          .upload(filename, imageFile, {
-            contentType: imageFile.type,
-            cacheControl: '3600',
-            upsert: false
-          })
-
-        if (error) {
-          throw error
-        }
-
-        const { data: urlData } = supabase.storage
-          .from('chat-media')
-          .getPublicUrl(filename)
-
-        mediaUrl = urlData?.publicUrl || null
+        mediaUrl = await uploadMediaFile(imageFile)
         mediaType = imageFile.type
-
-        // Clear image after upload
         handleRemoveImage()
       } catch (err: any) {
         alert(err.message || 'Failed to upload image')
@@ -396,21 +386,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
     if (!file || !conversation) return
     setUploading(true)
     try {
-      const orgId = profile?.org_id
-      if (!orgId) throw new Error('Organization not found')
-
-      const ext = file.name.split('.').pop()
-      const filename = `${orgId}/${Date.now()}-doc.${ext}`
-
-      const { data, error } = await supabase.storage
-        .from('chat-media')
-        .upload(filename, file, { contentType: file.type, upsert: false })
-
-      if (error) throw error
-
-      const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
-      const mediaUrl = urlData.publicUrl
-
+      const mediaUrl = await uploadMediaFile(file)
       await sendWithOptimism(
         '',
         mediaUrl,
@@ -431,21 +407,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
     if (!file || !conversation) return
     setUploading(true)
     try {
-      const orgId = profile?.org_id
-      if (!orgId) throw new Error('Organization not found')
-
-      const ext = file.name.split('.').pop()
-      const filename = `${orgId}/${Date.now()}-vid.${ext}`
-
-      const { data, error } = await supabase.storage
-        .from('chat-media')
-        .upload(filename, file, { contentType: file.type, upsert: false })
-
-      if (error) throw error
-
-      const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
-      const mediaUrl = urlData.publicUrl
-
+      const mediaUrl = await uploadMediaFile(file)
       await sendWithOptimism(
         '',
         mediaUrl,

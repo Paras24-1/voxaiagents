@@ -13,34 +13,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type. Only images allowed.' }, { status: 400 })
-    }
+    // Validate file type (allow audio, image, video, document)
+    const isAllowed = !file.type || 
+                      file.type.startsWith('audio/') || 
+                      file.type.startsWith('image/') || 
+                      file.type.startsWith('video/') || 
+                      file.type.includes('pdf') || 
+                      file.type.includes('document') || 
+                      file.type.includes('sheet') || 
+                      file.type.includes('text') ||
+                      file.type === 'application/octet-stream'
 
-    // File size limit removed temporarily
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Unsupported file format.' }, { status: 400 })
+    }
 
     // Generate unique filename scoped under organization ID
     const timestamp = Date.now()
     const randomStr = Math.random().toString(36).substring(7)
-    const extension = file.name.split('.').pop()
+    let extension = file.name && file.name.includes('.') ? file.name.split('.').pop() : ''
+    
+    if (!extension || extension === file.name || extension === 'blob') {
+      if (file.type?.includes('audio')) extension = 'mp3'
+      else if (file.type?.includes('image')) extension = 'jpg'
+      else if (file.type?.includes('video')) extension = 'mp4'
+      else extension = 'bin'
+    }
+
     const filename = `${orgId}/${timestamp}-${randomStr}.${extension}`
+    const contentType = file.type || (extension === 'mp3' ? 'audio/mpeg' : 'application/octet-stream')
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage using admin client (bypasses RLS)
     const { data, error } = await supabaseAdmin.storage
       .from('chat-media')
       .upload(filename, buffer, {
-        contentType: file.type,
+        contentType,
         cacheControl: '3600',
         upsert: false
       })
 
-    if (error) throw error
+    if (error) {
+      console.error('[upload] Supabase storage upload error:', error)
+      throw error
+    }
 
     // Get public URL
     const { data: { publicUrl } } = supabaseAdmin.storage
@@ -53,8 +72,8 @@ export async function POST(req: NextRequest) {
       filename: data.path
     })
 
-  } catch (err) {
-    console.error('[upload]', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+  } catch (err: any) {
+    console.error('[upload error]:', err)
+    return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
   }
 }
