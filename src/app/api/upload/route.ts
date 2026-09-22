@@ -48,13 +48,34 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
 
     // Upload to Supabase Storage using admin client (bypasses RLS)
-    const { data, error } = await supabaseAdmin.storage
+    let { data, error } = await supabaseAdmin.storage
       .from('chat-media')
       .upload(filename, buffer, {
         contentType,
         cacheControl: '3600',
         upsert: false
       })
+
+    if (error && (
+      error.message?.includes('Bucket not found') || 
+      (error as any).statusCode === '404' || 
+      String(error).includes('Bucket not found') ||
+      String(error).includes('not found')
+    )) {
+      console.log('[upload] Bucket "chat-media" not found. Creating public bucket...')
+      await supabaseAdmin.storage.createBucket('chat-media', { public: true })
+      
+      // Retry upload
+      const retryResult = await supabaseAdmin.storage
+        .from('chat-media')
+        .upload(filename, buffer, {
+          contentType,
+          cacheControl: '3600',
+          upsert: false
+        })
+      data = retryResult.data
+      error = retryResult.error
+    }
 
     if (error) {
       console.error('[upload] Supabase storage upload error:', error)
@@ -69,7 +90,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       url: publicUrl,
-      filename: data.path
+      filename: data?.path || filename
     })
 
   } catch (err: any) {

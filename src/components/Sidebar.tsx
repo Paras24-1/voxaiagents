@@ -7,6 +7,7 @@ import { useOrg } from '@/contexts/OrgContext'
 import { useTheme } from 'next-themes'
 import AdminPanel from '@/components/admin/AdminPanel'
 import SettingsPanel from '@/components/admin/SettingsPanel'
+import { supabase } from '@/lib/supabaseClient'
 import { 
   Menu, X, BarChart2, MessageSquare, Calendar, Users, 
   Send, Sun, Moon, Settings, LogOut, Package, PhoneCall, ShoppingBag, Mail, Shield, MessageCircle, Globe, GitBranch, Brain, Sparkles
@@ -17,6 +18,7 @@ export default function Sidebar() {
   const [showAdmin, setShowAdmin] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [privacyUrl, setPrivacyUrl] = useState('/privacy-policy.html')
+  const [unreadCount, setUnreadCount] = useState<number>(0)
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hostname.includes('10xyourbusiness')) {
@@ -45,6 +47,25 @@ export default function Sidebar() {
       document.title = `${org.name} — Workspace Dashboard`
     }
   }, [org?.name])
+
+  useEffect(() => {
+    if (!profile?.org_id) return
+    const fetchUnread = async () => {
+      try {
+        const { count } = await supabase
+          .from('conversations')
+          .select('id', { count: 'exact', head: true })
+          .eq('org_id', profile.org_id)
+          .gt('unread_count', 0)
+        if (typeof count === 'number') {
+          setUnreadCount(count)
+        }
+      } catch (err) {
+        console.error('Failed to fetch unread count:', err)
+      }
+    }
+    fetchUnread()
+  }, [profile?.org_id])
 
   const navItems = [
     {
@@ -195,15 +216,22 @@ export default function Sidebar() {
                   href={item.href}
                   onClick={closeSidebar}
                   className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all
+                    flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all
                     ${isActive 
                       ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold' 
                       : 'text-slate-300 hover:bg-slate-800/70 hover:text-white border border-transparent'
                     }
                   `}
                 >
-                  <Icon className="w-4 h-4 shrink-0 text-emerald-400" />
-                  <span className="truncate">{item.name}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className="w-4 h-4 shrink-0 text-emerald-400" />
+                    <span className="truncate">{item.name}</span>
+                  </div>
+                  {item.name === 'Chats' && unreadCount > 0 && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-black rounded-full bg-red-500 text-white shadow-xs animate-pulse">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               )
             })}

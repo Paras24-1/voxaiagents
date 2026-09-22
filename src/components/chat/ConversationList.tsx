@@ -107,6 +107,24 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     selectedId,
   })
 
+  const totalUnreadConvs = useMemo(() => {
+    return conversations.filter(c => (c.unread_count && c.unread_count > 0) || (c as any).unread).length
+  }, [conversations])
+
+  const totalUnreadMessages = useMemo(() => {
+    return conversations.reduce((acc, c) => acc + (c.unread_count || ((c as any).unread ? 1 : 0)), 0)
+  }, [conversations])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (totalUnreadConvs > 0) {
+        document.title = `(${totalUnreadConvs}) Unread Chats — Vox AI`
+      } else {
+        document.title = 'Chats — Vox AI'
+      }
+    }
+  }, [totalUnreadConvs])
+
   useEffect(() => {
     if (selectedId) {
       markAsRead(selectedId)
@@ -217,6 +235,11 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
               {conversations.length}
             </span>
+            {totalUnreadConvs > 0 && (
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500 text-white shadow-xs animate-pulse">
+                {totalUnreadConvs} unread
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -341,17 +364,38 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             )}
           </div>
 
-          {/* Unread Toggle */}
-          <button
-            onClick={() => setUnread((u) => !u)}
-            className={`text-[10px] px-2.5 py-1 rounded-xl font-bold border transition-all shadow-2xs flex items-center gap-1 ${
-              unread
-                ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/20'
-                : 'bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50'
-            }`}
-          >
-            <span>Unread</span>
-          </button>
+          {/* Unread Toggle & Mark Read */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setUnread((u) => !u)}
+              className={`text-[10px] px-2.5 py-1 rounded-xl font-bold border transition-all shadow-2xs flex items-center gap-1.5 ${
+                unread
+                  ? 'bg-emerald-500 border-emerald-500 text-white shadow-emerald-500/20'
+                  : totalUnreadConvs > 0
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 hover:bg-emerald-100'
+                  : 'bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <span>Unread</span>
+              {totalUnreadConvs > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                  unread ? 'bg-white text-emerald-700' : 'bg-red-500 text-white'
+                }`}>
+                  {totalUnreadConvs}
+                </span>
+              )}
+            </button>
+
+            {totalUnreadConvs > 0 && (
+              <button
+                onClick={() => markAllAsRead()}
+                className="text-[9px] px-2 py-1 font-bold text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                title="Mark all conversations as read"
+              >
+                Mark Read
+              </button>
+            )}
+          </div>
 
           {/* Stage Dropdown */}
           <select
@@ -759,11 +803,10 @@ function ConversationItem({
         </div>
       )}
 
-      {/* Unread indicator */}
-      {(conv.unread_count || 0) > 0 && !isSelected && (
-        <div className="absolute top-3 right-3 flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+      {/* Unread count badge */}
+      {((conv.unread_count || 0) > 0 || (conv as any).unread) && !isSelected && (
+        <div className="absolute top-3 right-3 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black shadow-md shadow-emerald-500/30">
+          {conv.unread_count && conv.unread_count > 0 ? conv.unread_count : '1'}
         </div>
       )}
 

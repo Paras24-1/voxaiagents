@@ -17,12 +17,30 @@ export async function POST(req: NextRequest) {
     const buffer = await req.arrayBuffer()
     const contentType = req.headers.get('content-type') || 'image/jpeg'
 
-    const { error } = await supabaseAdmin.storage
+    let { error } = await supabaseAdmin.storage
       .from('chat-media')
       .upload(filename, buffer, {
         contentType,
         upsert: true,
       })
+
+    if (error && (
+      error.message?.includes('Bucket not found') || 
+      (error as any).statusCode === '404' || 
+      String(error).includes('Bucket not found') ||
+      String(error).includes('not found')
+    )) {
+      console.log('[upload-image] Bucket "chat-media" not found. Creating public bucket...')
+      await supabaseAdmin.storage.createBucket('chat-media', { public: true })
+      
+      const retryResult = await supabaseAdmin.storage
+        .from('chat-media')
+        .upload(filename, buffer, {
+          contentType,
+          upsert: true,
+        })
+      error = retryResult.error
+    }
 
     if (error) throw error
 
