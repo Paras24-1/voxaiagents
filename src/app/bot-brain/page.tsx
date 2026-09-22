@@ -15,7 +15,7 @@ import AdvancedEditor from '@/components/bot-brain/AdvancedEditor'
 import PromptInspector from '@/components/bot-brain/PromptInspector'
 import SandboxSimulator from '@/components/bot-brain/SandboxSimulator'
 
-type ActiveTab = 'builder' | 'simulator' | 'advanced'
+type ActiveTab = 'builder' | 'advanced'
 
 export default function BotBrainPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('builder')
@@ -254,20 +254,7 @@ export default function BotBrainPage() {
                   <span>AI Prompt Engineer</span>
                 </button>
 
-                {/* Tab 2: Live Simulator */}
-                <button
-                  onClick={() => setActiveTab('simulator')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                    activeTab === 'simulator'
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                  }`}
-                >
-                  <Play className="w-3.5 h-3.5" />
-                  <span>Live Simulator Playground</span>
-                </button>
-
-                {/* Tab 3: Advanced Raw Editor */}
+                {/* Tab 2: Advanced Raw Editor */}
                 <button
                   onClick={() => setActiveTab('advanced')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
@@ -346,25 +333,7 @@ export default function BotBrainPage() {
                 </motion.div>
               )}
 
-              {/* TAB 2: LIVE SIMULATOR */}
-              {activeTab === 'simulator' && (
-                <motion.div
-                  key="simulator"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <SandboxSimulator
-                    systemPrompt={systemPrompt}
-                    engineMode={engineMode}
-                    geminiApiKey={geminiApiKey}
-                    openaiApiKey={openaiApiKey}
-                  />
-                </motion.div>
-              )}
-
-              {/* TAB 3: ADVANCED RAW EDITOR */}
+              {/* TAB 2: ADVANCED RAW EDITOR */}
               {activeTab === 'advanced' && (
                 <motion.div
                   key="advanced"
