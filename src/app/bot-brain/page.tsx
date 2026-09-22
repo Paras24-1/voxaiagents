@@ -12,8 +12,6 @@ import StatusBadge from '@/components/bot-brain/StatusBadge'
 import ChatPanel, { Message } from '@/components/bot-brain/ChatPanel'
 import SuggestionChips from '@/components/bot-brain/SuggestionChips'
 import AdvancedEditor from '@/components/bot-brain/AdvancedEditor'
-import PromptInspector from '@/components/bot-brain/PromptInspector'
-import SandboxSimulator from '@/components/bot-brain/SandboxSimulator'
 
 type ActiveTab = 'builder' | 'advanced'
 
@@ -304,32 +302,20 @@ export default function BotBrainPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.2 }}
-                  className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+                  className="max-w-4xl mx-auto"
                 >
-                  {/* Left Column: Interactive Chat Panel */}
-                  <div className="lg:col-span-7">
-                    <ChatPanel
-                      messages={builderMessages}
-                      input={builderInput}
-                      onInputChange={setBuilderInput}
-                      onSend={() => handleBuilderSend()}
-                      isLoading={isBuilding}
-                      loadingText="Prompt Engineer is refining your system prompt..."
-                      placeholder="Tell the AI how you want your bot to behave..."
-                      onClearChat={handleClearBuilderChat}
-                    >
-                      <SuggestionChips onSelect={handleSuggestionClick} />
-                    </ChatPanel>
-                  </div>
-
-                  {/* Right Column: Live Prompt Inspector & Preset Loader */}
-                  <div className="lg:col-span-5 h-[580px]">
-                    <PromptInspector
-                      systemPrompt={systemPrompt}
-                      onSelectPreset={handlePresetSelect}
-                      onSavePrompt={handleSaveSettings}
-                    />
-                  </div>
+                  <ChatPanel
+                    messages={builderMessages}
+                    input={builderInput}
+                    onInputChange={setBuilderInput}
+                    onSend={() => handleBuilderSend()}
+                    isLoading={isBuilding}
+                    loadingText="Prompt Engineer is refining your system prompt..."
+                    placeholder="Tell the AI how you want your bot to behave..."
+                    onClearChat={handleClearBuilderChat}
+                  >
+                    <SuggestionChips onSelect={handleSuggestionClick} />
+                  </ChatPanel>
                 </motion.div>
               )}
 
