@@ -28,7 +28,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const currentModel = parsedPromptObj.ai_model_name === 'gemini-1.5-flash' ? 'gemini-2.5-flash' : (parsedPromptObj.ai_model_name || 'gemini-2.5-flash')
+    const currentModel = (parsedPromptObj.ai_model_name && !['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.7-flash'].includes(parsedPromptObj.ai_model_name))
+      ? parsedPromptObj.ai_model_name
+      : 'gemini-3.6-flash'
 
     return NextResponse.json({
       engine_mode: parsedPromptObj.engine_mode || (settings?.n8n_inbound_webhook_url ? 'hybrid_n8n' : 'native'),
@@ -77,7 +79,9 @@ export async function POST(req: NextRequest) {
 
     promptObj.engine_mode = engine_mode || 'native'
     promptObj.ai_provider = ai_provider || 'gemini'
-    promptObj.ai_model_name = (ai_model_name === 'gemini-1.5-flash' || ai_model_name === 'gemini-2.5-flash') ? 'gemini-2.0-flash' : (ai_model_name || 'gemini-2.0-flash')
+    promptObj.ai_model_name = (ai_model_name && !['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.7-flash'].includes(ai_model_name))
+      ? ai_model_name
+      : 'gemini-3.6-flash'
     promptObj.system_prompt = system_prompt || ''
 
     const serializedPrompt = JSON.stringify(promptObj)

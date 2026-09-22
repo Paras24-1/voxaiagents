@@ -16,7 +16,7 @@ import AdvancedEditor from '@/components/bot-brain/AdvancedEditor'
 export default function BotBrainPage() {
   const [engineMode, setEngineMode] = useState<'native' | 'hybrid_n8n'>('native')
   const [aiProvider, setAiProvider] = useState('gemini')
-  const [aiModelName, setAiModelName] = useState('gemini-3.7-flash')
+  const [aiModelName, setAiModelName] = useState('gemini-3.6-flash')
   const [systemPrompt, setSystemPrompt] = useState(
     'You are a helpful and polite WhatsApp AI sales consultant for Kataria Herbal Remedies.\n\nUse the Knowledge Base price list below to answer user queries accurately. Keep answers concise.'
   )
@@ -64,9 +64,9 @@ export default function BotBrainPage() {
         setEngineMode(data.engine_mode || 'native')
         setAiProvider(data.ai_provider || 'gemini')
         // Automatically upgrade deprecated models to current valid ones
-        let model = data.ai_model_name || 'gemini-3.7-flash'
-        if (model.includes('1.5') || model.includes('2.5') || model.includes('3.6')) {
-          model = 'gemini-3.7-flash' 
+        let model = data.ai_model_name || 'gemini-3.6-flash'
+        if (model.includes('1.5') || model.includes('2.5') || model.includes('3.7') || model.includes('2.0')) {
+          model = 'gemini-3.6-flash' 
         }
         setAiModelName(model)
         if (data.system_prompt) setSystemPrompt(data.system_prompt)

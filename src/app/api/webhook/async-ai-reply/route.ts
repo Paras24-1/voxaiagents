@@ -258,7 +258,7 @@ Respond in JSON format with exactly these keys:
 }`
 
     // Parse active AI model name from settings
-    let selectedModel = 'gemini-flash-lite-latest'
+    let selectedModel = 'gemini-3.6-flash'
     try {
       if (customPromptBase && customPromptBase.startsWith('{')) {
         const parsed = JSON.parse(customPromptBase)
@@ -271,11 +271,12 @@ Respond in JSON format with exactly these keys:
       'gemini-2.0-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash-001',
       'gemini-2.5-flash', 'gemini-2.5-flash-001',
       'gemini-1.5-flash', 'gemini-1.5-flash-001', 'gemini-1.5-pro',
+      'gemini-3.7-flash', 'gemini-3.8-flash',
       'gemini-pro', 'gemini-ultra'
     ]
     if (DEPRECATED_MODELS.includes(selectedModel) || !selectedModel.startsWith('gemini-')) {
-      console.warn(`[async-ai-reply] Model "${selectedModel}" is deprecated or invalid. Falling back to gemini-flash-lite-latest.`)
-      selectedModel = 'gemini-flash-lite-latest'
+      console.warn(`[async-ai-reply] Model "${selectedModel}" is deprecated or invalid. Falling back to gemini-3.6-flash.`)
+      selectedModel = 'gemini-3.6-flash'
     }
     if (selectedModel === 'gemini-3.1-flash-lite' || selectedModel === 'gemini-3.1-flash-lite-preview') {
       selectedModel = 'gemini-3.1-flash-lite-preview'

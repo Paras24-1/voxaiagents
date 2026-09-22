@@ -43,17 +43,11 @@ INSTRUCTIONS:
 5. Provide a short, friendly message back to the user confirming what you changed (like "Got it! Your bot is now more polite and will offer a 10% discount.").
 
 OUTPUT FORMAT:
-You MUST output your response using EXACTLY these two tags:
-
-<FRIENDLY_MESSAGE>
-Your friendly confirmation message here
-</FRIENDLY_MESSAGE>
-
-<TECHNICAL_PROMPT>
-The entire new technical system prompt here
-</TECHNICAL_PROMPT>
-
-Do not output anything outside of these tags.`
+Return ONLY a valid JSON object matching this structure:
+{
+  "friendly_message": "Your friendly confirmation message here",
+  "technical_prompt": "The entire new technical system prompt here"
+}`
 
     let responseText = ''
     
@@ -96,7 +90,7 @@ Do not output anything outside of these tags.`
 
       let response = null;
       let errorData = null;
-      const fallbackModels = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest'];
+      const fallbackModels = ['gemini-3.6-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-flash-lite-latest'];
       
       for (const model of fallbackModels) {
         console.log(`[bot-brain-builder] Trying model: ${model}...`);
@@ -114,8 +108,8 @@ Do not output anything outside of these tags.`
         }
 
         errorData = await response.json();
-        if (response.status === 503 || response.status === 429) {
-          console.warn(`[bot-brain-builder] ${model} returned 503/429. Instantly hopping to the next model...`);
+        if (response.status === 503 || response.status === 429 || response.status === 404) {
+          console.warn(`[bot-brain-builder] ${model} returned ${response.status}. Trying next fallback model...`);
           continue; // Try the next model in the array
         }
         break; // If it's a 403 or something else, break and throw error below
@@ -141,25 +135,31 @@ Do not output anything outside of these tags.`
 
     let parsedResult = { friendly_message: '', technical_prompt: '' }
     try {
-      const friendlyMatch = responseText.match(/<FRIENDLY_MESSAGE>([\s\S]*?)<\/FRIENDLY_MESSAGE>/)
-      const technicalMatch = responseText.match(/<TECHNICAL_PROMPT>([\s\S]*?)<\/TECHNICAL_PROMPT>/)
+      let cleanText = responseText.trim()
+      if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
 
-      if (friendlyMatch && technicalMatch) {
-        parsedResult.friendly_message = friendlyMatch[1].trim()
-        parsedResult.technical_prompt = technicalMatch[1].trim()
+      const start = cleanText.indexOf('{')
+      const end = cleanText.lastIndexOf('}')
+      if (start !== -1 && end !== -1) {
+        const jsonCandidate = cleanText.substring(start, end + 1)
+        try {
+          parsedResult = JSON.parse(jsonCandidate)
+        } catch {
+          parsedResult = JSON.parse(jsonCandidate.replace(/\r?\n/g, '\\n'))
+        }
       } else {
-        // Fallback if the model still generated JSON
-        const start = responseText.indexOf('{')
-        const end = responseText.lastIndexOf('}')
-        if (start !== -1 && end !== -1) {
-          const jsonStr = responseText.substring(start, end + 1).replace(/\n/g, '\\n')
-          try {
-            parsedResult = JSON.parse(jsonStr)
-          } catch {
-            parsedResult = JSON.parse(responseText)
-          }
+        const friendlyMatch = responseText.match(/<FRIENDLY_MESSAGE>([\s\S]*?)<\/FRIENDLY_MESSAGE>/)
+        const technicalMatch = responseText.match(/<TECHNICAL_PROMPT>([\s\S]*?)<\/TECHNICAL_PROMPT>/)
+
+        if (friendlyMatch && technicalMatch) {
+          parsedResult.friendly_message = friendlyMatch[1].trim()
+          parsedResult.technical_prompt = technicalMatch[1].trim()
         } else {
-          throw new Error('Could not find tags')
+          throw new Error('Could not parse response structure')
         }
       }
     } catch (parseErr) {
