@@ -19,7 +19,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://jncmizoejeaclpnfxazg.supabase.co/rest/v1/rpc/cancel_lead_drips",
+        "url": "https://jadyvppkmxhsnrmqshbr.supabase.co/rest/v1/rpc/cancel_lead_drips",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

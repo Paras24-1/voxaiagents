@@ -429,6 +429,11 @@ export function useMessages(conversationId: string | null) {
             }
           } else if (payload.eventType === 'UPDATE') {
             setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? { ...msg, ...(payload.new as Partial<Message>) } : msg))
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as any)?.id
+            if (deletedId) {
+              setMessages((prev) => prev.filter(m => m.id !== deletedId))
+            }
           }
         }
       )
@@ -437,12 +442,16 @@ export function useMessages(conversationId: string | null) {
     return () => { supabase.removeChannel(channel) }
   }, [conversationId])
 
+  const removeMessageFromState = useCallback((messageId: string) => {
+    setMessages(prev => prev.filter(m => m.id !== messageId))
+  }, [])
+
   // Auto-scroll when messages update
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  return { messages, loading, bottomRef, refetch: fetchMessages, addOptimisticMessage, reconcileOptimisticMessage }
+  return { messages, loading, bottomRef, refetch: fetchMessages, addOptimisticMessage, reconcileOptimisticMessage, removeMessageFromState }
 }
 
 // ----------------------------------------------------------------

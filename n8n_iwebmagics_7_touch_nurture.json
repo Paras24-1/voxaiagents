@@ -24,7 +24,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://jncmizoejeaclpnfxazg.supabase.co/rest/v1/rpc/get_due_scheduled_drips",
+        "url": "https://jadyvppkmxhsnrmqshbr.supabase.co/rest/v1/rpc/get_due_scheduled_drips",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -103,7 +103,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=https://jncmizoejeaclpnfxazg.supabase.co/rest/v1/scheduled_drips?id=eq.{{ $json.drip_id }}",
+        "url": "=https://jadyvppkmxhsnrmqshbr.supabase.co/rest/v1/scheduled_drips?id=eq.{{ $json.drip_id }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

@@ -114,8 +114,37 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const [recordingTime, setRecordingTime] = useState(0)
   const mediaRecorderRef = useRef<any>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
-  const { messages, loading, bottomRef, addOptimisticMessage, reconcileOptimisticMessage } = useMessages(conversation?.id || null)
+  const { messages, loading, bottomRef, addOptimisticMessage, reconcileOptimisticMessage, removeMessageFromState } = useMessages(conversation?.id || null)
   const { sendMessage, sending } = useSendMessage()
+
+  // Message Deletion State
+  const [deleteConfirmMsgId, setDeleteConfirmMsgId] = useState<string | null>(null)
+  const [deletingMsg, setDeletingMsg] = useState(false)
+
+  const handleDeleteMessageConfirm = async () => {
+    if (!deleteConfirmMsgId) return
+    setDeletingMsg(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/messages/delete?id=${deleteConfirmMsgId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        }
+      })
+      if (res.ok) {
+        removeMessageFromState(deleteConfirmMsgId)
+      } else {
+        const errData = await res.json()
+        alert(errData.error || 'Failed to delete message.')
+      }
+    } catch (err) {
+      console.error('Error deleting message:', err)
+    } finally {
+      setDeletingMsg(false)
+      setDeleteConfirmMsgId(null)
+    }
+  }
 
   const sendWithOptimism = async (
     messageText: string,
@@ -664,8 +693,17 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                     </div>
                   )}
                   <div
-                    className={`flex ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'} group/msg`}
+                    className={`flex items-center gap-1.5 ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'} group/msg relative`}
                   >
+                    {msg.direction === 'outgoing' && (
+                      <button
+                        onClick={() => setDeleteConfirmMsgId(msg.id)}
+                        className="opacity-0 group-hover/msg:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200/50 dark:hover:bg-gray-800 transition-all shrink-0 cursor-pointer"
+                        title="Delete message from dashboard"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <div className={`max-w-[75%] ${msg.direction === 'outgoing' ? 'order-2' : 'order-1'}`}>
                       <div
                         className={`px-4 py-3 shadow-sm text-[13px] leading-relaxed transition-all ${
@@ -791,11 +829,52 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                         )}
                       </div>
                     </div>
+                    {msg.direction === 'incoming' && (
+                      <button
+                        onClick={() => setDeleteConfirmMsgId(msg.id)}
+                        className="opacity-0 group-hover/msg:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200/50 dark:hover:bg-gray-800 transition-all shrink-0 cursor-pointer"
+                        title="Delete message from dashboard"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </Fragment>
               )
             })
           })()
+        )}
+
+        {/* Confirm Delete Message Modal */}
+        {deleteConfirmMsgId && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 select-none">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 w-full max-w-xs shadow-2xl border border-gray-200 dark:border-gray-800">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Delete Message?</h3>
+                <button onClick={() => setDeleteConfirmMsgId(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+                This message will be permanently deleted from your dashboard and database logs.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeleteConfirmMsgId(null)}
+                  className="flex-1 px-3 py-2 text-xs font-semibold rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteMessageConfirm}
+                  disabled={deletingMsg}
+                  className="flex-1 px-3 py-2 text-xs font-bold rounded-xl bg-red-500 hover:bg-red-600 text-white disabled:opacity-50 transition-colors shadow-sm"
+                >
+                  {deletingMsg ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         <div ref={bottomRef} />
