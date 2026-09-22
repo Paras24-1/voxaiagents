@@ -827,16 +827,6 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                             )}
                           </span>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setDeleteConfirmMsgId(msg.id)
-                          }}
-                          className="text-gray-400 hover:text-red-500 hover:bg-red-500/10 p-1 rounded transition-all cursor-pointer ml-2"
-                          title="Delete message from dashboard"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                     </div>
                     {msg.direction === 'incoming' && (

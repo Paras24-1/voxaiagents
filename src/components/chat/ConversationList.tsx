@@ -225,15 +225,15 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 setIsMultiSelect(prev => !prev)
                 if (isMultiSelect) setSelectedConvIds(new Set())
               }}
-              className={`p-1.5 rounded-xl border transition-all shadow-xs flex items-center gap-1.5 text-xs font-bold ${
+              className={`px-2.5 py-1.5 rounded-xl border transition-all shadow-xs flex items-center gap-1.5 text-xs font-bold ${
                 isMultiSelect
                   ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/20'
-                  : 'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800/80 border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200/60 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/50'
               }`}
-              title="Multi-select chats for bulk sending"
+              title="Multi-select chats to send message to multiple contacts (e.g. 24-hr window active chats)"
             >
-              <ListChecks className="w-3.5 h-3.5" />
-              <span>{isMultiSelect ? 'Cancel' : 'Select'}</span>
+              <ListChecks className="w-3.5 h-3.5 text-blue-500" />
+              <span>{isMultiSelect ? 'Exit Multi-Send' : 'Multi-Send'}</span>
             </button>
             <button
               onClick={() => setShowAddLead(true)}
