@@ -7,10 +7,11 @@ import { supabase } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
 import { useLeadStages } from '@/hooks/useLeadStages'
 import { formatDistanceToNow } from 'date-fns'
-import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle, Trash2, Clock, AlertCircle } from 'lucide-react'
+import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle, Trash2, Clock, AlertCircle, Share2 } from 'lucide-react'
 import TemplatePickerModal from '@/components/chat/TemplatePickerModal'
 import LocationPickerModal from '@/components/chat/LocationPickerModal'
 import { CannedReplyItem } from '@/components/chat/CannedRepliesModal'
+import ForwardMessageModal, { ForwardMessageData } from './ForwardMessageModal'
 
 function formatMessageDateSeparator(dateString: string): string {
   const date = new Date(dateString)
@@ -155,6 +156,9 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   // Message Deletion State
   const [deleteConfirmMsgId, setDeleteConfirmMsgId] = useState<string | null>(null)
   const [deletingMsg, setDeletingMsg] = useState(false)
+
+  // Message Forwarding State
+  const [forwardingMsg, setForwardingMsg] = useState<ForwardMessageData | null>(null)
 
   const handleDeleteMessageConfirm = async () => {
     if (!deleteConfirmMsgId) return
@@ -693,16 +697,34 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                     className={`flex items-center gap-1.5 ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'} group/msg relative`}
                   >
                     {msg.direction === 'outgoing' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteConfirmMsgId(msg.id)
-                        }}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 cursor-pointer border border-transparent hover:border-red-500/20"
-                        title="Delete message from dashboard"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setForwardingMsg({
+                              id: msg.id,
+                              text: msg.message || '',
+                              mediaUrl: msg.media_url,
+                              mediaType: msg.media_type,
+                              filename: (msg as any).metadata?.filename
+                            })
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all shrink-0 cursor-pointer border border-transparent hover:border-blue-500/20"
+                          title="Forward message to multiple clients"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteConfirmMsgId(msg.id)
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 cursor-pointer border border-transparent hover:border-red-500/20"
+                          title="Delete message from dashboard"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )}
                     <div className={`max-w-[75%] ${msg.direction === 'outgoing' ? 'order-2' : 'order-1'}`}>
                       <div
@@ -830,16 +852,34 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                       </div>
                     </div>
                     {msg.direction === 'incoming' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteConfirmMsgId(msg.id)
-                        }}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 cursor-pointer border border-transparent hover:border-red-500/20"
-                        title="Delete message from dashboard"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setForwardingMsg({
+                              id: msg.id,
+                              text: msg.message || '',
+                              mediaUrl: msg.media_url,
+                              mediaType: msg.media_type,
+                              filename: (msg as any).metadata?.filename
+                            })
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all shrink-0 cursor-pointer border border-transparent hover:border-blue-500/20"
+                          title="Forward message to multiple clients"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteConfirmMsgId(msg.id)
+                          }}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 cursor-pointer border border-transparent hover:border-red-500/20"
+                          title="Delete message from dashboard"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </Fragment>
@@ -878,6 +918,14 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Forward Message Modal */}
+        {forwardingMsg && (
+          <ForwardMessageModal
+            messageData={forwardingMsg}
+            onClose={() => setForwardingMsg(null)}
+          />
         )}
 
         {/* Pending Scheduled Messages Banner */}
