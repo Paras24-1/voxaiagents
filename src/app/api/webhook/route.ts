@@ -474,8 +474,9 @@ export async function POST(req: NextRequest) {
         }
 
         const engineMode = parsedPromptObj.engine_mode || (orgSettings?.n8n_inbound_webhook_url ? 'hybrid_n8n' : 'native')
-        isHybridN8n = engineMode === 'hybrid_n8n' && !!orgSettings?.n8n_inbound_webhook_url
-        console.log(`[webhook:routing] engineMode=${engineMode} | isHybridN8n=${isHybridN8n} | model=${parsedPromptObj.ai_model_name || '(not set)'}`)
+        // If organization has an n8n webhook URL set, prioritize forwarding to n8n
+        isHybridN8n = !!orgSettings?.n8n_inbound_webhook_url && engineMode !== 'disabled_n8n'
+        console.log(`[webhook:routing] engineMode=${engineMode} | isHybridN8n=${isHybridN8n} | url=${orgSettings?.n8n_inbound_webhook_url}`)
 
         if (isHybridN8n && orgSettings?.n8n_inbound_webhook_url) {
           console.log(`[webhook] Forwarding Enriched Bot Brain Payload to tenant n8n: ${orgSettings.n8n_inbound_webhook_url}`)
