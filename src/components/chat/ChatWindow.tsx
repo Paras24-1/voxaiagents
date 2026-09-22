@@ -736,7 +736,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                           e.stopPropagation()
                           setDeleteConfirmMsgId(msg.id)
                         }}
-                        className="opacity-60 hover:opacity-100 group-hover/msg:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-all shrink-0 cursor-pointer"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 cursor-pointer border border-transparent hover:border-red-500/20"
                         title="Delete message from dashboard"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -870,10 +870,10 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                             e.stopPropagation()
                             setDeleteConfirmMsgId(msg.id)
                           }}
-                          className="opacity-60 hover:opacity-100 text-gray-400 hover:text-red-500 p-0.5 rounded transition-all cursor-pointer ml-1.5"
+                          className="text-gray-400 hover:text-red-500 hover:bg-red-500/10 p-1 rounded transition-all cursor-pointer ml-2"
                           title="Delete message from dashboard"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -883,7 +883,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                           e.stopPropagation()
                           setDeleteConfirmMsgId(msg.id)
                         }}
-                        className="opacity-60 hover:opacity-100 group-hover/msg:opacity-100 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-all shrink-0 cursor-pointer"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0 cursor-pointer border border-transparent hover:border-red-500/20"
                         title="Delete message from dashboard"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
