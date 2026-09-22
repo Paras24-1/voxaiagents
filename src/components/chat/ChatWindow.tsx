@@ -80,6 +80,41 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false)
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [showLocationModal, setShowLocationModal] = useState(false)
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+
+  // Scheduled Messages State
+  const [scheduledMsgs, setScheduledMsgs] = useState<any[]>([])
+
+  const fetchScheduledMessages = useCallback(async () => {
+    if (!conversation?.id) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/messages/schedule?conversation_id=${conversation.id}`, {
+        headers: session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data)) setScheduledMsgs(data)
+      }
+    } catch (err) {
+      console.error('Fetch scheduled error:', err)
+    }
+  }, [conversation?.id])
+
+  useEffect(() => {
+    fetchScheduledMessages()
+  }, [fetchScheduledMessages])
+
+  // Periodic schedule background execution check (self-healing runner)
+  useEffect(() => {
+    const runScheduleProcessor = () => {
+      fetch('/api/messages/schedule/process').then(r => r.json()).then(res => {
+        if (res.processed > 0) fetchScheduledMessages()
+      }).catch(() => {})
+    }
+    const timer = setInterval(runScheduleProcessor, 25000)
+    return () => clearInterval(timer)
+  }, [fetchScheduledMessages])
 
   // Canned Replies & '/' Shortcut Popover State
   const [cannedReplies, setCannedReplies] = useState<CannedReplyItem[]>([])
@@ -877,6 +912,50 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
           </div>
         )}
 
+        {/* Pending Scheduled Messages Banner */}
+        {scheduledMsgs.length > 0 && (
+          <div className="mx-5 my-2 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs flex flex-col gap-2 shadow-xs">
+            <div className="flex items-center justify-between font-bold">
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-amber-500" />
+                <span>{scheduledMsgs.length} Scheduled Message{scheduledMsgs.length > 1 ? 's' : ''} Pending</span>
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {scheduledMsgs.map((sMsg) => (
+                <div key={sMsg.id} className="flex items-center justify-between bg-white/80 dark:bg-gray-900/80 p-2.5 rounded-xl border border-amber-500/20 shadow-2xs">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400">
+                      Sends at: {new Date(sMsg.scheduled_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                    </p>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 truncate font-medium mt-0.5">
+                      {sMsg.message || (sMsg.media_type ? '📎 Attachment' : 'Message')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession()
+                        await fetch(`/api/messages/schedule?id=${sMsg.id}`, {
+                          method: 'DELETE',
+                          headers: session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+                        })
+                        fetchScheduledMessages()
+                      } catch (e) {
+                        console.error('Cancel schedule error:', e)
+                      }
+                    }}
+                    className="p-1 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors shrink-0 cursor-pointer"
+                    title="Cancel scheduled message"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -1203,9 +1282,19 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                     )}
 
                     <button
+                      type="button"
+                      onClick={() => setShowScheduleModal(true)}
+                      disabled={(!input.trim() && !imageFile) || sending || uploading}
+                      className="p-2.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 disabled:opacity-40 border border-amber-200/50 dark:border-amber-800/50 transition-all shrink-0 cursor-pointer shadow-2xs"
+                      title="Schedule message for future delivery"
+                    >
+                      <Clock className="w-4 h-4" />
+                    </button>
+
+                    <button
                       onClick={handleSend}
                       disabled={(!input.trim() && !imageFile) || sending || uploading}
-                      className="p-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed shadow-md shadow-emerald-500/20 transition-all shrink-0 ml-1"
+                      className="p-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed shadow-md shadow-emerald-500/20 transition-all shrink-0 ml-1 cursor-pointer"
                     >
                       {uploading ? (
                         <Loader2 className="w-4.5 h-4.5 animate-spin" />
@@ -1234,6 +1323,246 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         onClose={() => setShowLocationModal(false)}
         onSendLocation={handleSendLocation}
       />
+
+      {/* Schedule Message Modal */}
+      <ScheduleMessageModal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        conversation={conversation}
+        inputMessage={input}
+        imageFile={imageFile}
+        onSuccess={() => {
+          setShowScheduleModal(false)
+          setInput('')
+          handleRemoveImage()
+          fetchScheduledMessages()
+        }}
+      />
+    </div>
+  )
+}
+
+function ScheduleMessageModal({
+  isOpen,
+  onClose,
+  conversation,
+  inputMessage,
+  imageFile,
+  onSuccess
+}: {
+  isOpen: boolean
+  onClose: () => void
+  conversation: Conversation
+  inputMessage: string
+  imageFile: File | null
+  onSuccess: () => void
+}) {
+  const { profile } = useOrg()
+  const [scheduledDateTime, setScheduledDateTime] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      // Default to +30 minutes in local datetime-local format
+      const in30Mins = new Date(Date.now() + 30 * 60 * 1000)
+      const year = in30Mins.getFullYear()
+      const month = String(in30Mins.getMonth() + 1).padStart(2, '0')
+      const day = String(in30Mins.getDate()).padStart(2, '0')
+      const hours = String(in30Mins.getHours()).padStart(2, '0')
+      const mins = String(in30Mins.getMinutes()).padStart(2, '0')
+      setScheduledDateTime(`${year}-${month}-${day}T${hours}:${mins}`)
+      setError('')
+    }
+  }, [isOpen])
+
+  if (!isOpen) return null
+
+  const handlePreset = (minutesAhead: number) => {
+    const target = new Date(Date.now() + minutesAhead * 60 * 1000)
+    const year = target.getFullYear()
+    const month = String(target.getMonth() + 1).padStart(2, '0')
+    const day = String(target.getDate()).padStart(2, '0')
+    const hours = String(target.getHours()).padStart(2, '0')
+    const mins = String(target.getMinutes()).padStart(2, '0')
+    setScheduledDateTime(`${year}-${month}-${day}T${hours}:${mins}`)
+  }
+
+  const handleTomorrowMorning = () => {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(9, 0, 0, 0)
+    const year = tomorrow.getFullYear()
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0')
+    const day = String(tomorrow.getDate()).padStart(2, '0')
+    setScheduledDateTime(`${year}-${month}-${day}T09:00`)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!scheduledDateTime) {
+      setError('Please select date and time.')
+      return
+    }
+
+    const targetTs = new Date(scheduledDateTime).getTime()
+    if (targetTs <= Date.now() + 5000) {
+      setError('Scheduled time must be in the future.')
+      return
+    }
+
+    setSubmitting(true)
+    setError('')
+
+    try {
+      let uploadedMediaUrl: string | null = null
+      let uploadedMediaType: string | null = null
+
+      if (imageFile) {
+        const orgId = profile?.org_id
+        if (!orgId) throw new Error('Organization not found')
+
+        const ext = imageFile.name.split('.').pop()
+        const filename = `${orgId}/${Date.now()}-scheduled.${ext}`
+
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('chat-media')
+          .upload(filename, imageFile, { contentType: imageFile.type, upsert: false })
+
+        if (uploadErr) throw uploadErr
+
+        const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
+        uploadedMediaUrl = urlData.publicUrl
+        uploadedMediaType = imageFile.type
+      }
+
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/messages/schedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          conversation_id: conversation.id,
+          phone_number: conversation.phone_number,
+          message: inputMessage.trim(),
+          media_url: uploadedMediaUrl,
+          media_type: uploadedMediaType,
+          filename: imageFile?.name || null,
+          scheduled_at: new Date(scheduledDateTime).toISOString()
+        })
+      })
+
+      const resData = await res.json()
+      if (!res.ok) throw new Error(resData.error || 'Failed to schedule message')
+
+      onSuccess()
+    } catch (err: any) {
+      setError(err?.message || 'An error occurred while scheduling')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+        <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-amber-500 text-white">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            <h3 className="text-sm font-extrabold text-white">Schedule Message</h3>
+          </div>
+          <button type="button" onClick={onClose} className="text-amber-100 hover:text-white transition-colors p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && (
+            <div className="p-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-semibold border border-red-100 dark:border-red-900/40">
+              ⚠️ {error}
+            </div>
+          )}
+
+          {/* Preview Box */}
+          <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200/60 dark:border-gray-700/60">
+            <p className="text-[10px] font-extrabold uppercase text-gray-400 mb-1">Message Preview:</p>
+            <p className="text-xs text-gray-800 dark:text-gray-200 line-clamp-3 font-medium">
+              {inputMessage || (imageFile ? `📎 Image: ${imageFile.name}` : 'No text')}
+            </p>
+          </div>
+
+          {/* Quick Presets */}
+          <div>
+            <p className="text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider">
+              Quick Presets
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                onClick={() => handlePreset(15)}
+                className="px-2 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-gray-700 dark:text-gray-200 text-[10px] font-bold transition-colors cursor-pointer"
+              >
+                +15 mins
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePreset(60)}
+                className="px-2 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-gray-700 dark:text-gray-200 text-[10px] font-bold transition-colors cursor-pointer"
+              >
+                +1 hour
+              </button>
+              <button
+                type="button"
+                onClick={handleTomorrowMorning}
+                className="px-2 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-gray-700 dark:text-gray-200 text-[10px] font-bold transition-colors cursor-pointer"
+              >
+                Tomorrow 9AM
+              </button>
+            </div>
+          </div>
+
+          {/* Target Date & Time */}
+          <div>
+            <label className="block text-[10px] font-bold text-gray-700 dark:text-gray-300 mb-1 uppercase tracking-wider">
+              Custom Date & Time *
+            </label>
+            <input
+              type="datetime-local"
+              required
+              value={scheduledDateTime}
+              onChange={(e) => setScheduledDateTime(e.target.value)}
+              className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs disabled:opacity-50 transition-colors shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              {submitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <>
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Confirm Schedule</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

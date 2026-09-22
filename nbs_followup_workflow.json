@@ -23,7 +23,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://jncmizoejeaclpnfxazg.supabase.co/rest/v1/rpc/get_pending_auto_followups",
+        "url": "https://jadyvppkmxhsnrmqshbr.supabase.co/rest/v1/rpc/get_pending_auto_followups",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
