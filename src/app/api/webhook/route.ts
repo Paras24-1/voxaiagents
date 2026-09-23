@@ -101,11 +101,24 @@ export async function POST(req: NextRequest) {
       body.link || 
       body.media || 
       body.file_url || 
+      body.attachment ||
       null
     let parsedMediaType = body.media_type || body.mediaType || body.type || null
     let parsedReceiverPhone = body.receiver_phone_number || null
     let parsedProviderPhoneId = null
     const parsedPlatform = body.platform || 'whatsapp'
+
+    // Extract potential Meta tokens from payload/headers/query params
+    const tokenFromReq = 
+      body.whatsapp_token || 
+      body.token || 
+      body.meta_token || 
+      body.access_token || 
+      searchParams.get('token') || 
+      searchParams.get('access_token') || 
+      req.headers.get('x-meta-token') || 
+      req.headers.get('x-whatsapp-token') || 
+      null
 
     if (body.object === 'whatsapp_business_account') {
       const entry = body.entry?.[0]
@@ -163,6 +176,7 @@ export async function POST(req: NextRequest) {
           }
 
           const tokensToTry = Array.from(new Set([
+            tokenFromReq,
             orgSettings?.whatsapp_token,
             process.env.WHATSAPP_TOKEN,
             process.env.WHATSAPP_API_TOKEN,
@@ -171,31 +185,40 @@ export async function POST(req: NextRequest) {
           ].filter(Boolean))) as string[]
 
           const mediaId = msg[msg.type]?.id
-          if (!parsedMediaUrl && mediaId && tokensToTry.length > 0) {
+
+          // If we have a lookaside URL or mediaId, convert to permanent Supabase Storage URL
+          if (mediaId || (parsedMediaUrl && (parsedMediaUrl.includes('lookaside') || parsedMediaUrl.includes('fbsbx')))) {
             for (const token of tokensToTry) {
               try {
-                // 1. Get Media URL from Meta
-                const metaRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                })
-                const metaData = await metaRes.json()
-                
-                if (metaData.url) {
-                  // 2. Download Media Buffer
-                  const mediaRes = await fetch(metaData.url, {
+                let downloadTargetUrl: string | null = null
+                let mimeType = 'application/octet-stream'
+
+                if (parsedMediaUrl && (parsedMediaUrl.includes('lookaside') || parsedMediaUrl.includes('fbsbx'))) {
+                  downloadTargetUrl = parsedMediaUrl
+                } else if (mediaId) {
+                  const metaRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  })
+                  if (metaRes.ok) {
+                    const metaData = await metaRes.json()
+                    downloadTargetUrl = metaData.url || null
+                    if (metaData.mime_type) mimeType = metaData.mime_type
+                  }
+                }
+
+                if (downloadTargetUrl) {
+                  const mediaRes = await fetch(downloadTargetUrl, {
                     headers: { 'Authorization': `Bearer ${token}` }
                   })
                   if (mediaRes.ok) {
                     const buffer = await mediaRes.arrayBuffer()
-                    
-                    // 3. Upload to Supabase Storage
                     const ext = msg.type === 'audio' ? 'ogg' : msg.type === 'image' ? 'jpg' : msg.type === 'video' ? 'mp4' : 'pdf'
-                    const fileName = `${orgId}/${Date.now()}-${mediaId}.${ext}`
+                    const fileName = `${orgId}/${Date.now()}-${mediaId || 'media'}.${ext}`
                     
                     let { data: uploadData, error: uploadError } = await supabaseAdmin.storage
                       .from('chat-media')
                       .upload(fileName, buffer, {
-                        contentType: mediaRes.headers.get('content-type') || 'application/octet-stream',
+                        contentType: mediaRes.headers.get('content-type') || mimeType,
                         upsert: true
                       })
 
@@ -204,7 +227,7 @@ export async function POST(req: NextRequest) {
                       const retryUpload = await supabaseAdmin.storage
                         .from('chat-media')
                         .upload(fileName, buffer, {
-                          contentType: mediaRes.headers.get('content-type') || 'application/octet-stream',
+                          contentType: mediaRes.headers.get('content-type') || mimeType,
                           upsert: true
                         })
                       uploadData = retryUpload.data
@@ -217,8 +240,6 @@ export async function POST(req: NextRequest) {
                         .getPublicUrl(fileName)
                       parsedMediaUrl = publicUrlData.publicUrl
                       break
-                    } else {
-                      console.error('[webhook] Supabase Storage Error:', uploadError)
                     }
                   }
                 }
