@@ -131,8 +131,51 @@ export async function POST(req: NextRequest) {
       } else if (payload.type === 'text') {
         payload.text = { body: message }
       } else if (payload.type === 'audio') {
-        // Meta Cloud API supports direct HTTPS links for audio
-        payload.audio = { link: media_url }
+        console.log(`[reply] Preparing audio for WhatsApp Meta Cloud API: ${media_url}`)
+        
+        let cleanAudioMime = (media_type || 'audio/mpeg').split(';')[0].trim()
+        if (cleanAudioMime === 'audio/mp3') cleanAudioMime = 'audio/mpeg'
+        if (cleanAudioMime === 'audio/webm') cleanAudioMime = 'audio/mpeg'
+
+        try {
+          // 1. Fetch audio binary from public URL
+          const audioRes = await fetch(media_url)
+          if (!audioRes.ok) {
+            throw new Error(`Failed to download audio file from ${media_url} (HTTP ${audioRes.status})`)
+          }
+          const audioBuffer = await audioRes.arrayBuffer()
+          
+          const audioExt = cleanAudioMime.includes('ogg') ? 'ogg' : cleanAudioMime.includes('mp4') ? 'mp4' : 'mp3'
+          const audioFilename = filename || `voicenote-${Date.now()}.${audioExt}`
+          const audioFile = new File([audioBuffer], audioFilename, { type: cleanAudioMime })
+
+          // 2. Upload binary to Meta Media API (/v20.0/{phone_id}/media)
+          const formData = new FormData()
+          formData.append('messaging_product', 'whatsapp')
+          formData.append('type', cleanAudioMime)
+          formData.append('file', audioFile)
+
+          console.log(`[reply] Uploading audio file "${audioFilename}" (${cleanAudioMime}) to Meta Graph API...`)
+          const uploadRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/media`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${whatsapp_token}` },
+            body: formData
+          })
+
+          if (!uploadRes.ok) {
+            const uploadErr = await uploadRes.text()
+            console.error(`[reply] Meta Media API Upload Error: ${uploadErr}`)
+            console.log(`[reply] Falling back to link payload for audio...`)
+            payload.audio = { link: media_url }
+          } else {
+            const uploadData = await uploadRes.json()
+            console.log(`[reply] Audio uploaded successfully to Meta, media_id: ${uploadData.id}`)
+            payload.audio = { id: uploadData.id }
+          }
+        } catch (audioErr) {
+          console.error(`[reply] Audio media preparation failed:`, audioErr)
+          payload.audio = { link: media_url }
+        }
       } else if (payload.type === 'document') {
         payload.document = { 
           link: media_url,
@@ -153,46 +196,6 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify(payload)
       })
-
-      // Fallback for audio: If direct link fails, upload to Meta Media API using native File
-      if (!metaRes.ok && payload.type === 'audio' && media_url) {
-        console.warn(`[reply] Direct link audio send returned error, trying Meta Media API upload fallback...`)
-        try {
-          const audioRes = await fetch(media_url)
-          if (audioRes.ok) {
-            const audioBuffer = await audioRes.arrayBuffer()
-            const audioFile = new File([audioBuffer], filename || 'voicenote.mp3', { type: media_type || 'audio/mpeg' })
-            
-            const formData = new FormData()
-            formData.append('messaging_product', 'whatsapp')
-            formData.append('type', media_type || 'audio/mpeg')
-            formData.append('file', audioFile)
-
-            const uploadRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/media`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${whatsapp_token}` },
-              body: formData
-            })
-
-            if (uploadRes.ok) {
-              const uploadData = await uploadRes.json()
-              console.log(`[reply] Audio uploaded to Meta fallback, media_id: ${uploadData.id}`)
-              payload.audio = { id: uploadData.id }
-              
-              metaRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/messages`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${whatsapp_token}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-              })
-            }
-          }
-        } catch (fallbackErr) {
-          console.error(`[reply] Meta audio upload fallback failed:`, fallbackErr)
-        }
-      }
 
       if (!metaRes.ok) {
         const errorText = await metaRes.text()
