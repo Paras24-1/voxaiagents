@@ -27,18 +27,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 })
     }
 
-    // 1. Fetch organization WhatsApp settings
-    const { data: settings, error: settingsError } = await supabaseAdmin
+    // 1. Fetch organization settings
+    const { data: settings } = await supabaseAdmin
       .from('organization_settings')
-      .select('whatsapp_token, whatsapp_phone_id')
+      .select('n8n_reply_webhook_url, n8n_webhook_url')
       .eq('org_id', orgId)
-      .single()
+      .maybeSingle()
 
-    if (settingsError || !settings || !settings.whatsapp_token || !settings.whatsapp_phone_id) {
-      return NextResponse.json({ error: 'WhatsApp credentials not configured for your organization.' }, { status: 400 })
-    }
-
-    const { whatsapp_token: token, whatsapp_phone_id: phoneId } = settings
+    const targetWebhookUrl = 
+      settings?.n8n_reply_webhook_url || 
+      settings?.n8n_webhook_url || 
+      process.env.N8N_BULK_WEBHOOK_URL || 
+      'https://resplendent-rejoicing-production-4b92.up.railway.app/webhook/bulk-sendMulti'
 
     // 2. Format components for Meta Template message
     const components: any[] = []
@@ -52,37 +52,27 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const payload = {
-      messaging_product: 'whatsapp',
-      recipient_type: 'individual',
-      to: cleanPhone,
-      type: 'template',
-      template: {
-        name: template_name,
-        language: {
-          code: template_lang
-        },
-        ...(components.length > 0 ? { components } : {})
-      }
-    }
+    // 3. Send template message via n8n hybrid flow
+    const n8nRes = await fetch(targetWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: orgId,
+        phone_number: cleanPhone,
+        type: 'template',
+        template_name,
+        template_language: template_lang,
+        template_components: components,
+        message: message_text || `Template: ${template_name}`,
+        direction: 'outgoing',
+        timestamp: new Date().toISOString()
+      })
+    })
 
-    // 3. Send template message via Meta Cloud API
-    const metaRes = await fetch(
-      `https://graph.facebook.com/v19.0/${phoneId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      }
-    )
-
-    const metaData = await metaRes.json()
-    if (metaData.error) {
-      console.error('[initiate conversation] Meta API Error:', metaData.error)
-      return NextResponse.json({ error: metaData.error.message || 'Meta API call failed' }, { status: 400 })
+    if (!n8nRes.ok) {
+      const errText = await n8nRes.text()
+      console.error('[initiate conversation] n8n Webhook Error:', errText)
+      return NextResponse.json({ error: `n8n webhook error: ${errText}` }, { status: 400 })
     }
 
     const resolvedMessageText = message_text || `Template: ${template_name}`
@@ -119,8 +109,6 @@ export async function POST(req: NextRequest) {
     if (leadError) throw leadError
 
     // 6. Insert outgoing template message record
-    const wamid = metaData?.messages?.[0]?.id
-
     const { error: msgError } = await supabaseAdmin
       .from('messages')
       .insert({
@@ -129,8 +117,7 @@ export async function POST(req: NextRequest) {
         phone_number: cleanPhone,
         message: resolvedMessageText,
         direction: 'outgoing',
-        timestamp: new Date().toISOString(),
-        ...(wamid ? { provider_message_id: wamid } : {})
+        timestamp: new Date().toISOString()
       })
 
     if (msgError) throw msgError

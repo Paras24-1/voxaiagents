@@ -87,147 +87,49 @@ export async function POST(req: NextRequest) {
       .eq('id', conversation_id)
       .eq('org_id', orgId)
 
-    // 3. Fetch Delivery Settings (Meta Native or n8n Fallback)
+    // 3. Fetch Delivery Settings (Hybrid n8n Flow)
     const { data: settings } = await supabaseAdmin
       .from('organization_settings')
-      .select('n8n_reply_webhook_url, whatsapp_token, whatsapp_phone_id')
+      .select('n8n_reply_webhook_url, n8n_webhook_url')
       .eq('org_id', orgId)
       .single()
 
-    const whatsapp_token = settings?.whatsapp_token
-    const n8n_reply_webhook_url = settings?.n8n_reply_webhook_url
-    
-    // Use the specific phone ID that the customer originally messaged, fallback to the default org setting
-    const active_phone_id = providerPhoneId || settings?.whatsapp_phone_id
+    const targetWebhookUrl = 
+      settings?.n8n_reply_webhook_url || 
+      settings?.n8n_webhook_url || 
+      process.env.N8N_BULK_WEBHOOK_URL || 
+      'https://resplendent-rejoicing-production-4b92.up.railway.app/webhook/bulk-sendMulti'
 
-    // Priority 1: Native Meta/WhatsApp Cloud API
-    if (whatsapp_token && active_phone_id) {
-      console.log(`[reply] Sending natively via WhatsApp Cloud API for org: ${orgId} using phone ID: ${active_phone_id}`)
-      
-      let determinedType = type || (media_url ? (media_type?.includes('pdf') || media_type?.includes('document') ? 'document' : media_type?.split('/')[0]) : 'text')
-      if (isTemplate) determinedType = 'template'
-      if (type === 'location' || location_data) determinedType = 'location'
-      
-      const payload: any = {
-        messaging_product: 'whatsapp',
-        to: phone_number.replace('+', ''), // Meta requires phone without +
-        type: determinedType
-      }
+    console.log(`[reply] Sending via Hybrid n8n Flow to ${targetWebhookUrl} for org: ${orgId}`)
 
-      if (payload.type === 'template') {
-        payload.template = {
-          name: template_name,
-          language: { code: template_language || 'en' },
-          components: template_components || []
-        }
-      } else if (payload.type === 'location') {
-        const loc = location_data || {}
-        payload.location = {
-          latitude: String(loc.latitude || '28.6139'),
-          longitude: String(loc.longitude || '77.2090'),
-          name: loc.name || 'Location',
-          address: loc.address || ''
-        }
-      } else if (payload.type === 'text') {
-        payload.text = { body: message }
-      } else if (payload.type === 'audio') {
-        console.log(`[reply] Preparing audio for WhatsApp Meta Cloud API: ${media_url}`)
-        
-        let cleanAudioMime = (media_type || 'audio/mpeg').split(';')[0].trim()
-        if (cleanAudioMime === 'audio/mp3') cleanAudioMime = 'audio/mpeg'
-        if (cleanAudioMime === 'audio/webm') cleanAudioMime = 'audio/mpeg'
+    const n8nRes = await fetch(targetWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation_id,
+        org_id: orgId,
+        phone_number,
+        message: message || '',
+        media_url: media_url || null,
+        media_type: media_type || null,
+        type: type || null,
+        template_name: template_name || null,
+        template_language: template_language || null,
+        template_components: template_components || null,
+        filename: filename || null,
+        location_data: location_data || null,
+        direction: 'outgoing',
+        timestamp,
+        platform
+      }),
+    })
 
-        try {
-          // 1. Fetch audio binary from public URL
-          const audioRes = await fetch(media_url)
-          if (!audioRes.ok) {
-            throw new Error(`Failed to download audio file from ${media_url} (HTTP ${audioRes.status})`)
-          }
-          const audioBuffer = await audioRes.arrayBuffer()
-          
-          const audioExt = cleanAudioMime.includes('ogg') ? 'ogg' : cleanAudioMime.includes('mp4') ? 'mp4' : 'mp3'
-          const audioFilename = filename || `voicenote-${Date.now()}.${audioExt}`
-          const audioFile = new File([audioBuffer], audioFilename, { type: cleanAudioMime })
-
-          // 2. Upload binary to Meta Media API (/v20.0/{phone_id}/media)
-          const formData = new FormData()
-          formData.append('messaging_product', 'whatsapp')
-          formData.append('type', cleanAudioMime)
-          formData.append('file', audioFile)
-
-          console.log(`[reply] Uploading audio file "${audioFilename}" (${cleanAudioMime}) to Meta Graph API...`)
-          const uploadRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/media`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${whatsapp_token}` },
-            body: formData
-          })
-
-          if (!uploadRes.ok) {
-            const uploadErr = await uploadRes.text()
-            console.error(`[reply] Meta Media API Upload Error: ${uploadErr}`)
-            console.log(`[reply] Falling back to link payload for audio...`)
-            payload.audio = { link: media_url }
-          } else {
-            const uploadData = await uploadRes.json()
-            console.log(`[reply] Audio uploaded successfully to Meta, media_id: ${uploadData.id}`)
-            payload.audio = { id: uploadData.id }
-          }
-        } catch (audioErr) {
-          console.error(`[reply] Audio media preparation failed:`, audioErr)
-          payload.audio = { link: media_url }
-        }
-      } else if (payload.type === 'document') {
-        payload.document = { 
-          link: media_url,
-          filename: filename || 'Document.pdf'
-        }
-        if (message) payload.document.caption = message
-      } else {
-        // e.g. type 'image', 'video'
-        payload[payload.type] = { link: media_url }
-        if (message) payload[payload.type].caption = message
-      }
-
-      let metaRes = await fetch(`https://graph.facebook.com/v20.0/${active_phone_id}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${whatsapp_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (!metaRes.ok) {
-        const errorText = await metaRes.text()
-        console.error(`[reply] Meta API Error: ${errorText}`)
-        // Rollback inserted message so phantom messages don't remain in DB
-        await supabaseAdmin.from('messages').delete().eq('id', msg.id)
-        throw new Error(`Meta API Error: ${errorText}`)
-      }
-
-      // Capture provider_message_id to support delivery ticks
-      const metaData = await metaRes.json()
-      const wamid = metaData?.messages?.[0]?.id
-      
-      if (wamid) {
-        await supabaseAdmin
-          .from('messages')
-          .update({ provider_message_id: wamid })
-          .eq('id', msg.id)
-      }
-    } 
-    // Priority 2: Legacy n8n Webhook Fallback
-    else if (n8n_reply_webhook_url) {
-      console.log(`[reply] Sending via n8n fallback for org: ${orgId}`)
-      const n8nRes = await fetch(n8n_reply_webhook_url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number, message, media_url, media_type, direction: 'outgoing', timestamp, platform }),
-      })
-      if (!n8nRes.ok) {
-        await supabaseAdmin.from('messages').delete().eq('id', msg.id)
-        throw new Error(`n8n webhook error: ${await n8nRes.text()}`)
-      }
+    if (!n8nRes.ok) {
+      const errText = await n8nRes.text()
+      console.error(`[reply] n8n Webhook Error: ${errText}`)
+      // Rollback inserted message so phantom messages don't remain in DB if n8n fails
+      await supabaseAdmin.from('messages').delete().eq('id', msg.id)
+      throw new Error(`n8n webhook error: ${errText}`)
     }
 
     return NextResponse.json({ success: true, message: msg })
