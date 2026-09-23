@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Conversation, Stage } from '@/types'
 import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
-import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown, CheckCheck, CheckSquare, Square, Send, Clock, ListChecks, Paperclip, AlertTriangle, CheckCircle2, MessageSquare } from 'lucide-react'
+import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown, CheckCheck, CheckSquare, Square, Send, Clock, ListChecks, Paperclip, AlertTriangle, CheckCircle2, MessageSquare, Check } from 'lucide-react'
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion'
@@ -810,26 +810,96 @@ function ConversationItem({
         </div>
       )}
 
-      {/* Assignment Dropdown */}
+      {/* Assignment Modal Backdrop Overlay */}
       {showAssign && (
-        <div className="absolute right-2 top-2 z-10 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-2 min-w-[160px]">
-          <p className="text-[10px] font-extrabold uppercase text-gray-400 mb-2 px-2">Assign to:</p>
-          {employees.map((emp) => (
-            <button
-              key={emp.id}
-              onClick={(e) => handleAssign(e, emp.id)}
-              disabled={assigning}
-              className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
-            >
-              {emp.name}
-            </button>
-          ))}
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowAssign(false); }}
-            className="w-full mt-1 px-3 py-2 text-xs rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs select-none animate-in fade-in duration-150"
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowAssign(false)
+          }}
+        >
+          <div 
+            className="w-full max-w-xs bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3.5 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
           >
-            Cancel
-          </button>
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">Assign Lead</h3>
+                  <p className="text-[10px] text-slate-400 truncate max-w-[170px] font-medium">
+                    {conv.name || conv.phone_number}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowAssign(false)
+                }}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto space-y-1.5 pr-0.5">
+              {/* Option to Unassign if currently assigned */}
+              {assignedEmployee && (
+                <button
+                  onClick={(e) => handleAssign(e, '')}
+                  disabled={assigning}
+                  className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-bold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all cursor-pointer"
+                >
+                  <span>Unassign Lead</span>
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">Clear</span>
+                </button>
+              )}
+
+              {employees.length === 0 ? (
+                <p className="text-center py-4 text-xs text-slate-400">No active employees available</p>
+              ) : (
+                employees.map((emp) => {
+                  const isCurrent = emp.id === conv.assigned_to
+                  return (
+                    <button
+                      key={emp.id}
+                      onClick={(e) => handleAssign(e, emp.id)}
+                      disabled={assigning}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                        isCurrent
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 font-bold'
+                          : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-500/10 hover:text-emerald-500 text-slate-700 dark:text-slate-200 border border-transparent hover:border-emerald-500/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                          isCurrent ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}>
+                          {emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="truncate">{emp.name}</span>
+                      </div>
+                      {isCurrent && <Check className="w-4 h-4 shrink-0 text-white" />}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowAssign(false)
+              }}
+              className="w-full py-2.5 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>
