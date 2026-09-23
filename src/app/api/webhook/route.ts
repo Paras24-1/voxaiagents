@@ -88,12 +88,21 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
     
     // Check if this is a native Meta WhatsApp Webhook Payload
-    let parsedPhone = body.phone_number
-    let parsedMessage = body.message
+    let parsedPhone = body.phone_number || body.phone || body.from || body.sender
+    let parsedMessage = body.message || body.text || body.body
     let parsedDirection = body.direction
-    let parsedName = body.name
-    let parsedMediaUrl = body.media_url
-    let parsedMediaType = body.media_type
+    let parsedName = body.name || body.profile_name || body.contact_name
+    let parsedMediaUrl = 
+      body.media_url || 
+      body.mediaUrl || 
+      body.image_url || 
+      body.imageUrl || 
+      body.url || 
+      body.link || 
+      body.media || 
+      body.file_url || 
+      null
+    let parsedMediaType = body.media_type || body.mediaType || body.type || null
     let parsedReceiverPhone = body.receiver_phone_number || null
     let parsedProviderPhoneId = null
     const parsedPlatform = body.platform || 'whatsapp'
@@ -147,18 +156,25 @@ export async function POST(req: NextRequest) {
           parsedMediaType = msg.type
           parsedMessage = msg.type === 'document' && msg.document?.filename ? `[Document: ${msg.document.filename}]` : `[Received ${msg.type}]`
 
+          // Extract direct URL from payload if forwarded by n8n
+          const directMediaUrl = msg[msg.type]?.url || msg[msg.type]?.link || msg[msg.type]?.media_url
+          if (directMediaUrl) {
+            parsedMediaUrl = directMediaUrl
+          }
+
           const tokensToTry = Array.from(new Set([
             orgSettings?.whatsapp_token,
             process.env.WHATSAPP_TOKEN,
             process.env.WHATSAPP_API_TOKEN,
-            process.env.META_ACCESS_TOKEN
+            process.env.META_ACCESS_TOKEN,
+            process.env.SYSTEM_META_TOKEN
           ].filter(Boolean))) as string[]
 
           const mediaId = msg[msg.type]?.id
-          if (mediaId && tokensToTry.length > 0) {
+          if (!parsedMediaUrl && mediaId && tokensToTry.length > 0) {
             for (const token of tokensToTry) {
               try {
-                // 1. Get Media URL
+                // 1. Get Media URL from Meta
                 const metaRes = await fetch(`https://graph.facebook.com/v20.0/${mediaId}`, {
                   headers: { 'Authorization': `Bearer ${token}` }
                 })
@@ -176,12 +192,24 @@ export async function POST(req: NextRequest) {
                     const ext = msg.type === 'audio' ? 'ogg' : msg.type === 'image' ? 'jpg' : msg.type === 'video' ? 'mp4' : 'pdf'
                     const fileName = `${orgId}/${Date.now()}-${mediaId}.${ext}`
                     
-                    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+                    let { data: uploadData, error: uploadError } = await supabaseAdmin.storage
                       .from('chat-media')
                       .upload(fileName, buffer, {
                         contentType: mediaRes.headers.get('content-type') || 'application/octet-stream',
                         upsert: true
                       })
+
+                    if (uploadError && (uploadError.message?.includes('Bucket not found') || String(uploadError).includes('not found'))) {
+                      await supabaseAdmin.storage.createBucket('chat-media', { public: true })
+                      const retryUpload = await supabaseAdmin.storage
+                        .from('chat-media')
+                        .upload(fileName, buffer, {
+                          contentType: mediaRes.headers.get('content-type') || 'application/octet-stream',
+                          upsert: true
+                        })
+                      uploadData = retryUpload.data
+                      uploadError = retryUpload.error
+                    }
                       
                     if (!uploadError && uploadData) {
                       const { data: publicUrlData } = supabaseAdmin.storage
