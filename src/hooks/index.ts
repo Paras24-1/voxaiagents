@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { Conversation, Message } from '@/types'
 
 // ----------------------------------------------------------------
@@ -72,15 +72,9 @@ export function useConversations(filters: {
 
     // DB update — use the messages API which also clears unread in DB
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-      }
-      // PATCH the conversation to set unread_count: 0 in DB
-      await fetch(`/api/conversations/${conversationId}`, {
+      await fetchWithAuth(`/api/conversations/${conversationId}`, {
         method: 'PATCH',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ unread_count: 0 })
       })
     } catch (err) {
@@ -103,13 +97,9 @@ export function useConversations(filters: {
     })
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      await fetch('/api/conversations/mark-all-read', {
+      await fetchWithAuth('/api/conversations/mark-all-read', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-        }
+        headers: { 'Content-Type': 'application/json' }
       })
     } catch (err) {
       console.error('Failed to mark all conversations as read:', err)
@@ -126,10 +116,6 @@ export function useConversations(filters: {
   }, [filters.selectedId, markAsRead, persistReadState])
 
   const fetchConversations = useCallback(async (showLoading = true) => {
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token || null
-    tokenRef.current = token
-    if (!token) { setLoading(false); return }
     if (showLoading) setLoading(true)
 
     const params = new URLSearchParams()
@@ -149,8 +135,7 @@ export function useConversations(filters: {
 
     params.append('_t', Date.now().toString())
 
-    const res = await fetch(`/api/conversations?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+    const res = await fetchWithAuth(`/api/conversations?${params.toString()}`, {
       cache: 'no-store'
     })
     if (res.status === 401) {
@@ -180,11 +165,11 @@ export function useConversations(filters: {
       if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
 
       // Background cleanup: re-zero DB for any stale conversations that are in our read set
-      if (toReZeroInDB.length > 0 && token) {
+      if (toReZeroInDB.length > 0) {
         toReZeroInDB.forEach(convId => {
-          fetch(`/api/conversations/${convId}`, {
+          fetchWithAuth(`/api/conversations/${convId}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ unread_count: 0 })
           }).catch(() => {})
         })
@@ -330,14 +315,9 @@ export function useMessages(conversationId: string | null) {
         data: { session },
       } = await supabase.auth.getSession()
 
-      const res = await fetch(
+      const res = await fetchWithAuth(
         `/api/messages?conversation_id=${conversationId}&_t=${Date.now()}`,
-        {
-          headers: session?.access_token
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : {},
-          cache: 'no-store'
-        }
+        { cache: 'no-store' }
       )
 
       const data = await res.json()
@@ -420,16 +400,11 @@ export function useMessages(conversationId: string | null) {
             }, 50)
             if (newMsg.direction === 'incoming') {
               window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: conversationId, unread_count: 0 } }))
-              supabase.auth.getSession().then(({ data: { session } }) => {
-                fetch(`/api/conversations/${conversationId}`, {
-                  method: 'PATCH',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-                  },
-                  body: JSON.stringify({ unread_count: 0 })
-                }).catch(() => {})
-              })
+              fetchWithAuth(`/api/conversations/${conversationId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ unread_count: 0 })
+              }).catch(() => {})
             }
           } else if (payload.eventType === 'UPDATE') {
             setMessages((prev) => prev.map(msg => msg.id === payload.new.id ? { ...msg, ...(payload.new as Partial<Message>) } : msg))
@@ -483,15 +458,9 @@ export function useSendMessage() {
       if (!message.trim() && !mediaUrl && !extraOptions?.template_name && !extraOptions?.location_data) return null
       setSending(true)
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const res = await fetch('/api/reply', {
+        const res = await fetchWithAuth('/api/reply', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(session?.access_token
-              ? { Authorization: `Bearer ${session.access_token}` }
-              : {}),
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             conversation_id: conversationId,
             phone_number: phoneNumber,
@@ -526,15 +495,9 @@ export function useToggleAI() {
   const toggleAI = useCallback(
     async (conversationId: string, aiMode: boolean) => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        await fetch('/api/takeover', {
+        await fetchWithAuth('/api/takeover', {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(session?.access_token
-              ? { Authorization: `Bearer ${session.access_token}` }
-              : {}),
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             conversation_id: conversationId,
             ai_mode: aiMode,

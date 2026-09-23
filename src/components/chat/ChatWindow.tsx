@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Fragment } from 'react'
 import { Conversation, Message } from '@/types'
 import { useMessages, useSendMessage } from '@/hooks'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
 import { useLeadStages } from '@/hooks/useLeadStages'
 import { formatDistanceToNow } from 'date-fns'
@@ -89,10 +89,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const fetchScheduledMessages = useCallback(async () => {
     if (!conversation?.id) return
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(`/api/messages/schedule?conversation_id=${conversation.id}`, {
-        headers: session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
-      })
+      const res = await fetchWithAuth(`/api/messages/schedule?conversation_id=${conversation.id}`)
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data)) setScheduledMsgs(data)
@@ -110,12 +107,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   useEffect(() => {
     const runScheduleProcessor = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
-        if (!token) return
-        const res = await fetch('/api/messages/schedule/process', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        const res = await fetchWithAuth('/api/messages/schedule/process')
         if (res.ok) {
           const data = await res.json()
           if (data.processed > 0) fetchScheduledMessages()
@@ -135,11 +127,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   // Fetch Canned Replies for Org
   const fetchCannedReplies = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token || ''
-      const res = await fetch('/api/canned-replies', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      const res = await fetchWithAuth('/api/canned-replies')
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data)) setCannedReplies(data)

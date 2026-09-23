@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 
 export interface LeadStage {
   id: string
@@ -55,17 +55,7 @@ async function sharedFetchStages(force = false) {
   lastFetchTime = now
   fetchInFlight = (async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-      if (!token) {
-        globalLoading = false
-        notifyListeners()
-        return
-      }
-
-      const res = await fetch('/api/leads/stages', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+      const res = await fetchWithAuth('/api/leads/stages')
 
       if (res.ok) {
         const data = await res.json()
