@@ -94,42 +94,62 @@ export async function POST(req: NextRequest) {
       .eq('org_id', orgId)
       .single()
 
-    const targetWebhookUrl = 
-      settings?.n8n_reply_webhook_url || 
-      settings?.n8n_webhook_url || 
-      process.env.N8N_BULK_WEBHOOK_URL || 
-      'https://resplendent-rejoicing-production-4b92.up.railway.app/webhook/bulk-sendMulti'
+    const primaryWebhookUrl = settings?.n8n_reply_webhook_url
+    const fallbackWebhookUrl = settings?.n8n_webhook_url || process.env.N8N_BULK_WEBHOOK_URL || 'https://resplendent-rejoicing-production-4b92.up.railway.app/webhook/bulk-sendMulti'
 
-    console.log(`[reply] Sending via Hybrid n8n Flow to ${targetWebhookUrl} for org: ${orgId}`)
+    // Formulate comprehensive payload compatible with ALL n8n node formats
+    const payload = {
+      conversation_id,
+      org_id: orgId,
+      phone_number,
+      phone: phone_number,
+      to: phone_number.replace('+', ''),
+      recipient: phone_number,
+      message: message || '',
+      text: message || '',
+      body: message || '',
+      media_url: media_url || null,
+      url: media_url || null,
+      audio_url: media_type?.startsWith('audio') ? media_url : null,
+      image_url: media_type?.startsWith('image') ? media_url : null,
+      document_url: media_type?.includes('pdf') || media_type?.includes('document') ? media_url : null,
+      media_type: media_type || null,
+      type: type || (media_url ? (media_type?.includes('pdf') || media_type?.includes('document') ? 'document' : media_type?.split('/')[0]) : 'text'),
+      template_name: template_name || null,
+      template_language: template_language || null,
+      template_components: template_components || null,
+      filename: filename || null,
+      location_data: location_data || null,
+      direction: 'outgoing',
+      timestamp,
+      platform
+    }
 
-    const n8nRes = await fetch(targetWebhookUrl, {
+    let targetUrl = primaryWebhookUrl || fallbackWebhookUrl
+    console.log(`[reply] Sending via Hybrid n8n Flow to ${targetUrl} for org: ${orgId}`)
+
+    let n8nRes = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        conversation_id,
-        org_id: orgId,
-        phone_number,
-        message: message || '',
-        media_url: media_url || null,
-        media_type: media_type || null,
-        type: type || null,
-        template_name: template_name || null,
-        template_language: template_language || null,
-        template_components: template_components || null,
-        filename: filename || null,
-        location_data: location_data || null,
-        direction: 'outgoing',
-        timestamp,
-        platform
-      }),
+      body: JSON.stringify(payload),
     })
+
+    // If primary webhook returns 404 (e.g. inactive workflow in n8n), try active fallback webhook
+    if (!n8nRes.ok && n8nRes.status === 404 && primaryWebhookUrl && primaryWebhookUrl !== fallbackWebhookUrl) {
+      console.warn(`[reply] Primary webhook ${primaryWebhookUrl} returned 404 (inactive workflow in n8n). Falling back to ${fallbackWebhookUrl}...`)
+      n8nRes = await fetch(fallbackWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    }
 
     if (!n8nRes.ok) {
       const errText = await n8nRes.text()
-      console.error(`[reply] n8n Webhook Error: ${errText}`)
+      console.error(`[reply] n8n Webhook Error (${n8nRes.status}): ${errText}`)
       // Rollback inserted message so phantom messages don't remain in DB if n8n fails
       await supabaseAdmin.from('messages').delete().eq('id', msg.id)
-      throw new Error(`n8n webhook error: ${errText}`)
+      throw new Error(`n8n webhook error (${n8nRes.status}): ${errText}`)
     }
 
     return NextResponse.json({ success: true, message: msg })
