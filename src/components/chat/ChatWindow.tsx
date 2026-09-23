@@ -738,11 +738,16 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                         }`}
                       >
                         {(() => {
-                          const url = msg.media_url || ''
+                          const rawUrl = msg.media_url || ''
+                          let url = rawUrl
+                          if (rawUrl.includes('fbsbx.com') || rawUrl.includes('lookaside') || rawUrl.includes('jncmizoejeaclpnfxazg')) {
+                            url = `/api/media-proxy?url=${encodeURIComponent(rawUrl)}${msg.id ? `&msg_id=${msg.id}` : ''}`
+                          }
+
                           const type = msg.media_type || ''
-                          const isVideo = type.startsWith('video') || /\.(mp4|webm|mov|mkv)($|\?)/i.test(url)
-                          const isAudio = type.startsWith('audio') || /\.(mp3|wav|ogg|m4a)($|\?)/i.test(url)
-                          const isDocument = type.includes('pdf') || type.includes('document') || type === 'document' || /\.(pdf|doc|docx|xls|xlsx|txt)($|\?)/i.test(url)
+                          const isVideo = type.startsWith('video') || /\.(mp4|webm|mov|mkv)($|\?)/i.test(rawUrl)
+                          const isAudio = type.startsWith('audio') || /\.(mp3|wav|ogg|m4a)($|\?)/i.test(rawUrl)
+                          const isDocument = type.includes('pdf') || type.includes('document') || type === 'document' || /\.(pdf|doc|docx|xls|xlsx|txt)($|\?)/i.test(rawUrl)
                           const isImage = !!url && !isVideo && !isAudio && !isDocument
 
                           return (
@@ -751,7 +756,15 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                                 <img
                                   src={url}
                                   alt="Media attachment"
-                                  className="rounded-xl mb-2 max-w-full h-auto border border-gray-100 dark:border-gray-800"
+                                  className="rounded-xl mb-2 max-w-full h-auto max-h-96 border border-gray-100 dark:border-gray-800 cursor-pointer hover:opacity-95 transition-opacity"
+                                  onClick={() => window.open(rawUrl || url, '_blank')}
+                                  onError={(e) => {
+                                    // Fallback to media-proxy if raw URL failed directly
+                                    const img = e.currentTarget
+                                    if (!img.src.includes('/api/media-proxy')) {
+                                      img.src = `/api/media-proxy?url=${encodeURIComponent(rawUrl)}${msg.id ? `&msg_id=${msg.id}` : ''}`
+                                    }
+                                  }}
                                 />
                               )}
 
@@ -794,18 +807,24 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
                         })()}
 
                         {(() => {
-                          const isPlaceholder = !msg.message || msg.message === '[Message]' || msg.message.trim() === ''
-                          const isMediaPlaceholder = ['[Received image]', '[Received audio]', '[Received document]', '[Received video]', '[Received sticker]', '[Sticker]'].includes(msg.message?.trim() || '')
+                          const msgText = msg.message?.trim() || ''
+                          const isPlaceholder = !msgText || msgText === '[Message]'
+                          const mediaPlaceholders = [
+                            '[Received image]', '[Received audio]', '[Received document]', '[Received video]', '[Received sticker]', '[Sticker]',
+                            '[Media attachment]', 'Media attachment', '[Image attachment]', 'Image attachment', '[Image sent ]', '[Image sent]',
+                            'Image Attachment'
+                          ]
+                          const isMediaPlaceholder = mediaPlaceholders.some(p => msgText.toLowerCase().includes(p.toLowerCase()))
 
                           if (msg.media_url) {
-                            if (msg.message && !isMediaPlaceholder && !isPlaceholder) {
+                            if (msgText && !isMediaPlaceholder && !isPlaceholder) {
                               return <p className="whitespace-pre-wrap break-words mt-1">{msg.message}</p>
                             }
                             return null
                           }
 
                           if (isMediaPlaceholder || msg.media_type) {
-                            const mediaKind = msg.media_type?.split('/')[0] || (msg.message?.includes('image') ? 'image' : msg.message?.includes('audio') ? 'audio' : msg.message?.includes('video') ? 'video' : 'document')
+                            const mediaKind = msg.media_type?.split('/')[0] || (msgText.toLowerCase().includes('image') ? 'image' : msgText.toLowerCase().includes('audio') ? 'audio' : msgText.toLowerCase().includes('video') ? 'video' : 'document')
                             return (
                               <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-800/30 dark:bg-slate-900/50 border border-slate-700/40 my-0.5 select-none">
                                 {mediaKind === 'image' && <ImageIcon className="w-4 h-4 text-emerald-400 shrink-0" />}
