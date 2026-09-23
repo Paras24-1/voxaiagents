@@ -83,6 +83,38 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [selectedConvIds, setSelectedConvIds] = useState<Set<string>>(new Set())
   const [showBulkModal, setShowBulkModal] = useState(false)
 
+  // Top-Level Assignment Modal State (Prevents hover jitter / infinite re-render loop)
+  const [assigningConv, setAssigningConv] = useState<Conversation | null>(null)
+  const [assigning, setAssigning] = useState(false)
+
+  const handleAssign = async (userId: string) => {
+    if (!assigningConv) return
+    setAssigning(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/assignments', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          conversation_id: assigningConv.id,
+          assigned_to: userId
+        })
+      })
+
+      if (res.ok) {
+        refetch()
+        setAssigningConv(null)
+      }
+    } catch (err) {
+      console.error('Assignment failed:', err)
+    } finally {
+      setAssigning(false)
+    }
+  }
+
   const toggleSelectConv = (id: string) => {
     setSelectedConvIds(prev => {
       const next = new Set(prev)
@@ -516,7 +548,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 onDelete={(e) => handleDelete(e, conv.id)}
                 isAdmin={isAdmin}
                 employees={employees}
-                onAssignmentChange={refetch}
+                onOpenAssign={() => setAssigningConv(conv)}
                 isOsmo={isOsmo}
                 stages={stages}
                 isMultiSelect={isMultiSelect}
@@ -564,6 +596,90 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
           }}
         />
       )}
+
+      {/* Top-Level Assignment Modal (Completely isolated from sidebar hover loops) */}
+      {assigningConv && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs select-none animate-in fade-in duration-150"
+          onClick={() => setAssigningConv(null)}
+        >
+          <div 
+            className="w-full max-w-xs bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3.5 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">Assign Lead</h3>
+                  <p className="text-[10px] text-slate-400 truncate max-w-[170px] font-medium">
+                    {assigningConv.name || assigningConv.phone_number}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAssigningConv(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto space-y-1.5 pr-0.5 custom-scrollbar">
+              {/* Option to Unassign if currently assigned */}
+              {assigningConv.assigned_to && (
+                <button
+                  onClick={() => handleAssign('')}
+                  disabled={assigning}
+                  className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-bold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all cursor-pointer"
+                >
+                  <span>Unassign Lead</span>
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">Clear</span>
+                </button>
+              )}
+
+              {employees.length === 0 ? (
+                <p className="text-center py-4 text-xs text-slate-400">No active employees available</p>
+              ) : (
+                employees.map((emp) => {
+                  const isCurrent = emp.id === assigningConv.assigned_to
+                  return (
+                    <button
+                      key={emp.id}
+                      onClick={() => handleAssign(emp.id)}
+                      disabled={assigning}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                        isCurrent
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 font-bold'
+                          : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-500/10 hover:text-emerald-500 text-slate-700 dark:text-slate-200 border border-transparent hover:border-emerald-500/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                          isCurrent ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                        }`}>
+                          {emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="truncate">{emp.name}</span>
+                      </div>
+                      {isCurrent && <Check className="w-4 h-4 shrink-0 text-white" />}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+
+            <button
+              onClick={() => setAssigningConv(null)}
+              className="w-full py-2.5 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }
@@ -576,7 +692,7 @@ function ConversationItem({
   onDelete,
   isAdmin,
   employees,
-  onAssignmentChange,
+  onOpenAssign,
   isOsmo,
   stages,
   isMultiSelect,
@@ -590,65 +706,30 @@ function ConversationItem({
   onDelete: (e: React.MouseEvent) => void
   isAdmin: boolean
   employees: Employee[]
-  onAssignmentChange: () => void
+  onOpenAssign: () => void
   isOsmo: boolean
   stages: any[]
   isMultiSelect?: boolean
   isChecked?: boolean
   onToggleCheck?: () => void
 }) {
-  const [hovered, setHovered] = useState(false)
-  const [showAssign, setShowAssign] = useState(false)
-  const [assigning, setAssigning] = useState(false)
-
   const initials = (conv.name || conv.phone_number || 'U')
-  .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    .split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
   const timeAgo = formatDistanceToNow(new Date(conv.updated_at), { addSuffix: true })
 
   const assignedEmployee = employees.find(e => e.id === conv.assigned_to)
 
-  const handleAssign = async (e: React.MouseEvent, userId: string) => {
-    e.stopPropagation()
-    setAssigning(true)
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/assignments', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-        },
-        body: JSON.stringify({
-          conversation_id: conv.id,
-          assigned_to: userId
-        })
-      })
-
-      if (res.ok) {
-        onAssignmentChange()
-        setShowAssign(false)
-      }
-    } catch (err) {
-      console.error('Assignment failed:', err)
-    } finally {
-      setAssigning(false)
-    }
-  }
-
   return (
     <div
-      className={`group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-all duration-300 rounded-2xl border ${
+      className={`group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-all duration-200 rounded-2xl border ${
         isChecked
           ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500/40 shadow-sm'
           : isSelected
-          ? 'bg-gradient-to-br from-emerald-50/90 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/10 border-emerald-500/30 dark:border-emerald-500/30 shadow-md shadow-emerald-500/5 ring-1 ring-emerald-500/20 scale-[1.02] backdrop-blur-sm'
-          : 'bg-white/70 dark:bg-gray-900/50 border-transparent dark:border-transparent hover:bg-white dark:hover:bg-gray-900 border-gray-100 hover:border-gray-200 dark:hover:border-gray-800 hover:shadow-sm hover:-translate-y-0.5'
+          ? 'bg-gradient-to-br from-emerald-50/90 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/10 border-emerald-500/30 dark:border-emerald-500/30 shadow-md shadow-emerald-500/5 ring-1 ring-emerald-500/20 backdrop-blur-sm'
+          : 'bg-white/70 dark:bg-gray-900/50 border-transparent dark:border-transparent hover:bg-white dark:hover:bg-gray-900 border-gray-100 hover:border-gray-200 dark:hover:border-gray-800 hover:shadow-sm'
       }`}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {/* Checkbox for Multi-Select */}
       {isMultiSelect && (
@@ -781,125 +862,30 @@ function ConversationItem({
         </div>
       </div>
 
-      {/* Actions */}
-      {hovered && (
-        <div className="flex items-center gap-1 shrink-0 select-none">
-          {isAdmin && !showAssign && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowAssign(true); }}
-              className="p-1 rounded-lg bg-blue-55 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100/20"
-              title="Assign to employee"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-            </button>
-          )}
+      {/* Actions (Pure CSS hover opacity to prevent re-render shivering) */}
+      <div className="flex items-center gap-1 shrink-0 select-none opacity-0 group-hover:opacity-100 transition-opacity">
+        {isAdmin && (
           <button
-            onClick={onDelete}
-            className="p-1 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-400 hover:bg-red-100 hover:text-red-650 transition-colors border border-red-100/20"
-            title="Delete conversation"
+            onClick={(e) => { e.stopPropagation(); onOpenAssign(); }}
+            className="p-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100/30"
+            title="Assign to employee"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <UserPlus className="w-3.5 h-3.5" />
           </button>
-        </div>
-      )}
+        )}
+        <button
+          onClick={onDelete}
+          className="p-1 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-500 hover:bg-red-100 transition-colors border border-red-100/30"
+          title="Delete conversation"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
 
       {/* Unread count badge */}
       {((conv.unread_count || 0) > 0 || (conv as any).unread) && !isSelected && (
         <div className="absolute top-3 right-3 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black shadow-md shadow-emerald-500/30">
           {conv.unread_count && conv.unread_count > 0 ? conv.unread_count : '1'}
-        </div>
-      )}
-
-      {/* Assignment Modal Backdrop Overlay */}
-      {showAssign && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs select-none animate-in fade-in duration-150"
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowAssign(false)
-          }}
-        >
-          <div 
-            className="w-full max-w-xs bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3.5 animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
-                  <UserPlus className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">Assign Lead</h3>
-                  <p className="text-[10px] text-slate-400 truncate max-w-[170px] font-medium">
-                    {conv.name || conv.phone_number}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowAssign(false)
-                }}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="max-h-64 overflow-y-auto space-y-1.5 pr-0.5">
-              {/* Option to Unassign if currently assigned */}
-              {assignedEmployee && (
-                <button
-                  onClick={(e) => handleAssign(e, '')}
-                  disabled={assigning}
-                  className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-bold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-all cursor-pointer"
-                >
-                  <span>Unassign Lead</span>
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">Clear</span>
-                </button>
-              )}
-
-              {employees.length === 0 ? (
-                <p className="text-center py-4 text-xs text-slate-400">No active employees available</p>
-              ) : (
-                employees.map((emp) => {
-                  const isCurrent = emp.id === conv.assigned_to
-                  return (
-                    <button
-                      key={emp.id}
-                      onClick={(e) => handleAssign(e, emp.id)}
-                      disabled={assigning}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                        isCurrent
-                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 font-bold'
-                          : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-500/10 hover:text-emerald-500 text-slate-700 dark:text-slate-200 border border-transparent hover:border-emerald-500/20'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 truncate">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
-                          isCurrent ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
-                        }`}>
-                          {emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                        </div>
-                        <span className="truncate">{emp.name}</span>
-                      </div>
-                      {isCurrent && <Check className="w-4 h-4 shrink-0 text-white" />}
-                    </button>
-                  )
-                })
-              )}
-            </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowAssign(false)
-              }}
-              className="w-full py-2.5 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
         </div>
       )}
     </div>
