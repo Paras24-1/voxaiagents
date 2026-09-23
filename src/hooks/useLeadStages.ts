@@ -74,6 +74,9 @@ async function sharedFetchStages(force = false) {
         globalLoading = false
         hasFetchedSuccessfully = true
         notifyListeners()
+      } else {
+        globalLoading = false
+        notifyListeners()
       }
     } catch (err) {
       console.error('Failed to load lead stages:', err)

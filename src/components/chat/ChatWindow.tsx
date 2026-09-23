@@ -108,10 +108,19 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
 
   // Periodic schedule background execution check (self-healing runner)
   useEffect(() => {
-    const runScheduleProcessor = () => {
-      fetch('/api/messages/schedule/process').then(r => r.json()).then(res => {
-        if (res.processed > 0) fetchScheduledMessages()
-      }).catch(() => {})
+    const runScheduleProcessor = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
+        if (!token) return
+        const res = await fetch('/api/messages/schedule/process', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.processed > 0) fetchScheduledMessages()
+        }
+      } catch {}
     }
     const timer = setInterval(runScheduleProcessor, 25000)
     return () => clearInterval(timer)

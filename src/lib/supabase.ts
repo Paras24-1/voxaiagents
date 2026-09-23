@@ -27,13 +27,14 @@ export interface UserProfile {
 }
 
 interface CachedProfile {
-  profile: UserProfile
+  profile: UserProfile | null
   expiresAt: number
 }
 
 // In-memory token profile cache to eliminate 300-600ms auth waterfalls on every API request
 const profileCache = new Map<string, CachedProfile>()
-const PROFILE_CACHE_TTL_MS = 60 * 1000 // 60 seconds
+const PROFILE_CACHE_TTL_MS = 60 * 1000 // 60 seconds for valid users
+const NEGATIVE_CACHE_TTL_MS = 15 * 1000 // 15 seconds for invalid/expired tokens
 
 // Helper: get current user profile (userId, orgId, role, email) from session
 export async function getUserProfile(req: Request): Promise<UserProfile | null> {
@@ -47,46 +48,69 @@ export async function getUserProfile(req: Request): Promise<UserProfile | null> 
 
     if (!rawToken) {
       const cookieStr = req.headers.get('cookie') || ''
-      const projectId = supabaseUrl.replace('https://', '').split('.')[0]
-      
-      let tokenMatch = cookieStr.match(new RegExp(`sb-${projectId}-auth-token=([^;]+)`))
-      if (!tokenMatch) {
-        const chunks: string[] = []
-        let idx = 0
-        while (true) {
-          const chunkMatch = cookieStr.match(new RegExp(`sb-${projectId}-auth-token\\.${idx}=([^;]+)`))
-          if (!chunkMatch) break
-          chunks.push(decodeURIComponent(chunkMatch[1]))
-          idx++
+      if (cookieStr) {
+        const projectId = supabaseUrl.replace('https://', '').split('.')[0]
+        
+        // 1. Try exact project cookie
+        let tokenMatch = cookieStr.match(new RegExp(`sb-${projectId}-auth-token=([^;]+)`))
+        // 2. Fall back to any sb-*-auth-token cookie
+        if (!tokenMatch) {
+          tokenMatch = cookieStr.match(/sb-[a-zA-Z0-9_-]+-auth-token=([^;]+)/)
         }
-        if (chunks.length > 0) {
+
+        if (tokenMatch) {
           try {
-            const combined = chunks.join('')
-            const parsed = JSON.parse(combined)
+            const token = decodeURIComponent(tokenMatch[1])
+            const parsed = JSON.parse(token)
             rawToken = parsed.access_token || parsed[0]?.access_token || null
           } catch {}
         }
-      } else {
-        const token = decodeURIComponent(tokenMatch[1])
-        try {
-          const parsed = JSON.parse(token)
-          rawToken = parsed.access_token || parsed[0]?.access_token || null
-        } catch {}
+
+        // 3. Fall back to chunked cookies if rawToken is still null
+        if (!rawToken) {
+          let prefixMatch = cookieStr.match(/(sb-[a-zA-Z0-9_-]+-auth-token)\.0=/)
+          if (prefixMatch) {
+            const prefix = prefixMatch[1]
+            const chunks: string[] = []
+            let idx = 0
+            while (true) {
+              const chunkMatch = cookieStr.match(new RegExp(`${prefix.replace('.', '\\.')}\\.${idx}=([^;]+)`))
+              if (!chunkMatch) break
+              chunks.push(decodeURIComponent(chunkMatch[1]))
+              idx++
+            }
+            if (chunks.length > 0) {
+              try {
+                const combined = chunks.join('')
+                const parsed = JSON.parse(combined)
+                rawToken = parsed.access_token || parsed[0]?.access_token || null
+              } catch {}
+            }
+          }
+        }
       }
     }
 
     if (!rawToken) return null
 
-    // Check fast in-memory cache
+    // Check fast in-memory cache (supports both positive and negative caching)
     const cacheKey = rawToken.slice(-32)
     const cached = profileCache.get(cacheKey)
     if (cached && Date.now() < cached.expiresAt) {
       return cached.profile
     }
 
-    const { data } = await supabaseAdmin.auth.getUser(rawToken)
-    const userId = data.user?.id
-    if (!userId) return null
+    const { data, error } = await supabaseAdmin.auth.getUser(rawToken)
+    const userId = data?.user?.id
+
+    if (error || !userId) {
+      // Fast Negative Cache: cache invalid/expired tokens for 15s to avoid hammering Supabase Auth API
+      profileCache.set(cacheKey, {
+        profile: null,
+        expiresAt: Date.now() + NEGATIVE_CACHE_TTL_MS
+      })
+      return null
+    }
 
     const { data: profile } = await supabaseAdmin
       .from('users')
@@ -94,7 +118,13 @@ export async function getUserProfile(req: Request): Promise<UserProfile | null> 
       .eq('id', userId)
       .maybeSingle()
 
-    if (!profile || !profile.org_id) return null
+    if (!profile || !profile.org_id) {
+      profileCache.set(cacheKey, {
+        profile: null,
+        expiresAt: Date.now() + NEGATIVE_CACHE_TTL_MS
+      })
+      return null
+    }
 
     const userProf: UserProfile = {
       userId: profile.id,

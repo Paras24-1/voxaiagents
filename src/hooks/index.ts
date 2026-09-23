@@ -153,6 +153,10 @@ export function useConversations(filters: {
       headers: { 'Authorization': `Bearer ${token}` },
       cache: 'no-store'
     })
+    if (res.status === 401) {
+      setLoading(false)
+      return
+    }
     const data = await res.json()
     if (Array.isArray(data)) {
       const toReZeroInDB: string[] = []

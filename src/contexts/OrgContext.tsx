@@ -79,19 +79,37 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
         setLoading(false)
         return
       }
-  
-      const res = await fetch('/api/me', {
+
+      let activeToken = session.access_token
+
+      let res = await fetch('/api/me', {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${activeToken}`
         }
       })
-  
-      console.log('[OrgContext] /api/me status:', res.status)
+
+      if (res.status === 401) {
+        console.warn('[OrgContext] /api/me returned 401. Attempting session refresh...')
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+        if (refreshData?.session?.access_token && !refreshError) {
+          activeToken = refreshData.session.access_token
+          res = await fetch('/api/me', {
+            headers: {
+              'Authorization': `Bearer ${activeToken}`
+            }
+          })
+        }
+      }
+
+      if (res.status === 401) {
+        console.warn('[OrgContext] Session expired/unauthorized. Redirecting to login...')
+        await signOut()
+        return
+      }
+
       const json = await res.json()
-      console.log('[OrgContext] /api/me response:', json)
-  
       if (!res.ok) throw new Error(json.error || 'Failed to fetch profile')
-  
+
       setProfile(json.profile)
       setOrg(json.org)
     } catch (err) {
