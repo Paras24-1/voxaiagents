@@ -69,9 +69,15 @@ export async function GET(req: NextRequest) {
 
       for (const token of Array.from(new Set(tokensToTry))) {
         try {
-          const authenticatedRes = await fetch(targetUrl, {
+          let authenticatedRes = await fetch(targetUrl, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
+          if (!authenticatedRes.ok && (targetUrl.includes('lookaside') || targetUrl.includes('fbsbx'))) {
+            const paramUrl = targetUrl.includes('?') 
+              ? `${targetUrl}&access_token=${token}` 
+              : `${targetUrl}?access_token=${token}`
+            authenticatedRes = await fetch(paramUrl)
+          }
           if (authenticatedRes.ok) {
             res = authenticatedRes
             break

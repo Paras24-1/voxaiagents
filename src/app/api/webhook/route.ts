@@ -207,9 +207,15 @@ export async function POST(req: NextRequest) {
                 }
 
                 if (downloadTargetUrl) {
-                  const mediaRes = await fetch(downloadTargetUrl, {
+                  let mediaRes = await fetch(downloadTargetUrl, {
                     headers: { 'Authorization': `Bearer ${token}` }
                   })
+                  if (!mediaRes.ok && (downloadTargetUrl.includes('lookaside') || downloadTargetUrl.includes('fbsbx'))) {
+                    const paramUrl = downloadTargetUrl.includes('?') 
+                      ? `${downloadTargetUrl}&access_token=${token}` 
+                      : `${downloadTargetUrl}?access_token=${token}`
+                    mediaRes = await fetch(paramUrl)
+                  }
                   if (mediaRes.ok) {
                     const buffer = await mediaRes.arrayBuffer()
                     const ext = msg.type === 'audio' ? 'ogg' : msg.type === 'image' ? 'jpg' : msg.type === 'video' ? 'mp4' : 'pdf'
