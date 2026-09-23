@@ -44,18 +44,14 @@ export async function POST(req: NextRequest) {
     const platform = conv?.platform || 'whatsapp'
     const providerPhoneId = conv?.provider_phone_id
     
-    // ENFORCE 24 HOUR WINDOW RULE FOR WHATSAPP (TEMPLATES BYPASS THIS RULE)
-    if (platform === 'whatsapp' && !isTemplate) {
-      if (!conv?.last_incoming_message_at) {
-         return NextResponse.json({ error: '24-hour messaging window is closed. User must send a message first, or use a template.' }, { status: 400 })
-      }
-      
+    // Calculate 24-hour messaging window status for n8n workflow routing
+    let is24hExpired = false
+    if (conv?.last_incoming_message_at) {
       const lastIncomingTime = new Date(conv.last_incoming_message_at).getTime()
       const nowTime = new Date().getTime()
-      
-      if (nowTime - lastIncomingTime > 24 * 60 * 60 * 1000) {
-         return NextResponse.json({ error: '24-hour messaging window has expired. You can only send template messages to this user.' }, { status: 400 })
-      }
+      is24hExpired = (nowTime - lastIncomingTime > 24 * 60 * 60 * 1000)
+    } else {
+      is24hExpired = true
     }
 
     // 1. Save outgoing message
@@ -122,7 +118,9 @@ export async function POST(req: NextRequest) {
       location_data: location_data || null,
       direction: 'outgoing',
       timestamp,
-      platform
+      platform,
+      is_24h_expired: is24hExpired,
+      last_incoming_message_at: conv?.last_incoming_message_at || null
     }
 
     let targetUrl = primaryWebhookUrl || fallbackWebhookUrl
