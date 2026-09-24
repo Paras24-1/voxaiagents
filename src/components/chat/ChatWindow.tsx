@@ -302,9 +302,6 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   }
 
   const uploadMediaFile = async (fileOrBlob: File | Blob, defaultName = 'voicenote'): Promise<string> => {
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token || ''
-
     const formData = new FormData()
     if (fileOrBlob instanceof File) {
       formData.append('file', fileOrBlob)
@@ -314,16 +311,13 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
       formData.append('file', audioFile)
     }
 
-    const res = await fetch('/api/upload', {
+    const res = await fetchWithAuth('/api/upload', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
       body: formData
     })
 
     if (!res.ok) {
-      const errData = await res.json()
+      const errData = await res.json().catch(() => ({ error: 'Failed to upload media file.' }))
       throw new Error(errData.error || 'Failed to upload media file.')
     }
 
@@ -1454,29 +1448,22 @@ function ScheduleMessageModal({
       let uploadedMediaType: string | null = null
 
       if (imageFile) {
-        const orgId = profile?.org_id
-        if (!orgId) throw new Error('Organization not found')
-
-        const ext = imageFile.name.split('.').pop()
-        const filename = `${orgId}/${Date.now()}-scheduled.${ext}`
-
-        const { data: uploadData, error: uploadErr } = await supabase.storage
-          .from('chat-media')
-          .upload(filename, imageFile, { contentType: imageFile.type, upsert: false })
-
-        if (uploadErr) throw uploadErr
-
-        const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
-        uploadedMediaUrl = urlData.publicUrl
+        const formData = new FormData()
+        formData.append('file', imageFile)
+        const uploadRes = await fetchWithAuth('/api/upload', {
+          method: 'POST',
+          body: formData
+        })
+        if (!uploadRes.ok) throw new Error('Failed to upload image')
+        const uploadData = await uploadRes.json()
+        uploadedMediaUrl = uploadData.url
         uploadedMediaType = imageFile.type
       }
 
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/messages/schedule', {
+      const res = await fetchWithAuth('/api/messages/schedule', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           conversation_id: conversation.id,
