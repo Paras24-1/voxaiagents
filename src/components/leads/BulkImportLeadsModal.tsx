@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
+import { supabase } from '@/lib/supabaseClient'
 
 interface BulkImportLeadsModalProps {
   isOpen: boolean
@@ -252,13 +253,20 @@ export default function BulkImportLeadsModal({
     let totalFailed = 0
     const allErrors: { row: number; phone: string; error: string }[] = []
 
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token || ''
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+
     for (let i = 0; i < totalCount; i += BATCH_SIZE) {
       const batch = leadsToUpload.slice(i, i + BATCH_SIZE)
 
       try {
         const res = await fetch('/api/leads/bulk-import', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ leads: batch })
         })
 
