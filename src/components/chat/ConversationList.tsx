@@ -381,7 +381,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             )}
           </div>
 
-          {/* Unread Toggle & Mark Read */}
+          {/* Unread Toggle */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => setUnread((u) => !u)}
@@ -402,16 +402,6 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
                 </span>
               )}
             </button>
-
-            {totalUnreadConvs > 0 && (
-              <button
-                onClick={() => markAllAsRead()}
-                className="text-[9px] px-2 py-1 font-bold text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                title="Mark all conversations as read"
-              >
-                Mark Read
-              </button>
-            )}
           </div>
 
           {/* Stage Dropdown */}
