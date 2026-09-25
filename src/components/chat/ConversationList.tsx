@@ -276,23 +276,8 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                setIsMultiSelect(prev => !prev)
-                if (isMultiSelect) setSelectedConvIds(new Set())
-              }}
-              className={`px-2.5 py-1.5 rounded-xl border transition-all shadow-xs flex items-center gap-1.5 text-xs font-bold ${
-                isMultiSelect
-                  ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/20'
-                  : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border-blue-200/60 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/50'
-              }`}
-              title="Multi-select chats to send message to multiple contacts (e.g. 24-hr window active chats)"
-            >
-              <ListChecks className="w-3.5 h-3.5 text-blue-500" />
-              <span>{isMultiSelect ? 'Exit Multi-Send' : 'Multi-Send'}</span>
-            </button>
-            <button
               onClick={() => setShowAddLead(true)}
-              className="p-1.5 rounded-xl text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all shadow-xs flex items-center gap-1.5 text-xs font-bold"
+              className="px-2.5 py-1.5 rounded-xl text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all shadow-xs flex items-center gap-1.5 text-xs font-bold"
               title="Add New Lead & Start Chat"
             >
               <UserPlus className="w-3.5 h-3.5" />
