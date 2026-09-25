@@ -6,7 +6,7 @@ import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
 import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown, CheckCheck, CheckSquare, Square, Send, Clock, ListChecks, Paperclip, AlertTriangle, CheckCircle2, MessageSquare, Check } from 'lucide-react'
 import { useOrg } from '@/contexts/OrgContext'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion'
 import { useLeadStages } from '@/hooks/useLeadStages'
 
@@ -72,6 +72,22 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [assignedFilter, setAssignedFilter] = useState<string>('all') // all, unassigned, assigned, or employee_id
   const [channelFilter, setChannelFilter] = useState<string>('all') // all, whatsapp, instagram
   const [osmoTab, setOsmoTab] = useState<string>('unfiltered')
+  const [categoryStats, setCategoryStats] = useState<Record<string, number> | null>(null)
+
+  useEffect(() => {
+    const fetchCategoryStats = async () => {
+      try {
+        const res = await fetchWithAuth('/api/leads/stats')
+        if (res.ok) {
+          const data = await res.json()
+          setCategoryStats(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch lead category stats:', err)
+      }
+    }
+    fetchCategoryStats()
+  }, [])
 
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -441,7 +457,8 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
         {isOsmo && (
           <div className="flex bg-gray-900/5 dark:bg-black/20 p-1.5 rounded-2xl mb-4 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 shadow-inner overflow-x-auto scrollbar-hide gap-1">
             {['unfiltered', 'osmo_dealer', 'dealer', 'customer'].map(tab => {
-              const count = conversations.filter(c => extractOsmoCategory(c) === tab.toLowerCase()).length
+              const tabKey = tab.toLowerCase()
+              const count = categoryStats?.[tabKey] ?? conversations.filter(c => extractOsmoCategory(c) === tabKey).length
               const isActive = osmoTab === tab
               
               return (
