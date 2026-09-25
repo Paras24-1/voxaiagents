@@ -20,7 +20,8 @@ import {
   AlertCircle,
   ChevronDown,
   MapPin,
-  Plus
+  Plus,
+  UploadCloud
 } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
@@ -28,6 +29,7 @@ import { useOrg } from '@/contexts/OrgContext'
 import { useRouter } from 'next/navigation'
 import { useLeadStages } from '@/hooks/useLeadStages'
 import CustomStageModal from '@/components/leads/CustomStageModal'
+import BulkImportLeadsModal from '@/components/leads/BulkImportLeadsModal'
 
 interface Lead {
   id: string
@@ -109,6 +111,7 @@ function LeadsContent() {
   const { profile, org } = useOrg()
   const { stages, customStages, addCustomStage, deleteCustomStage } = useLeadStages()
   const [isStageModalOpen, setIsStageModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   const isOsmoRo = 
     profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
@@ -495,6 +498,13 @@ function LeadsContent() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-sm border border-blue-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <UploadCloud className="w-4 h-4" />
+            Import Leads
+          </button>
           <button
             onClick={() => setIsStageModalOpen(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm border border-emerald-400/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
@@ -1117,6 +1127,13 @@ function LeadsContent() {
           </div>
         )}
       </main>
+
+      {/* Bulk Import Leads Modal */}
+      <BulkImportLeadsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => fetchLeads(false)}
+      />
 
       {/* Tenant Custom Stage Creation Modal */}
       <CustomStageModal
