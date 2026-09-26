@@ -22,13 +22,14 @@ export async function GET(req: NextRequest) {
     const assignFilter = searchParams.get('assign_filter') || ''
 
     const limit = Math.min(parseInt(searchParams.get('limit') || '300', 10), 1000)
+    const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     let query = supabaseAdmin
       .from('conversations')
       .select('*, leads(*)')
       .eq('org_id', orgId)
       .order('updated_at', { ascending: false })
-      .limit(limit)
+      .range(offset, offset + limit - 1)
 
     if (isStaffEmployee) {
       query = query.eq('assigned_to', userId)

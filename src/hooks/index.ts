@@ -19,6 +19,8 @@ export function useConversations(filters: {
 } = {}) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [orgId, setOrgId] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
   const selectedIdRef = useRef<string | null>(filters.selectedId || null)
@@ -116,7 +118,10 @@ export function useConversations(filters: {
   }, [filters.selectedId, markAsRead, persistReadState])
 
   const fetchConversations = useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true)
+    if (showLoading) {
+      setLoading(true)
+      setHasMore(true)
+    }
 
     const params = new URLSearchParams()
     if (filters.search) params.set('search', filters.search)
@@ -133,6 +138,8 @@ export function useConversations(filters: {
       params.set('assign_filter', filters.assignFilter)
     }
 
+    params.set('limit', '300')
+    params.set('offset', '0')
     params.append('_t', Date.now().toString())
 
     const res = await fetchWithAuth(`/api/conversations?${params.toString()}`, {
@@ -144,6 +151,11 @@ export function useConversations(filters: {
     }
     const data = await res.json()
     if (Array.isArray(data)) {
+      if (data.length < 300) {
+        setHasMore(false)
+      } else {
+        setHasMore(true)
+      }
       const toReZeroInDB: string[] = []
       const normalized = data.map(c => {
         const cleanP = (c.phone_number || '').replace(/\D/g, '').slice(-10)
@@ -161,7 +173,15 @@ export function useConversations(filters: {
         }
         return c
       })
-      setConversations(normalized)
+      if (showLoading) {
+        setConversations(normalized)
+      } else {
+        setConversations(prev => {
+          const map = new Map(prev.map(c => [c.id, c]))
+          normalized.forEach(c => map.set(c.id, c))
+          return Array.from(map.values()).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        })
+      }
       if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
 
       // Background cleanup: re-zero DB for any stale conversations that are in our read set
@@ -177,6 +197,85 @@ export function useConversations(filters: {
     }
     setLoading(false)
   }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || loading) return
+    setLoadingMore(true)
+
+    const offset = conversations.length
+    const params = new URLSearchParams()
+    if (filters.search) params.set('search', filters.search)
+    if (filters.stage)  params.set('stage',  filters.stage)
+    if (filters.unread) params.set('unread', 'true')
+
+    if (filters.userRole === 'employee' && filters.userId) {
+      params.set('assigned_to', filters.userId)
+    } else if (
+      (filters.userRole === 'admin' || filters.userRole === 'owner') &&
+      filters.assignFilter &&
+      filters.assignFilter !== 'all'
+    ) {
+      params.set('assign_filter', filters.assignFilter)
+    }
+
+    params.set('limit', '300')
+    params.set('offset', offset.toString())
+    params.append('_t', Date.now().toString())
+
+    try {
+      const res = await fetchWithAuth(`/api/conversations?${params.toString()}`, {
+        cache: 'no-store'
+      })
+      if (res.status === 401) {
+        setLoadingMore(false)
+        return
+      }
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        if (data.length < 300) {
+          setHasMore(false)
+        }
+        if (data.length > 0) {
+          const toReZeroInDB: string[] = []
+          const normalized = data.map(c => {
+            const cleanP = (c.phone_number || '').replace(/\D/g, '').slice(-10)
+            const isRead = 
+              readIdsRef.current.has(c.id) || 
+              (cleanP && readPhonesRef.current.has(cleanP)) ||
+              (selectedIdRef.current && c.id === selectedIdRef.current)
+            
+            if (isRead) {
+              if ((c.unread_count || 0) > 0) {
+                toReZeroInDB.push(c.id)
+              }
+              return { ...c, unread_count: 0 }
+            }
+            return c
+          })
+
+          setConversations(prev => {
+            const existingIds = new Set(prev.map(c => c.id))
+            const newConvs = normalized.filter(c => !existingIds.has(c.id))
+            return [...prev, ...newConvs]
+          })
+
+          if (toReZeroInDB.length > 0) {
+            toReZeroInDB.forEach(convId => {
+              fetchWithAuth(`/api/conversations/${convId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ unread_count: 0 })
+              }).catch(() => {})
+            })
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load more conversations:', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [loadingMore, hasMore, loading, conversations.length, filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
 
   useEffect(() => {
     fetchConversations()
@@ -279,7 +378,7 @@ export function useConversations(filters: {
     return () => { supabase.removeChannel(channel) }
   }, [orgId, filters.userRole, filters.userId, markAsRead])
 
-  return { conversations, loading, refetch: fetchConversations, markAsRead, markAllAsRead }
+  return { conversations, loading, hasMore, loadingMore, loadMore, refetch: fetchConversations, markAsRead, markAllAsRead }
 }
 
 

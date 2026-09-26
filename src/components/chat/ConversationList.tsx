@@ -144,7 +144,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
   const isOsmo = !!(profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' || org?.name?.toLowerCase().includes('osmo') || org?.slug?.toLowerCase().includes('osmo'))
 
-  const { conversations, loading, refetch, markAsRead, markAllAsRead } = useConversations({ 
+  const { conversations, loading, hasMore, loadingMore, loadMore, refetch, markAsRead, markAllAsRead } = useConversations({ 
     search, 
     stage, 
     unread,
@@ -225,6 +225,15 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
 
   const hasInstagram = conversations.some(c => c.platform === 'instagram')
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop - clientHeight < 250) {
+      if (hasMore && !loadingMore) {
+        loadMore()
+      }
+    }
+  }
 
   return (
     <aside className="flex flex-col h-full bg-white dark:bg-gray-950 border-r border-gray-200/80 dark:border-gray-800/80">
@@ -496,7 +505,10 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
       </div>
 
       {/* Conversation Cards List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1.5 bg-gray-50/30 dark:bg-gray-950/30">
+      <div 
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-2 space-y-1.5 bg-gray-50/30 dark:bg-gray-950/30"
+      >
         {loading ? (
           <LoadingSkeleton />
         ) : conversations.length === 0 ? (
@@ -505,49 +517,57 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             <span>No conversations found</span>
           </div>
         ) : (
-          [...conversations]
-            .filter(c => {
-              if (!isOsmo) return true
-              return extractOsmoCategory(c) === osmoTab.toLowerCase()
-            })
-            .filter((c) => {
-              if (unread) {
-                return (c.unread_count || 0) > 0
-              }
-              return true
-            })
-            .filter((c) => {
-              if (channelFilter === 'whatsapp') return !c.platform || c.platform === 'whatsapp'
-              if (channelFilter === 'instagram') return c.platform === 'instagram'
-              return true
-            })
-            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-            .map((conv) => (
-              <ConversationItem
-                key={conv.id}
-                conversation={conv}
-                isSelected={conv.id === selectedId}
-                selectedId={selectedId}
-                onClick={() => {
-                  if (isMultiSelect) {
-                    toggleSelectConv(conv.id)
-                  } else {
-                    conv.unread_count = 0
-                    markAsRead(conv.id)
-                    onSelect({ ...conv, unread_count: 0 })
-                  }
-                }}
-                onDelete={(e) => handleDelete(e, conv.id)}
-                isAdmin={isAdmin}
-                employees={employees}
-                onOpenAssign={() => setAssigningConv(conv)}
-                isOsmo={isOsmo}
-                stages={stages}
-                isMultiSelect={isMultiSelect}
-                isChecked={selectedConvIds.has(conv.id)}
-                onToggleCheck={() => toggleSelectConv(conv.id)}
-              />
-            ))
+          <>
+            {[...conversations]
+              .filter(c => {
+                if (!isOsmo) return true
+                return extractOsmoCategory(c) === osmoTab.toLowerCase()
+              })
+              .filter((c) => {
+                if (unread) {
+                  return (c.unread_count || 0) > 0
+                }
+                return true
+              })
+              .filter((c) => {
+                if (channelFilter === 'whatsapp') return !c.platform || c.platform === 'whatsapp'
+                if (channelFilter === 'instagram') return c.platform === 'instagram'
+                return true
+              })
+              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+              .map((conv) => (
+                <ConversationItem
+                  key={conv.id}
+                  conversation={conv}
+                  isSelected={conv.id === selectedId}
+                  selectedId={selectedId}
+                  onClick={() => {
+                    if (isMultiSelect) {
+                      toggleSelectConv(conv.id)
+                    } else {
+                      conv.unread_count = 0
+                      markAsRead(conv.id)
+                      onSelect({ ...conv, unread_count: 0 })
+                    }
+                  }}
+                  onDelete={(e) => handleDelete(e, conv.id)}
+                  isAdmin={isAdmin}
+                  employees={employees}
+                  onOpenAssign={() => setAssigningConv(conv)}
+                  isOsmo={isOsmo}
+                  stages={stages}
+                  isMultiSelect={isMultiSelect}
+                  isChecked={selectedConvIds.has(conv.id)}
+                  onToggleCheck={() => toggleSelectConv(conv.id)}
+                />
+              ))}
+            {loadingMore && (
+              <div className="flex items-center justify-center py-3 text-xs text-gray-500 dark:text-gray-400 gap-2 font-medium">
+                <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <span>Loading more chats...</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 
