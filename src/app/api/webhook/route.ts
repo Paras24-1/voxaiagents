@@ -286,11 +286,23 @@ export async function POST(req: NextRequest) {
 
           const updatePayload: any = { status: newStatus }
 
-          await supabaseAdmin
+          // Safely update message status by provider_message_id (wamid) without UUID syntax errors
+          let { data: updatedMsgs } = await supabaseAdmin
             .from('messages')
             .update(updatePayload)
-            .or(`provider_message_id.eq.${messageId},id.eq.${messageId}`)
+            .eq('provider_message_id', messageId)
             .eq('org_id', orgId)
+            .select('id')
+
+          // Fallback match by id only if messageId is a valid UUID
+          const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(messageId)
+          if ((!updatedMsgs || updatedMsgs.length === 0) && isUuid) {
+            await supabaseAdmin
+              .from('messages')
+              .update(updatePayload)
+              .eq('id', messageId)
+              .eq('org_id', orgId)
+          }
 
           // Update bulk campaign contact by wamid and recalculate campaign stats
           const { data: updatedContact } = await supabaseAdmin
