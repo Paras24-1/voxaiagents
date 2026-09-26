@@ -41,10 +41,11 @@ export async function POST(req: NextRequest) {
       .eq('id', conversation_id)
       .eq('org_id', orgId)
       .maybeSingle()
+
     const platform = conv?.platform || 'whatsapp'
     const providerPhoneId = conv?.provider_phone_id
     
-    // Calculate 24-hour messaging window status for n8n workflow routing
+    // Calculate 24-hour messaging window status
     let is24hExpired = false
     if (conv?.last_incoming_message_at) {
       const lastIncomingTime = new Date(conv.last_incoming_message_at).getTime()
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
       is24hExpired = true
     }
 
-    // 1. Save outgoing message
+    // 1. Save outgoing message to DB
     const { data: msg, error: msgError } = await supabaseAdmin
       .from('messages')
       .insert({
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     if (msgError) throw msgError
 
-    // 2. Update conversation
+    // 2. Update conversation snippet & timestamp
     await supabaseAdmin
       .from('conversations')
       .update({ 
@@ -83,17 +84,85 @@ export async function POST(req: NextRequest) {
       .eq('id', conversation_id)
       .eq('org_id', orgId)
 
-    // 3. Fetch Delivery Settings (Hybrid n8n Flow)
+    // 3. Fetch Organization Credentials for Direct Meta Cloud API Dispatch
     const { data: settings } = await supabaseAdmin
       .from('organization_settings')
-      .select('n8n_reply_webhook_url, n8n_webhook_url')
+      .select('whatsapp_token, whatsapp_phone_id, n8n_reply_webhook_url, n8n_webhook_url')
       .eq('org_id', orgId)
       .single()
 
+    const metaToken = settings?.whatsapp_token
+    const metaPhoneId = providerPhoneId || settings?.whatsapp_phone_id
+
+    // Direct Meta Graph API Dispatch Mode (bypasses n8n for manual dashboard replies)
+    if (metaToken && metaPhoneId) {
+      console.log(`[reply:direct-meta] Dispatching message directly via Meta API for org: ${orgId}, phone: ${phone_number}...`)
+      
+      let cleanPhone = String(phone_number).replace(/\D/g, '')
+      if (cleanPhone.length === 10 && /^[6789]/.test(cleanPhone)) {
+        cleanPhone = '91' + cleanPhone
+      }
+
+      let metaPayload: any = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanPhone,
+      }
+
+      if (isTemplate) {
+        metaPayload.type = 'template'
+        metaPayload.template = {
+          name: template_name,
+          language: { code: template_language || 'en' },
+          ...(template_components && Array.isArray(template_components) ? { components: template_components } : {})
+        }
+      } else if (media_url) {
+        const mediaCategory = media_type?.startsWith('image')
+          ? 'image'
+          : media_type?.startsWith('audio')
+          ? 'audio'
+          : 'document'
+
+        metaPayload.type = mediaCategory
+        metaPayload[mediaCategory] = {
+          link: media_url,
+          ...(filename || message ? { caption: message || filename } : {})
+        }
+      } else {
+        metaPayload.type = 'text'
+        metaPayload.text = { body: message || '' }
+      }
+
+      const metaRes = await fetch(`https://graph.facebook.com/v19.0/${metaPhoneId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${metaToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(metaPayload)
+      })
+
+      const metaData = await metaRes.json()
+
+      if (metaRes.ok && metaData.messages) {
+        console.log(`[reply:direct-meta] Successfully sent message via Meta API! wamid: ${metaData.messages[0]?.id}`)
+        return NextResponse.json({ success: true, message: msg, meta_id: metaData.messages[0]?.id })
+      } else {
+        console.error(`[reply:direct-meta] Meta API error (${metaRes.status}):`, JSON.stringify(metaData))
+        // If direct Meta fails, log error but attempt fallback to n8n webhook if present
+        if (!settings?.n8n_reply_webhook_url) {
+          await supabaseAdmin.from('messages').delete().eq('id', msg.id)
+          return NextResponse.json({ 
+            error: metaData.error?.message || `Meta API error (${metaRes.status})`
+          }, { status: 400 })
+        }
+      }
+    }
+
+    // Fallback: Webhook Routing if direct Meta credentials are not set
     const primaryWebhookUrl = settings?.n8n_reply_webhook_url
     const fallbackWebhookUrl = settings?.n8n_webhook_url || process.env.N8N_BULK_WEBHOOK_URL || 'https://resplendent-rejoicing-production-4b92.up.railway.app/webhook/bulk-sendMulti'
 
-    // Formulate comprehensive payload compatible with ALL n8n node formats
     const payload = {
       conversation_id,
       org_id: orgId,
@@ -138,9 +207,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     })
 
-    // If primary webhook returns 404 (e.g. inactive workflow in n8n), try active fallback webhook
     if (!n8nRes.ok && n8nRes.status === 404 && primaryWebhookUrl && primaryWebhookUrl !== fallbackWebhookUrl) {
-      console.warn(`[reply] Primary webhook ${primaryWebhookUrl} returned 404 (inactive workflow in n8n). Falling back to ${fallbackWebhookUrl}...`)
+      console.warn(`[reply] Primary webhook ${primaryWebhookUrl} returned 404. Falling back to ${fallbackWebhookUrl}...`)
       n8nRes = await fetch(fallbackWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,7 +219,6 @@ export async function POST(req: NextRequest) {
     if (!n8nRes.ok) {
       const errText = await n8nRes.text()
       console.error(`[reply] n8n Webhook Error (${n8nRes.status}): ${errText}`)
-      // Rollback inserted message so phantom messages don't remain in DB if n8n fails
       await supabaseAdmin.from('messages').delete().eq('id', msg.id)
       throw new Error(`n8n webhook error (${n8nRes.status}): ${errText}`)
     }
