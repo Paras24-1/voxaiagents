@@ -41,7 +41,10 @@ export async function POST(req: NextRequest) {
     }
 
     const filename = `${orgId}/${timestamp}-${randomStr}.${extension}`
-    const contentType = file.type || (extension === 'mp3' ? 'audio/mpeg' : 'application/octet-stream')
+    let contentType = file.type || 'application/octet-stream'
+    if (contentType === 'audio/mp3' || contentType.includes('audio') || extension === 'mp3') {
+      contentType = 'audio/mpeg'
+    }
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()

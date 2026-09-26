@@ -286,7 +286,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
 
       mediaRecorderRef.current.stop().getMp3().then(async ([buffer, blob]: any) => {
         const audioFile = new File(buffer, 'voicenote.mp3', {
-          type: blob.type || 'audio/mpeg',
+          type: 'audio/mpeg',
           lastModified: Date.now()
         })
         
@@ -304,10 +304,11 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   const uploadMediaFile = async (fileOrBlob: File | Blob, defaultName = 'voicenote'): Promise<string> => {
     const formData = new FormData()
     if (fileOrBlob instanceof File) {
-      formData.append('file', fileOrBlob)
+      const audioFile = new File([fileOrBlob], fileOrBlob.name || 'voicenote.mp3', { type: fileOrBlob.type?.includes('audio') ? 'audio/mpeg' : fileOrBlob.type })
+      formData.append('file', audioFile)
     } else {
-      const ext = fileOrBlob.type?.includes('webm') ? 'webm' : 'mp3'
-      const audioFile = new File([fileOrBlob], `${defaultName}-${Date.now()}.${ext}`, { type: fileOrBlob.type || 'audio/mpeg' })
+      const ext = 'mp3'
+      const audioFile = new File([fileOrBlob], `${defaultName}-${Date.now()}.${ext}`, { type: 'audio/mpeg' })
       formData.append('file', audioFile)
     }
 
