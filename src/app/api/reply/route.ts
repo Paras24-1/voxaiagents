@@ -55,6 +55,9 @@ export async function POST(req: NextRequest) {
       is24hExpired = true
     }
 
+    const isAudioMsg = media_type?.startsWith('audio') || media_type?.includes('audio') || media_url?.endsWith('.mp3') || media_url?.endsWith('.webm') || media_url?.endsWith('.ogg')
+    const finalMediaType = isAudioMsg ? 'audio/mpeg' : (media_type || null)
+
     // 1. Save outgoing message to DB
     const { data: msg, error: msgError } = await supabaseAdmin
       .from('messages')
@@ -66,7 +69,7 @@ export async function POST(req: NextRequest) {
         direction: 'outgoing',
         timestamp,
         media_url: media_url || null,
-        media_type: media_type || null,
+        media_type: finalMediaType,
         platform,
         status: 'pending'
       })

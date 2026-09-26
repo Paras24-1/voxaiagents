@@ -330,7 +330,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
     setUploading(true)
     try {
       const mediaUrl = await uploadMediaFile(blob, 'voicenote')
-      const mimeType = blob.type || 'audio/mpeg'
+      const mimeType = 'audio/mpeg'
       const success = await sendWithOptimism('', mediaUrl, mimeType)
       if (!success) {
         alert('Failed to send voice note. Please check WhatsApp connection or 24-hr messaging window.')
