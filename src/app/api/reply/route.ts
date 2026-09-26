@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
         media_url: media_url || null,
         media_type: media_type || null,
         platform,
+        status: 'pending'
       })
       .select()
       .single()
@@ -117,16 +118,26 @@ export async function POST(req: NextRequest) {
           ...(template_components && Array.isArray(template_components) ? { components: template_components } : {})
         }
       } else if (media_url) {
-        const mediaCategory = media_type?.startsWith('image')
-          ? 'image'
-          : media_type?.startsWith('audio')
-          ? 'audio'
-          : 'document'
+        const isAudio = media_type?.startsWith('audio') || media_type?.includes('audio')
+        const isImage = media_type?.startsWith('image') || media_type?.includes('image')
 
-        metaPayload.type = mediaCategory
-        metaPayload[mediaCategory] = {
-          link: media_url,
-          ...(filename || message ? { caption: message || filename } : {})
+        if (isAudio) {
+          // Meta API strict rule: audio object MUST ONLY contain link (no caption allowed)
+          metaPayload.type = 'audio'
+          metaPayload.audio = { link: media_url }
+        } else if (isImage) {
+          metaPayload.type = 'image'
+          metaPayload.image = {
+            link: media_url,
+            ...(message ? { caption: message } : {})
+          }
+        } else {
+          metaPayload.type = 'document'
+          metaPayload.document = {
+            link: media_url,
+            ...(message || filename ? { caption: message || filename } : {}),
+            ...(filename ? { filename } : {})
+          }
         }
       } else {
         metaPayload.type = 'text'
@@ -144,12 +155,23 @@ export async function POST(req: NextRequest) {
 
       const metaData = await metaRes.json()
 
-      if (metaRes.ok && metaData.messages) {
-        console.log(`[reply:direct-meta] Successfully sent message via Meta API! wamid: ${metaData.messages[0]?.id}`)
-        return NextResponse.json({ success: true, message: msg, meta_id: metaData.messages[0]?.id })
+      if (metaRes.ok && metaData.messages && metaData.messages[0]?.id) {
+        const wamid = metaData.messages[0].id
+        // Link Meta WhatsApp Message ID (wamid) to enable real-time delivery status ticks (sent, delivered, read)
+        await supabaseAdmin
+          .from('messages')
+          .update({ provider_message_id: wamid, status: 'sent' })
+          .eq('id', msg.id)
+
+        console.log(`[reply:direct-meta] Successfully sent message via Meta API & linked wamid: ${wamid}`)
+        return NextResponse.json({
+          success: true,
+          message: { ...msg, provider_message_id: wamid, status: 'sent' },
+          meta_id: wamid
+        })
       } else {
         console.error(`[reply:direct-meta] Meta API error (${metaRes.status}):`, JSON.stringify(metaData))
-        // If direct Meta fails, log error but attempt fallback to n8n webhook if present
+        // If direct Meta fails and no reply webhook, rollback message and return error
         if (!settings?.n8n_reply_webhook_url) {
           await supabaseAdmin.from('messages').delete().eq('id', msg.id)
           return NextResponse.json({ 

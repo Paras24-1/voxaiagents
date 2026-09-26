@@ -289,7 +289,7 @@ export async function POST(req: NextRequest) {
           await supabaseAdmin
             .from('messages')
             .update(updatePayload)
-            .eq('provider_message_id', messageId)
+            .or(`provider_message_id.eq.${messageId},id.eq.${messageId}`)
             .eq('org_id', orgId)
 
           // Update bulk campaign contact by wamid and recalculate campaign stats
