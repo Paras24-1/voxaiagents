@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase } from '@/lib/supabaseClient'
@@ -85,6 +85,12 @@ function ScraperContent() {
   const [newPhonebookName, setNewPhonebookName] = useState('')
   const [savingToPhonebook, setSavingToPhonebook] = useState(false)
 
+  // Selected job ref for stable fetchCallbacks
+  const selectedJobRef = useRef<ScrapingJob | null>(null)
+  useEffect(() => {
+    selectedJobRef.current = selectedJob
+  }, [selectedJob])
+
   // Fetch all jobs
   const fetchJobs = useCallback(async () => {
     try {
@@ -97,10 +103,19 @@ function ScraperContent() {
         const data = await res.json()
         setJobs(data)
         
-        // If there was a selected job, keep it updated with new stats
-        if (selectedJob) {
-          const updated = data.find((j: ScrapingJob) => j.id === selectedJob.id)
-          if (updated) setSelectedJob(updated)
+        // Update currently selected job stats smoothly without triggering full re-renders
+        const currentSelectedId = selectedJobRef.current?.id
+        if (currentSelectedId) {
+          const updated = data.find((j: ScrapingJob) => j.id === currentSelectedId)
+          if (updated) {
+            setSelectedJob(prev => {
+              if (!prev) return updated
+              if (prev.scraped_count !== updated.scraped_count || prev.status !== updated.status) {
+                return updated
+              }
+              return prev
+            })
+          }
         }
       }
     } catch (err) {
@@ -108,49 +123,54 @@ function ScraperContent() {
     } finally {
       setJobsLoading(false)
     }
-  }, [selectedJob])
+  }, [])
 
   // Poll active jobs if any is running
   useEffect(() => {
     fetchJobs()
     const activeInterval = setInterval(() => {
-      const hasActive = jobs.some(j => j.status === 'pending' || j.status === 'scraping')
-      if (hasActive) {
-        fetchJobs()
-      }
+      fetchJobs()
     }, 4000)
 
     return () => clearInterval(activeInterval)
-  }, [jobs.length, fetchJobs])
+  }, [fetchJobs])
 
-  // Fetch leads when selected job changes
+  // Fetch leads for a job (supports silent background update to prevent flickering)
+  const fetchLeads = useCallback(async (jobId: string, isSilent = false) => {
+    if (!isSilent) setLeadsLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const res = await fetch(`/api/scraper/leads?job_id=${jobId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setLeads(data)
+      }
+    } catch (err) {
+      console.error('Failed to load scraped leads:', err)
+    } finally {
+      if (!isSilent) setLeadsLoading(false)
+    }
+  }, [])
+
+  // Load leads when selected job changes
   useEffect(() => {
-    if (!selectedJob) {
+    if (!selectedJob?.id) {
       setLeads([])
       return
     }
+    fetchLeads(selectedJob.id, false)
+  }, [selectedJob?.id, fetchLeads])
 
-    const fetchLeads = async () => {
-      setLeadsLoading(true)
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token || ''
-        const res = await fetch(`/api/scraper/leads?job_id=${selectedJob.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setLeads(data)
-        }
-      } catch (err) {
-        console.error('Failed to load scraped leads:', err)
-      } finally {
-        setLeadsLoading(false)
-      }
+  // Silent live refresh when active job stats update
+  useEffect(() => {
+    if (!selectedJob?.id) return
+    if (selectedJob.status === 'pending' || selectedJob.status === 'scraping') {
+      fetchLeads(selectedJob.id, true)
     }
-
-    fetchLeads()
-  }, [selectedJob?.id, selectedJob?.status])
+  }, [selectedJob?.scraped_count, selectedJob?.status, selectedJob?.id, fetchLeads])
 
   // Launch a new job
   const handleLaunchJob = async (e: React.FormEvent) => {
