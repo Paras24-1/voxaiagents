@@ -104,6 +104,25 @@ export default function LeadsPage() {
 import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
 import { INDIAN_STATES } from '@/lib/constants'
 
+function formatISTDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-'
+  try {
+    const dt = new Date(dateStr)
+    if (isNaN(dt.getTime())) return String(dateStr)
+    return dt.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+  } catch {
+    return String(dateStr)
+  }
+}
+
 function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered' {
   return classifyOsmoContact(lead)
 }
@@ -860,7 +879,7 @@ function LeadsContent() {
                               {(lead as any).assigned_at && (new Date((lead as any).assigned_at).getTime() >= new Date().setHours(0,0,0,0)) && (
                                 <div className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 inline-flex items-center gap-1 mt-1">
                                   <Clock className="w-2.5 h-2.5" />
-                                  Assigned Today
+                                  Assigned Today ({formatISTDate((lead as any).assigned_at).split(',')[1] || formatISTDate((lead as any).assigned_at)})
                                 </div>
                               )}
                               {rawFollowup && <div className="text-cyan-600 dark:text-cyan-400 text-[10px] truncate font-medium mt-1">📌 {rawFollowup}</div>}
@@ -917,6 +936,14 @@ function LeadsContent() {
                                 )
                               }
 
+                              if (key.toLowerCase() === 'assigned_at') {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                    {formatISTDate(val)}
+                                  </td>
+                                )
+                              }
+
                               return (
                                 <td key={key} className="px-6 py-4 whitespace-nowrap text-xs text-gray-700 dark:text-gray-300">
                                   {truncatedVal !== '-' ? (
@@ -933,7 +960,7 @@ function LeadsContent() {
                             <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
                               <div className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                {new Date(lead.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {formatISTDate(lead.created_at)}
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-xs sticky right-0 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 shadow-[inset_1px_0_0_0_#f3f4f6] dark:shadow-[inset_1px_0_0_0_#1f2937]" onClick={(e) => e.stopPropagation()}>
@@ -1138,7 +1165,9 @@ function LeadsContent() {
                             <div>
                               <span className="text-[10px] text-gray-400 block font-semibold">{formattedLabel}</span>
                               <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                                {String(val) || <span className="text-gray-400 italic">empty</span>}
+                                {(key.toLowerCase() === 'assigned_at' || key.toLowerCase() === 'created_at') 
+                                  ? formatISTDate(String(val))
+                                  : (String(val) || <span className="text-gray-400 italic">empty</span>)}
                               </span>
                             </div>
                           </div>
