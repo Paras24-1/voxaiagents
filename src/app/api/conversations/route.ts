@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabaseAdmin
       .from('conversations')
-      .select('*, leads(*)')
+      .select('*, leads(*)', { count: 'exact' })
       .eq('org_id', orgId)
       .order('updated_at', { ascending: false })
       .range(offset, offset + limit - 1)
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       query = query.gt('unread_count', 0)
     }
 
-    const { data: convs, error } = await query
+    const { data: convs, count, error } = await query
 
     if (error) {
       console.error('[GET /api/conversations] Error:', error)
@@ -123,7 +123,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(enrichedData, {
       headers: {
-        'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0'
+        'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0',
+        'X-Total-Count': String(count ?? enrichedData.length)
       }
     })
   } catch (err: unknown) {

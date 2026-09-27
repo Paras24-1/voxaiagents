@@ -144,7 +144,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
   const isOsmo = !!(profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' || org?.name?.toLowerCase().includes('osmo') || org?.slug?.toLowerCase().includes('osmo'))
 
-  const { conversations, loading, hasMore, loadingMore, loadMore, refetch, markAsRead, markAllAsRead } = useConversations({ 
+  const { conversations, loading, hasMore, loadingMore, totalCount, loadMore, refetch, markAsRead, markAllAsRead } = useConversations({ 
     search, 
     stage, 
     unread,
@@ -290,7 +290,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               {isAdmin ? 'Conversations' : 'My Inbox'}
             </h2>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
-              {conversations.length}
+              {typeof totalCount === 'number' ? totalCount.toLocaleString() : conversations.length}
             </span>
             {totalUnreadConvs > 0 && (
               <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500 text-white shadow-xs animate-pulse">

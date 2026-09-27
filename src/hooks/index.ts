@@ -21,6 +21,7 @@ export function useConversations(filters: {
   const [loading, setLoading] = useState(true)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [totalCount, setTotalCount] = useState<number | null>(null)
   const [orgId, setOrgId] = useState<string | null>(null)
   const tokenRef = useRef<string | null>(null)
   const selectedIdRef = useRef<string | null>(filters.selectedId || null)
@@ -149,6 +150,13 @@ export function useConversations(filters: {
       setLoading(false)
       return
     }
+
+    const countHeader = res.headers.get('X-Total-Count')
+    if (countHeader) {
+      const parsedCount = parseInt(countHeader, 10)
+      if (!isNaN(parsedCount)) setTotalCount(parsedCount)
+    }
+
     const data = await res.json()
     if (Array.isArray(data)) {
       if (data.length < 300) {
@@ -378,7 +386,7 @@ export function useConversations(filters: {
     return () => { supabase.removeChannel(channel) }
   }, [orgId, filters.userRole, filters.userId, markAsRead])
 
-  return { conversations, loading, hasMore, loadingMore, loadMore, refetch: fetchConversations, markAsRead, markAllAsRead }
+  return { conversations, loading, hasMore, loadingMore, totalCount, loadMore, refetch: fetchConversations, markAsRead, markAllAsRead }
 }
 
 
