@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
     const leadType = searchParams.get('lead_type') || ''
     const geographicState = searchParams.get('state') || ''
     
+    const assignedToday = searchParams.get('assigned_today') === 'true'
+
     // Pagination (default to page 1, 50 items per page)
     const page = parseInt(searchParams.get('page') || '1', 10)
     const limit = parseInt(searchParams.get('limit') || '50', 10)
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest) {
     while (fetchMore) {
       let query = supabaseAdmin
         .from('leads')
-        .select('*, conversations(*)')
+        .select('*, conversations(*, conversation_assignments(*))')
         .eq('org_id', orgId)
         .order('created_at', { ascending: false })
         .range(fromIndex, fromIndex + 999)
@@ -59,10 +61,15 @@ export async function GET(req: NextRequest) {
       })
     }
 
+    const startOfTodayMs = new Date().setHours(0, 0, 0, 0)
+
     // 3. Process each lead, derive classification, and parse metadata
     const enrichedLeads = allowedContacts.map((l) => {
       const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
       const p = l.phone_number || c.phone_number
+
+      const ca = Array.isArray(c.conversation_assignments) ? c.conversation_assignments[0] || {} : c.conversation_assignments || {}
+      const assignedAt = ca.assigned_at || c.updated_at || l.created_at
 
       let parsedMetadata: Record<string, any> = l.metadata || {}
       
@@ -85,6 +92,7 @@ export async function GET(req: NextRequest) {
         conversation_id: l.conversation_id || c.id || null,
         phone_number: p,
         created_at: createdAt,
+        assigned_at: assignedAt,
         lead_type: l.osmo_category || 'unfiltered',
         name: displayName,
         stage: stg,
@@ -95,8 +103,13 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    // 4. Apply filters (stage, quality, leadType, state, date, search)
+    // 4. Apply filters (stage, quality, leadType, state, date, search, assignedToday)
     const filteredLeads = enrichedLeads.filter(l => {
+      if (assignedToday) {
+        if (!l.assigned_at) return false
+        const assignTime = new Date(l.assigned_at).getTime()
+        if (assignTime < startOfTodayMs) return false
+      }
       if (stage && l.stage !== stage) return false
       if (quality && l.lead_quality !== quality.toLowerCase()) return false
       if (leadType && leadType !== 'all') {
@@ -127,10 +140,12 @@ export async function GET(req: NextRequest) {
       return true
     })
 
-    // Explicitly sort newest leads first so newly ingested leads are immediately at the top
+    // Explicitly sort: If assignedToday is active, sort by assigned_at DESC; otherwise sort by created_at DESC
     filteredLeads.sort((a, b) => {
-      const timeA = new Date(a.created_at || (a as any).updated_at || 0).getTime()
-      const timeB = new Date(b.created_at || (b as any).updated_at || 0).getTime()
+      const fieldA = assignedToday ? (a.assigned_at || a.created_at) : (a.created_at || a.updated_at)
+      const fieldB = assignedToday ? (b.assigned_at || b.created_at) : (b.created_at || b.updated_at)
+      const timeA = new Date(fieldA || 0).getTime()
+      const timeB = new Date(fieldB || 0).getTime()
       return timeB - timeA
     })
 

@@ -21,7 +21,8 @@ import {
   ChevronDown,
   MapPin,
   Plus,
-  UploadCloud
+  UploadCloud,
+  Clock
 } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
@@ -108,6 +109,7 @@ function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfi
 }
 
 function LeadsContent() {
+  const router = useRouter()
   const { profile, org } = useOrg()
   const { stages, customStages, addCustomStage, deleteCustomStage } = useLeadStages()
   const [isStageModalOpen, setIsStageModalOpen] = useState(false)
@@ -135,6 +137,7 @@ function LeadsContent() {
   const [selectedStage, setSelectedStage] = useState('')
   const [selectedQuality, setSelectedQuality] = useState('')
   const [selectedState, setSelectedState] = useState('')
+  const [assignedTodayFilter, setAssignedTodayFilter] = useState(false)
   const [leadTypeFilter, setLeadTypeFilterState] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
 
   useEffect(() => {
@@ -205,6 +208,7 @@ function LeadsContent() {
       if (selectedStage) statsParams.set('stage', selectedStage)
       if (selectedQuality) statsParams.set('quality', selectedQuality)
       if (selectedState) statsParams.set('state', selectedState)
+      if (assignedTodayFilter) statsParams.set('assigned_today', 'true')
       if (search) statsParams.set('search', search)
       if (startDate) statsParams.set('start_date', startDate)
       if (endDate) statsParams.set('end_date', endDate)
@@ -243,7 +247,7 @@ function LeadsContent() {
 
   useEffect(() => {
     fetchLeads(false)
-  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter])
+  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter])
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -550,6 +554,21 @@ function LeadsContent() {
             </div>
 
             <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
+              {/* Assigned Today Filter */}
+              <button
+                type="button"
+                onClick={() => setAssignedTodayFilter(!assignedTodayFilter)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold shrink-0 transition-all border shadow-xs ${
+                  assignedTodayFilter
+                    ? 'bg-amber-500 border-amber-500 text-white shadow-amber-500/20 shadow-md'
+                    : 'bg-gray-50/50 dark:bg-gray-950/50 border-gray-200/60 dark:border-gray-800/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+                title="Filter leads assigned or re-assigned today"
+              >
+                <Clock className={`w-4 h-4 ${assignedTodayFilter ? 'text-white' : 'text-amber-500'}`} />
+                <span>Assigned Today</span>
+              </button>
+
               {/* Stage Filter */}
               <div className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200/60 dark:border-gray-800/60 px-4 py-2 rounded-xl w-1/2 md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
                 <Filter className="w-4 h-4 text-emerald-500" />
@@ -838,6 +857,12 @@ function LeadsContent() {
                                 <Phone className="w-3 h-3" />
                                 {lead.phone_number}
                               </div>
+                              {(lead as any).assigned_at && (new Date((lead as any).assigned_at).getTime() >= new Date().setHours(0,0,0,0)) && (
+                                <div className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 inline-flex items-center gap-1 mt-1">
+                                  <Clock className="w-2.5 h-2.5" />
+                                  Assigned Today
+                                </div>
+                              )}
                               {rawFollowup && <div className="text-cyan-600 dark:text-cyan-400 text-[10px] truncate font-medium mt-1">📌 {rawFollowup}</div>}
                             </td>
 
@@ -912,13 +937,26 @@ function LeadsContent() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-xs sticky right-0 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 shadow-[inset_1px_0_0_0_#f3f4f6] dark:shadow-[inset_1px_0_0_0_#1f2937]" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => handleViewLead(lead)}
-                                className="px-4 py-1.5 bg-white dark:bg-gray-800 text-emerald-600 hover:text-white hover:bg-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white rounded-lg border border-emerald-200 dark:border-emerald-800/50 font-bold shadow-sm transition-all duration-300 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 flex items-center gap-1 ml-auto"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                View
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    const cleanP = (lead.phone_number || '').replace(/\D/g, '').slice(-10)
+                                    if (cleanP) router.push(`/chats?phone=${cleanP}`)
+                                  }}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg border border-emerald-500 font-bold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                                  title="Open chat conversation for this lead"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  Chat
+                                </button>
+                                <button
+                                  onClick={() => handleViewLead(lead)}
+                                  className="px-3 py-1.5 bg-white dark:bg-gray-800 text-emerald-600 hover:text-white hover:bg-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white rounded-lg border border-emerald-200 dark:border-emerald-800/50 font-bold shadow-xs transition-all flex items-center gap-1"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  View
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         )
