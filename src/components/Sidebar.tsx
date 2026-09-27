@@ -168,14 +168,36 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Hamburger Menu Trigger Button */}
-      <button
-        onClick={toggleSidebar}
-        className="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 border border-slate-700/80 hover:border-emerald-500/50 transition-all shadow-md shrink-0 flex items-center gap-2 group active:scale-95"
-        title="Open navigation menu"
-      >
-        <Menu className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-      </button>
+      {/* Top Bar Navigation Trigger: Hamburger Menu + Logged in User Profile Badge */}
+      <div className="flex items-center gap-2.5">
+        <button
+          onClick={toggleSidebar}
+          className="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 border border-slate-700/80 hover:border-emerald-500/50 transition-all shadow-md shrink-0 flex items-center gap-2 group active:scale-95"
+          title="Open navigation menu"
+        >
+          <Menu className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+        </button>
+
+        {profile && (
+          <div 
+            onClick={toggleSidebar}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-100 shadow-md cursor-pointer hover:bg-slate-800 transition-all select-none"
+            title={`Logged in as ${profile.name || profile.email} (${profile.role})`}
+          >
+            <div className="w-6 h-6 rounded-full bg-emerald-500 text-white font-extrabold text-[11px] flex items-center justify-center uppercase shadow-2xs shrink-0">
+              {(profile.name || profile.email || 'U').charAt(0)}
+            </div>
+            <div className="flex flex-col text-left leading-tight max-w-[130px] sm:max-w-[200px]">
+              <span className="text-xs font-bold text-white truncate">
+                {profile.name || profile.email}
+              </span>
+              <span className="text-[9.5px] font-semibold text-emerald-400 capitalize truncate">
+                {org?.name ? `${org.name} • ${profile.role}` : profile.role}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Slide-out Sidebar Drawer Overlay */}
       {isOpen && (
@@ -192,15 +214,31 @@ export default function Sidebar() {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         
-        {/* Top Header */}
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-emerald-600 text-white shrink-0">
-          <span className="font-bold text-sm truncate pr-2">{org?.name || 'Navigation Menu'}</span>
-          <button 
-            onClick={closeSidebar}
-            className="p-1 rounded-lg hover:bg-emerald-700 text-white transition-colors shrink-0"
-          >
-            <X className="w-4 h-4" />
-          </button>
+        {/* Top Header inside Drawer */}
+        <div className="p-4 border-b border-slate-800 bg-emerald-600 text-white shrink-0">
+          <div className="flex items-center justify-between">
+            <span className="font-extrabold text-sm truncate pr-2">{org?.name || 'Navigation Menu'}</span>
+            <button 
+              onClick={closeSidebar}
+              className="p-1 rounded-lg hover:bg-emerald-700 text-white transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {profile && (
+            <div className="mt-2.5 pt-2.5 border-t border-emerald-500/40 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-emerald-800 text-white font-black text-xs flex items-center justify-center uppercase shrink-0 border border-emerald-400/30">
+                {(profile.name || profile.email || 'U').charAt(0)}
+              </div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-bold truncate text-white">{profile.name || 'User'}</span>
+                <span className="text-[10px] text-emerald-100 truncate">{profile.email}</span>
+              </div>
+              <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-800 text-emerald-200 border border-emerald-500/30 shrink-0">
+                {profile.role}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Middle Section: Nav Items (Scrollable) */}
