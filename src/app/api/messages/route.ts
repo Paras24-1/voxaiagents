@@ -12,10 +12,10 @@ export async function GET(req: NextRequest) {
     const conversationId = searchParams.get('conversation_id')
     if (!conversationId) return NextResponse.json({ error: 'conversation_id required' }, { status: 400 })
 
-    // 1. Get the phone number for this conversation
+    // 1. Get the phone number and last_message fallback info for this conversation
     const { data: conv } = await supabaseAdmin
       .from('conversations')
-      .select('phone_number')
+      .select('phone_number, last_message, created_at')
       .eq('id', conversationId)
       .eq('org_id', orgId)
       .maybeSingle()
@@ -60,6 +60,22 @@ export async function GET(req: NextRequest) {
       seen.set(key, true)
       return true
     })
+
+    // Fallback: If 0 messages found in messages table, but last_message exists in conversations table
+    if (deduped.length === 0 && conv?.last_message) {
+      const synthesizedMsg = {
+        id: `fallback-${conversationId}`,
+        conversation_id: conversationId,
+        message: conv.last_message,
+        direction: 'outbound',
+        status: 'delivered',
+        timestamp: conv.created_at || new Date().toISOString(),
+        media_url: null,
+        media_type: null,
+        org_id: orgId
+      }
+      return NextResponse.json([synthesizedMsg])
+    }
 
     // Reverse the array so the oldest messages are first, matching the UI's expected chronological order
     return NextResponse.json(deduped.reverse())
