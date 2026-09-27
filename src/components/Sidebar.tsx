@@ -265,11 +265,6 @@ export default function Sidebar() {
                     <Icon className="w-4 h-4 shrink-0 text-emerald-400" />
                     <span className="truncate">{item.name}</span>
                   </div>
-                  {item.name === 'Chats' && unreadCount > 0 && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-black rounded-full bg-red-500 text-white shadow-xs animate-pulse">
-                      {unreadCount}
-                    </span>
-                  )}
                 </Link>
               )
             })}

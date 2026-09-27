@@ -292,11 +292,6 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
               {typeof totalCount === 'number' ? totalCount.toLocaleString() : conversations.length}
             </span>
-            {totalUnreadConvs > 0 && (
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-500 text-white shadow-xs animate-pulse">
-                {totalUnreadConvs} unread
-              </span>
-            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -421,7 +416,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               <span>Unread</span>
               {totalUnreadConvs > 0 && (
                 <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
-                  unread ? 'bg-white text-emerald-700' : 'bg-red-500 text-white'
+                  unread ? 'bg-white text-emerald-700' : 'bg-emerald-600 text-white'
                 }`}>
                   {totalUnreadConvs}
                 </span>
