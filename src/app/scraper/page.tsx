@@ -53,9 +53,19 @@ export default function ScraperPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Sidebar />
-      <main className="flex-1 min-h-screen p-6 md:p-8 ml-64 transition-all overflow-x-hidden text-gray-900 dark:text-gray-100">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
+      {/* Sticky Top Header */}
+      <header className="h-16 shrink-0 sticky top-0 flex items-center justify-between px-6 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm transition-all">
+        <div className="flex items-center gap-3">
+          <Sidebar />
+          <span className="text-gray-900 dark:text-white font-bold text-lg flex items-center gap-2 tracking-tight">
+            <Globe className="w-5 h-5 text-emerald-500" />
+            Lead Scraper Portal
+          </span>
+        </div>
+      </header>
+
+      <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full text-gray-900 dark:text-gray-100">
         <ScraperContent />
       </main>
     </div>
