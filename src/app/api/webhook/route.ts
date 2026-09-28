@@ -61,14 +61,27 @@ export async function POST(req: NextRequest) {
       orgId = org?.id || null
     }
 
-    // Priority 2: Resolve by Meta phone_number_id if not resolved by URL parameter
+    // Priority 2: Resolve by Meta phone_number_id or waba_id if not resolved by URL parameter
     if (!orgId && body.object === 'whatsapp_business_account') {
       const phoneId = body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id
+      const wabaId = body.entry?.[0]?.id
+
       if (phoneId) {
         const { data: settings } = await supabaseAdmin
           .from('organization_settings')
           .select('org_id')
           .eq('whatsapp_phone_id', phoneId)
+          .maybeSingle()
+        if (settings?.org_id) {
+          orgId = settings.org_id
+        }
+      }
+
+      if (!orgId && wabaId) {
+        const { data: settings } = await supabaseAdmin
+          .from('organization_settings')
+          .select('org_id')
+          .eq('whatsapp_waba_id', wabaId)
           .maybeSingle()
         if (settings?.org_id) {
           orgId = settings.org_id

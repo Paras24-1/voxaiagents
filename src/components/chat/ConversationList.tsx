@@ -831,6 +831,13 @@ function ConversationItem({
             {conv.platform || 'whatsapp'}
           </span>
 
+          {/* Receiver Phone Badge (for Multi-WABA / Multi-Line orgs) */}
+          {conv.receiver_phone_number && (
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md tracking-wider bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200/50">
+              📞 {conv.receiver_phone_number}
+            </span>
+          )}
+
           {/* 24h Window Status Badge */}
           {(() => {
             const is24hActive = conv.last_incoming_message_at
