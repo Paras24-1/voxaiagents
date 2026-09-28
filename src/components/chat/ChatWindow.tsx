@@ -453,15 +453,28 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
     )
   }
 
-  // Select & Send Canned Reply
+  // Select & Insert/Send Canned Reply
   const handleSelectCannedReply = async (item: CannedReplyItem) => {
     if (!conversation) return
     setShowCannedMenu(false)
-    setInput('')
 
-    if (item.type === 'text') {
-      await sendWithOptimism(item.content || '')
-    } else if (item.type === 'location' && item.location_data) {
+    const textContent = item.content || item.title || ''
+
+    // For text canned replies: replace /shortcut in input with textContent so user can see & edit before sending
+    if (item.type === 'text' || (!item.media_url && item.type !== 'location')) {
+      const slashIndex = input.lastIndexOf('/')
+      if (slashIndex !== -1) {
+        const prefix = input.substring(0, slashIndex)
+        setInput(prefix + textContent)
+      } else {
+        setInput(textContent)
+      }
+      return
+    }
+
+    // For media or location replies: send directly and clear input
+    setInput('')
+    if (item.type === 'location' && item.location_data) {
       await handleSendLocation({
         name: item.location_data.name || item.title || 'Location',
         address: item.location_data.address || '',
@@ -473,17 +486,20 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
       await sendMessage(
         conversation.id,
         conversation.phone_number,
-        item.content || '',
+        textContent,
         item.media_url,
         isDoc ? 'application/pdf' : `${item.type}/jpeg`,
         isDoc ? { filename: item.filename || 'document.pdf', type: 'document' } : undefined
       )
+    } else {
+      await sendWithOptimism(textContent)
     }
   }
 
   const filteredCannedReplies = cannedReplies.filter((r) =>
-    r.shortcut.toLowerCase().includes(cannedSearch) ||
-    (r.title && r.title.toLowerCase().includes(cannedSearch))
+    (r.shortcut && r.shortcut.toLowerCase().includes(cannedSearch)) ||
+    (r.title && r.title.toLowerCase().includes(cannedSearch)) ||
+    (r.content && r.content.toLowerCase().includes(cannedSearch))
   )
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -505,26 +521,35 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showCannedMenu && filteredCannedReplies.length > 0) {
+    if (showCannedMenu) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSelectedCannedIdx((prev) => (prev + 1) % filteredCannedReplies.length)
+        if (filteredCannedReplies.length > 0) {
+          setSelectedCannedIdx((prev) => (prev + 1) % filteredCannedReplies.length)
+        }
         return
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setSelectedCannedIdx((prev) => (prev - 1 + filteredCannedReplies.length) % filteredCannedReplies.length)
+        if (filteredCannedReplies.length > 0) {
+          setSelectedCannedIdx((prev) => (prev - 1 + filteredCannedReplies.length) % filteredCannedReplies.length)
+        }
         return
       }
       if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault()
-        const selected = filteredCannedReplies[selectedCannedIdx] || filteredCannedReplies[0]
-        if (selected) {
-          handleSelectCannedReply(selected)
+        if (filteredCannedReplies.length > 0) {
+          const selected = filteredCannedReplies[selectedCannedIdx] || filteredCannedReplies[0]
+          if (selected) {
+            handleSelectCannedReply(selected)
+          }
+        } else {
+          setShowCannedMenu(false)
         }
         return
       }
       if (e.key === 'Escape') {
+        e.preventDefault()
         setShowCannedMenu(false)
         return
       }
