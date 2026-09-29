@@ -137,8 +137,8 @@ export async function PATCH(
 
     // Only allow updating safe direct DB columns on conversations table
     const directDbColumns = isStaffEmployee 
-      ? ['stage', 'notes', 'is_blocked', 'unread_count'] 
-      : ['stage', 'notes', 'assigned_to', 'assignment_status', 'is_blocked', 'unread_count']
+      ? ['stage', 'notes', 'is_blocked', 'unread_count', 'name'] 
+      : ['stage', 'notes', 'assigned_to', 'assignment_status', 'is_blocked', 'unread_count', 'name']
     
     const filteredBody: Record<string, any> = {}
     for (const key of directDbColumns) {
@@ -193,9 +193,6 @@ export async function PATCH(
         Lead_Type: targetLeadType
       }
 
-      // Do not attempt to update metadata on conversations table since it doesn't exist
-      // Only update metadata on the leads table (handled below)
-
       console.log(`[DIAG PATCH /api/conversations/${id}] Setting lead_type='${targetLeadType}' on conversation and lead metadata`)
 
       if (linkedLead) {
@@ -229,6 +226,50 @@ export async function PATCH(
         .eq('org_id', profile.orgId)
 
       if (error) throw error
+
+      // Also sync name to linked lead in leads table if name was updated
+      if (body.name !== undefined) {
+        const newName = String(body.name).trim()
+        const { data: linkedLeads } = await supabaseAdmin
+          .from('leads')
+          .select('id, metadata')
+          .eq('conversation_id', conv.id)
+          .eq('org_id', profile.orgId)
+
+        let leadsToUpdate = [...(linkedLeads || [])]
+
+        if (leadsToUpdate.length === 0 && conv.phone_number) {
+          const cleanP = conv.phone_number.replace(/\D/g, '').slice(-10)
+          if (cleanP.length >= 10) {
+            const { data: phoneLeads } = await supabaseAdmin
+              .from('leads')
+              .select('id, metadata')
+              .ilike('phone_number', `%${cleanP}`)
+              .eq('org_id', profile.orgId)
+            if (phoneLeads && phoneLeads.length > 0) {
+              leadsToUpdate.push(...phoneLeads)
+            }
+          }
+        }
+
+        for (const l of leadsToUpdate) {
+          let meta = l.metadata || {}
+          if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta) } catch {}
+          }
+          meta = { ...meta, name: newName, customer_name: newName, Name: newName }
+          await supabaseAdmin
+            .from('leads')
+            .update({ 
+              name: newName,
+              customer_name: newName,
+              metadata: meta,
+              conversation_id: conv.id 
+            })
+            .eq('id', l.id)
+            .eq('org_id', profile.orgId)
+        }
+      }
 
       // Also sync stage to linked lead in leads table if stage was updated
       if (body.stage !== undefined) {
