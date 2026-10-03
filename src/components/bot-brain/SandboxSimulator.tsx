@@ -103,8 +103,8 @@ export default function SandboxSimulator({ systemPrompt, engineMode, geminiApiKe
           <div>
             <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
               Live Sandbox Chat Simulator
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                {engineMode === 'native' ? 'Native AI' : 'Hybrid n8n'}
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                Hybrid n8n
               </span>
             </h3>
             <p className="text-[11px] text-slate-400">Test bot responses against your active prompt in real-time</p>

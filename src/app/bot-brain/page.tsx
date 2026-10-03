@@ -17,7 +17,7 @@ type ActiveTab = 'builder' | 'advanced'
 
 export default function BotBrainPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('builder')
-  const [engineMode, setEngineMode] = useState<'native' | 'hybrid_n8n'>('native')
+  const [engineMode, setEngineMode] = useState<'native' | 'hybrid_n8n'>('hybrid_n8n')
   const [aiProvider, setAiProvider] = useState('gemini')
   const [aiModelName, setAiModelName] = useState('gemini-3.6-flash')
   const [systemPrompt, setSystemPrompt] = useState(
@@ -56,7 +56,7 @@ export default function BotBrainPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setEngineMode(data.engine_mode || 'native')
+        setEngineMode(data.engine_mode === 'native' ? 'hybrid_n8n' : (data.engine_mode || 'hybrid_n8n'))
         setAiProvider(data.ai_provider || 'gemini')
         let model = data.ai_model_name || 'gemini-3.6-flash'
         if (model.includes('1.5') || model.includes('2.5') || model.includes('3.7') || model.includes('2.0')) {
@@ -266,29 +266,12 @@ export default function BotBrainPage() {
                 </button>
               </div>
 
-              {/* Engine Mode Pill Toggle */}
-              <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl p-1 text-xs">
-                <span className="text-[10px] uppercase font-bold text-slate-400 px-2">Engine Mode:</span>
-                <button
-                  onClick={() => setEngineMode('native')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                    engineMode === 'native'
-                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Native AI
-                </button>
-                <button
-                  onClick={() => setEngineMode('hybrid_n8n')}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                    engineMode === 'hybrid_n8n'
-                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
+              {/* Engine Mode Badge */}
+              <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Engine Mode:</span>
+                <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
                   Hybrid n8n
-                </button>
+                </span>
               </div>
             </div>
 
