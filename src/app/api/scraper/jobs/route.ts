@@ -8,6 +8,18 @@ export async function GET(req: NextRequest) {
     const orgId = await getOrgId(req)
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    // Auto-expire stuck jobs older than 5 minutes (300 seconds) so UI never freezes infinitely
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    await supabaseAdmin
+      .from('scraping_jobs')
+      .update({ 
+        status: 'failed', 
+        error_message: 'Scraper worker timeout (worker process offline). Please ensure runner.py is active.' 
+      })
+      .eq('org_id', orgId)
+      .in('status', ['pending', 'scraping'])
+      .lt('updated_at', fiveMinutesAgo)
+
     const { data, error } = await supabaseAdmin
       .from('scraping_jobs')
       .select('*')
