@@ -135,15 +135,18 @@ function ScraperContent() {
     }
   }, [])
 
-  // Poll active jobs if any is running
+  // Poll jobs: fast 4s interval when a job is active/running, 30s when idle
   useEffect(() => {
     fetchJobs()
+    const hasActiveJob = jobs.some(j => j.status === 'scraping' || j.status === 'pending')
+    const pollInterval = hasActiveJob ? 4000 : 30000
+
     const activeInterval = setInterval(() => {
       fetchJobs()
-    }, 4000)
+    }, pollInterval)
 
     return () => clearInterval(activeInterval)
-  }, [fetchJobs])
+  }, [fetchJobs, jobs])
 
   // Fetch leads for a job (supports silent background update to prevent flickering)
   const fetchLeads = useCallback(async (jobId: string, isSilent = false) => {

@@ -289,12 +289,19 @@ export function useConversations(filters: {
     fetchConversations()
   }, [fetchConversations])
 
-  // Silent background poll every 20s — catches any leads missed by realtime
+  // Silent background poll (120s safety net + focus listener) — Realtime socket handles instant updates
   useEffect(() => {
     const interval = setInterval(() => {
       fetchConversations(false) // false = no loading spinner
-    }, 20_000)
-    return () => clearInterval(interval)
+    }, 120_000)
+
+    const handleFocus = () => fetchConversations(false)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [fetchConversations])
 
   useEffect(() => {
@@ -470,7 +477,7 @@ export function useMessages(conversationId: string | null) {
 
     const interval = setInterval(() => {
       fetchMessages(false)
-    }, 60000)
+    }, 180000)
 
     const handleFocus = () => fetchMessages(false)
     window.addEventListener('focus', handleFocus)

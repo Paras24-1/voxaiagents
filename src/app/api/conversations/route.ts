@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     const assignedTo   = searchParams.get('assigned_to')   || ''
     const assignFilter = searchParams.get('assign_filter') || ''
 
-    const limit = Math.min(parseInt(searchParams.get('limit') || '300', 10), 1000)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 1000)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     let query = supabaseAdmin

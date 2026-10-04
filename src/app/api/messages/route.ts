@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       .select('*')
       .in('conversation_id', allConvIds)
       .order('timestamp', { ascending: false }) // Fetch newest first to prevent cutting off new messages
-      .limit(500)
+      .limit(100)
 
     if (error) throw error
 
