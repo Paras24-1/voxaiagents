@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
         osmo_category: category,
         lead_type: category,
         category,
-        source: item.source || existingMeta.source || 'bulk_import',
+        source: item.source || 'bulk_import',
         ...(item.state ? { state: item.state } : {}),
         ...(item.location ? { location: item.location } : {}),
         ...(item.notes ? { notes: item.notes } : {}),
