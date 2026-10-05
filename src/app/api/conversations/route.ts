@@ -28,8 +28,6 @@ export async function GET(req: NextRequest) {
       .from('conversations')
       .select('*, leads(*)', { count: 'exact' })
       .eq('org_id', orgId)
-      .order('updated_at', { ascending: false })
-      .range(offset, offset + limit - 1)
 
     if (isStaffEmployee) {
       query = query.eq('assigned_to', userId)
@@ -52,6 +50,52 @@ export async function GET(req: NextRequest) {
     if (unread) {
       query = query.gt('unread_count', 0)
     }
+
+    if (search && search.trim()) {
+      const cleanSrch = search.trim()
+      const digitsOnly = cleanSrch.replace(/\D/g, '')
+
+      let orConditions = [
+        `name.ilike.%${cleanSrch}%`,
+        `phone_number.ilike.%${cleanSrch}%`,
+        `last_message.ilike.%${cleanSrch}%`
+      ]
+      if (digitsOnly.length >= 3) {
+        orConditions.push(`phone_number.ilike.%${digitsOnly}%`)
+      }
+
+      // Also search matching leads in leads table by name or phone
+      try {
+        let leadQuery = supabaseAdmin
+          .from('leads')
+          .select('phone_number')
+          .eq('org_id', orgId)
+          .limit(100)
+
+        if (digitsOnly.length >= 3) {
+          leadQuery = leadQuery.or(`name.ilike.%${cleanSrch}%,phone_number.ilike.%${cleanSrch}%,phone_number.ilike.%${digitsOnly}%`)
+        } else {
+          leadQuery = leadQuery.or(`name.ilike.%${cleanSrch}%,phone_number.ilike.%${cleanSrch}%`)
+        }
+
+        const { data: leadMatches } = await leadQuery
+        if (leadMatches && leadMatches.length > 0) {
+          leadMatches.forEach(l => {
+            if (l.phone_number) {
+              orConditions.push(`phone_number.eq.${l.phone_number}`)
+            }
+          })
+        }
+      } catch (e) {
+        console.error('[GET /api/conversations] Lead search error:', e)
+      }
+
+      query = query.or(orConditions.join(','))
+    }
+
+    query = query
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     const { data: convs, count, error } = await query
 
