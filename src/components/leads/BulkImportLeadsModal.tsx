@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   X,
   UploadCloud,
@@ -13,7 +13,8 @@ import {
   RefreshCw,
   FileText,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  UserCheck
 } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -57,6 +58,24 @@ export default function BulkImportLeadsModal({
   const [parsedData, setParsedData] = useState<Record<string, any>[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [assignmentMode, setAssignmentMode] = useState<'unassigned' | 'round_robin' | 'employee'>('unassigned')
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('')
+  const [employees, setEmployees] = useState<{ id: string; name: string; email: string; role: string }[]>([])
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/users')
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const staff = data.filter((u: any) => u.role === 'employee' || u.role === 'admin' || u.role === 'owner')
+            setEmployees(staff)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [isOpen])
 
   const [mapping, setMapping] = useState<ColumnMapping>({
     phone: '',
@@ -230,14 +249,22 @@ export default function BulkImportLeadsModal({
         phone_number: row[mapping.phone]
       }
       if (mapping.name && row[mapping.name]) item.name = row[mapping.name]
-      if (mapping.category && row[mapping.category]) item.osmo_category = row[mapping.category]
+      if (mapping.category === '__unfiltered__' || mapping.category === 'unfiltered') {
+        item.osmo_category = 'unfiltered'
+        item.category = 'unfiltered'
+        item.lead_type = 'unfiltered'
+      } else if (mapping.category && row[mapping.category]) {
+        item.osmo_category = row[mapping.category]
+        item.category = row[mapping.category]
+        item.lead_type = row[mapping.category]
+      }
       if (mapping.stage && row[mapping.stage]) item.stage = row[mapping.stage]
       if (mapping.temperature && row[mapping.temperature]) item.lead_temperature = row[mapping.temperature]
       if (mapping.state && row[mapping.state]) item.state = row[mapping.state]
       if (mapping.notes && row[mapping.notes]) item.notes = row[mapping.notes]
 
       // Include all remaining non-mapped fields into custom metadata
-      const mappedCols = new Set(Object.values(mapping).filter(Boolean))
+      const mappedCols = new Set(Object.values(mapping).filter(v => Boolean(v) && v !== '__unfiltered__' && v !== 'unfiltered'))
       for (const [colName, val] of Object.entries(row)) {
         if (!mappedCols.has(colName) && val !== '' && val !== null && val !== undefined) {
           item[colName] = val
@@ -267,7 +294,11 @@ export default function BulkImportLeadsModal({
         const res = await fetch('/api/leads/bulk-import', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ leads: batch })
+          body: JSON.stringify({
+            leads: batch,
+            assignment_mode: assignmentMode,
+            assigned_employee_id: selectedEmployeeId
+          })
         })
 
         const data = await res.json()
@@ -493,19 +524,28 @@ export default function BulkImportLeadsModal({
 
                 {/* Category Mapping */}
                 <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800 space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Category / Role (Dealer, Customer, etc.)</label>
+                  <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <span>Category / Role</span>
+                    <span className="text-[10px] text-slate-400">Dealer, Customer, etc.</span>
+                  </label>
                   <select
                     value={mapping.category}
                     onChange={(e) => setMapping({ ...mapping, category: e.target.value })}
                     className="w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="">-- Select Category Column (Optional) --</option>
+                    <option value="__unfiltered__">⚪ Unfiltered (Data has no category column)</option>
                     {headers.map((col) => (
                       <option key={col} value={col}>
                         {col}
                       </option>
                     ))}
                   </select>
+                  {(mapping.category === '__unfiltered__' || mapping.category === 'unfiltered') && (
+                    <p className="text-[11px] text-emerald-400 font-medium pt-0.5">
+                      ✓ All imported leads will be saved under category: <strong className="underline">Unfiltered</strong>
+                    </p>
+                  )}
                 </div>
 
                 {/* Stage Mapping */}
@@ -557,6 +597,75 @@ export default function BulkImportLeadsModal({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Employee Lead Auto-Assignment Strategy */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-indigo-500/30 space-y-3 col-span-1 md:col-span-2 mt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400">
+                      <UserCheck className="w-4 h-4 text-indigo-400" />
+                      <span>Employee Assignment Strategy</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400">Automatically assign imported leads</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setAssignmentMode('unassigned')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        assignmentMode === 'unassigned'
+                          ? 'bg-indigo-600/20 border-indigo-500 text-slate-100 shadow-md shadow-indigo-500/10'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                      }`}
+                    >
+                      <span className="font-semibold text-slate-200">Unassigned (Default)</span>
+                      <span className="text-[10px] text-slate-400 mt-1">Leads land in unassigned queue</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAssignmentMode('round_robin')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        assignmentMode === 'round_robin'
+                          ? 'bg-indigo-600/20 border-indigo-500 text-slate-100 shadow-md shadow-indigo-500/10'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                      }`}
+                    >
+                      <span className="font-semibold text-slate-200">🔄 Round-Robin</span>
+                      <span className="text-[10px] text-slate-400 mt-1">Rotate equally across team members</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAssignmentMode('employee')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                        assignmentMode === 'employee'
+                          ? 'bg-indigo-600/20 border-indigo-500 text-slate-100 shadow-md shadow-indigo-500/10'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'
+                      }`}
+                    >
+                      <span className="font-semibold text-slate-200">👤 Single Employee</span>
+                      <span className="text-[10px] text-slate-400 mt-1">Assign all leads to 1 team member</span>
+                    </button>
+                  </div>
+
+                  {assignmentMode === 'employee' && (
+                    <div className="pt-1">
+                      <select
+                        value={selectedEmployeeId}
+                        onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                        className="w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-indigo-500/40 text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      >
+                        <option value="">-- Select Employee / Agent --</option>
+                        {employees.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.name || emp.email} ({emp.role})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -624,7 +733,11 @@ export default function BulkImportLeadsModal({
                             {mapping.name && row[mapping.name] ? row[mapping.name] : '-'}
                           </td>
                           <td className="py-2.5 px-3">
-                            {mapping.category && row[mapping.category] ? row[mapping.category] : 'Unfiltered'}
+                            {mapping.category === '__unfiltered__' || mapping.category === 'unfiltered'
+                              ? 'Unfiltered'
+                              : mapping.category && row[mapping.category]
+                              ? row[mapping.category]
+                              : 'Unfiltered'}
                           </td>
                           <td className="py-2.5 px-3">
                             {mapping.temperature && row[mapping.temperature] ? row[mapping.temperature] : 'COLD'}

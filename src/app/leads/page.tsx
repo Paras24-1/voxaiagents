@@ -22,7 +22,8 @@ import {
   MapPin,
   Plus,
   UploadCloud,
-  Clock
+  Clock,
+  UserCheck
 } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
@@ -156,8 +157,26 @@ function LeadsContent() {
   const [selectedStage, setSelectedStage] = useState('')
   const [selectedQuality, setSelectedQuality] = useState('')
   const [selectedState, setSelectedState] = useState('')
+  const [selectedSource, setSelectedSource] = useState('')
   const [assignedTodayFilter, setAssignedTodayFilter] = useState(false)
   const [leadTypeFilter, setLeadTypeFilterState] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
+
+  // Multi-Select & Bulk Assignment State
+  const [selectedLeadPhones, setSelectedLeadPhones] = useState<string[]>([])
+  const [staffList, setStaffList] = useState<{ id: string; name: string; email: string; role: string }[]>([])
+  const [bulkAssignEmployeeId, setBulkAssignEmployeeId] = useState('')
+  const [bulkAssigning, setBulkAssigning] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setStaffList(data)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -170,6 +189,43 @@ function LeadsContent() {
     setLeadTypeFilterState(tab)
     if (typeof window !== 'undefined') {
       localStorage.setItem('osmo_lead_tab', tab)
+    }
+  }
+
+  const executeBulkAssignment = async () => {
+    if (selectedLeadPhones.length === 0 || !bulkAssignEmployeeId) return
+    setBulkAssigning(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
+      const res = await fetch('/api/assignments/bulk', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          phone_numbers: selectedLeadPhones,
+          assigned_to: bulkAssignEmployeeId
+        })
+      })
+
+      const data = await res.json()
+      if (res.ok && data.success) {
+        alert(`Successfully assigned ${selectedLeadPhones.length} leads to employee!`)
+        setSelectedLeadPhones([])
+        setBulkAssignEmployeeId('')
+        fetchLeads(false)
+      } else {
+        alert(`Bulk assignment failed: ${data.error || 'Server error'}`)
+      }
+    } catch (err: any) {
+      alert(`Bulk assignment error: ${err.message}`)
+    } finally {
+      setBulkAssigning(false)
     }
   }
 
@@ -666,6 +722,22 @@ function LeadsContent() {
                 </select>
               </div>
 
+              {/* Lead Source Filter */}
+              <div className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200/60 dark:border-gray-800/60 px-4 py-2 rounded-xl w-1/2 md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
+                <Filter className="w-4 h-4 text-emerald-500" />
+                <select
+                  value={selectedSource}
+                  onChange={(e) => setSelectedSource(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer w-full"
+                >
+                  <option value="">All Lead Sources</option>
+                  <option value="bulk_import">📥 Bulk CSV/Excel Import</option>
+                  <option value="inbound_chat">💬 Inbound WhatsApp</option>
+                  <option value="google_maps_scraper">🗺️ Google Maps Scraper</option>
+                  <option value="manual_entry">✏️ Manual Entry</option>
+                </select>
+              </div>
+
               <button
                 onClick={() => fetchLeads(false)}
                 className="hidden md:flex items-center justify-center gap-1.5 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:-translate-y-0.5"
@@ -737,6 +809,14 @@ function LeadsContent() {
                   const currentCategory = l.lead_type || (l.metadata as any)?.category || 'unfiltered'
                   if (currentCategory !== leadTypeFilter) return false
                 }
+                if (selectedSource) {
+                  const metaObj = (typeof l.metadata === 'object' ? l.metadata : {}) as any
+                  const src = String(metaObj?.source || (l as any).source || '').toLowerCase()
+                  if (selectedSource === 'bulk_import' && !src.includes('bulk_import') && !src.includes('bulk') && !src.includes('import')) return false
+                  if (selectedSource === 'inbound_chat' && !src.includes('inbound') && !src.includes('chat') && !src.includes('whatsapp')) return false
+                  if (selectedSource === 'google_maps_scraper' && !src.includes('google_maps') && !src.includes('scraper')) return false
+                  if (selectedSource === 'manual_entry' && !src.includes('manual') && !src.includes('crm')) return false
+                }
                 return true
               })
 
@@ -801,7 +881,21 @@ function LeadsContent() {
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
                     <thead className="bg-emerald-50/50 dark:bg-emerald-950/30 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 tracking-widest text-left uppercase sticky top-0 z-20 backdrop-blur-md">
                       <tr>
-                        <th className="px-6 py-4 whitespace-nowrap sticky left-0 bg-emerald-50/90 dark:bg-emerald-950/90 backdrop-blur-xl z-30 shadow-[inset_-1px_0_0_0_rgba(16,185,129,0.2)] dark:shadow-[inset_-1px_0_0_0_rgba(16,185,129,0.1)]">Lead Contact</th>
+                        <th className="px-3 py-4 whitespace-nowrap sticky left-0 bg-emerald-50/90 dark:bg-emerald-950/90 backdrop-blur-xl z-30 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            checked={displayedLeads.length > 0 && displayedLeads.every(l => selectedLeadPhones.includes(l.phone_number))}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedLeadPhones(displayedLeads.map(l => l.phone_number))
+                              } else {
+                                setSelectedLeadPhones([])
+                              }
+                            }}
+                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          />
+                        </th>
+                        <th className="px-6 py-4 whitespace-nowrap sticky left-10 bg-emerald-50/90 dark:bg-emerald-950/90 backdrop-blur-xl z-30 shadow-[inset_-1px_0_0_0_rgba(16,185,129,0.2)] dark:shadow-[inset_-1px_0_0_0_rgba(16,185,129,0.1)]">Lead Contact</th>
                         {uniqueCustomKeys.map(key => (
                           <th key={key} className="px-6 py-4 whitespace-nowrap">
                             {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -844,10 +938,23 @@ function LeadsContent() {
                         return (
                           <tr 
                             key={lead.id} 
-                            className="group hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-all cursor-pointer relative"
+                            className={`group hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-all cursor-pointer relative ${
+                              selectedLeadPhones.includes(lead.phone_number) ? 'bg-emerald-50/30 dark:bg-emerald-950/20' : ''
+                            }`}
                             onClick={() => handleViewLead(lead)}
                           >
-                            <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 shadow-[inset_-1px_0_0_0_#f3f4f6] dark:shadow-[inset_-1px_0_0_0_#1f2937]">
+                            <td className="px-3 py-4 whitespace-nowrap sticky left-0 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 text-center" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={selectedLeadPhones.includes(lead.phone_number)}
+                                onChange={() => {
+                                  const phone = lead.phone_number
+                                  setSelectedLeadPhones(prev => prev.includes(phone) ? prev.filter(p => p !== phone) : [...prev, phone])
+                                }}
+                                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap sticky left-10 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 shadow-[inset_-1px_0_0_0_#f3f4f6] dark:shadow-[inset_-1px_0_0_0_#1f2937]">
                               <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <span>{displayName}</span>
                                 {isOsmoRo && (
@@ -1202,15 +1309,51 @@ function LeadsContent() {
         onSuccess={() => fetchLeads(false)}
       />
 
-      {/* Tenant Custom Stage Creation Modal */}
-      <CustomStageModal
-        isOpen={isStageModalOpen}
-        onClose={() => setIsStageModalOpen(false)}
-        stages={stages}
-        customStages={customStages}
-        onAddStage={addCustomStage}
-        onDeleteStage={deleteCustomStage}
-      />
+      {/* Floating Bulk Lead Assignment Action Bar */}
+      {selectedLeadPhones.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-950/95 border border-emerald-500/40 text-slate-100 px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-5 animate-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+            <UserCheck className="w-4 h-4 text-emerald-400" />
+            <span>{selectedLeadPhones.length} Lead{selectedLeadPhones.length > 1 ? 's' : ''} Selected</span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-700" />
+
+          <div className="flex items-center gap-3">
+            <select
+              value={bulkAssignEmployeeId}
+              onChange={(e) => setBulkAssignEmployeeId(e.target.value)}
+              className="px-3 py-1.5 text-xs rounded-xl bg-slate-800 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-w-[200px]"
+            >
+              <option value="">-- Assign to Employee --</option>
+              {staffList.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name || emp.email} ({emp.role})
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={executeBulkAssignment}
+              disabled={!bulkAssignEmployeeId || bulkAssigning}
+              className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+            >
+              {bulkAssigning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
+              Apply Bulk Assignment
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedLeadPhones([])}
+              className="p-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title="Deselect All"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

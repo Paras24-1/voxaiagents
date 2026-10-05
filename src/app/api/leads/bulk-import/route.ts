@@ -34,7 +34,11 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { leads } = body as { leads: BulkLeadItem[] }
+    const { leads, assignment_mode = 'unassigned', assigned_employee_id = null } = body as {
+      leads: BulkLeadItem[]
+      assignment_mode?: 'unassigned' | 'round_robin' | 'employee'
+      assigned_employee_id?: string
+    }
 
     if (!leads || !Array.isArray(leads) || leads.length === 0) {
       return NextResponse.json({ error: 'No leads provided for import' }, { status: 400 })
@@ -42,6 +46,22 @@ export async function POST(req: NextRequest) {
 
     if (leads.length > 200) {
       return NextResponse.json({ error: 'Batch size exceeds maximum limit of 200 leads per request' }, { status: 400 })
+    }
+
+    // Fetch active employees if round-robin assignment is selected
+    let activeEmployeeIds: string[] = []
+    if (assignment_mode === 'round_robin') {
+      const { data: empList } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('org_id', orgId)
+        .eq('role', 'employee')
+        .eq('is_active', true)
+        .order('created_at', { ascending: true })
+
+      if (empList && empList.length > 0) {
+        activeEmployeeIds = empList.map(e => e.id)
+      }
     }
 
     const validColumns = [
@@ -87,7 +107,7 @@ export async function POST(req: NextRequest) {
     // 2. Fetch existing conversations for these phone numbers to link conversation_id
     const { data: existingConvs } = await supabaseAdmin
       .from('conversations')
-      .select('id, phone_number')
+      .select('id, phone_number, assigned_to')
       .eq('org_id', orgId)
       .in('phone_number', batchPhones)
 
@@ -101,11 +121,19 @@ export async function POST(req: NextRequest) {
     // 3. For phones missing conversations, auto-create conversation records
     const missingConvPhones = batchPhones.filter(p => !convMap.has(p))
     if (missingConvPhones.length > 0) {
-      const newConvsPayload = missingConvPhones.map(phone => {
+      const newConvsPayload = missingConvPhones.map((phone, idx) => {
         const leadObj = sanitizedLeads.find(s => s.phone === phone)
         const name = leadObj?.item.name || leadObj?.item.customer_name || phone
         const category = leadObj?.item.osmo_category || leadObj?.item.category || leadObj?.item.lead_type || 'unfiltered'
         const stage = leadObj?.item.stage || 'new'
+
+        let assignedTo: string | null = null
+        if (assignment_mode === 'employee' && assigned_employee_id) {
+          assignedTo = assigned_employee_id
+        } else if (assignment_mode === 'round_robin' && activeEmployeeIds.length > 0) {
+          assignedTo = activeEmployeeIds[idx % activeEmployeeIds.length]
+        }
+
         return {
           org_id: orgId,
           phone_number: phone,
@@ -113,8 +141,10 @@ export async function POST(req: NextRequest) {
           unread_count: 0,
           ai_mode: false,
           stage,
+          assigned_to: assignedTo,
+          assignment_status: assignedTo ? 'assigned' : 'unassigned',
           updated_at: new Date().toISOString(),
-          metadata: { category, lead_type: category }
+          metadata: { category, lead_type: category, source: leadObj?.item.source || 'bulk_import' }
         }
       })
 
@@ -125,6 +155,33 @@ export async function POST(req: NextRequest) {
 
       if (!createConvErr && createdConvs) {
         createdConvs.forEach(c => convMap.set(c.phone_number, c.id))
+      }
+    }
+
+    // If assignment_mode is explicitly specified for existing conversations as well
+    if (assignment_mode !== 'unassigned') {
+      for (let i = 0; i < batchPhones.length; i++) {
+        const phone = batchPhones[i]
+        const cId = convMap.get(phone)
+        if (!cId) continue
+
+        let targetAssignedTo: string | null = null
+        if (assignment_mode === 'employee' && assigned_employee_id) {
+          targetAssignedTo = assigned_employee_id
+        } else if (assignment_mode === 'round_robin' && activeEmployeeIds.length > 0) {
+          targetAssignedTo = activeEmployeeIds[i % activeEmployeeIds.length]
+        }
+
+        if (targetAssignedTo) {
+          await supabaseAdmin
+            .from('conversations')
+            .update({
+              assigned_to: targetAssignedTo,
+              assignment_status: 'assigned'
+            })
+            .eq('id', cId)
+            .eq('org_id', orgId)
+        }
       }
     }
 
@@ -175,9 +232,9 @@ export async function POST(req: NextRequest) {
         osmo_category: category,
         lead_type: category,
         category,
+        source: item.source || existingMeta.source || 'bulk_import',
         ...(item.state ? { state: item.state } : {}),
         ...(item.location ? { location: item.location } : {}),
-        ...(item.source ? { source: item.source } : {}),
         ...(item.notes ? { notes: item.notes } : {}),
       }
 
