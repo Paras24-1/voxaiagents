@@ -987,31 +987,40 @@ function LeadsContent() {
                               <div className="mt-1">
                                 {(() => {
                                   const src = String(allCustomData.source || '').toLowerCase()
-                                  if (src.includes('inbound') || src.includes('whatsapp')) {
-                                    return (
-                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
-                                        💬 Inbound WhatsApp
-                                      </span>
-                                    )
-                                  } else if (src.includes('google_maps') || src.includes('scraper')) {
-                                    return (
-                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800/60">
-                                        🗺️ Scraper
-                                      </span>
-                                    )
-                                  } else if (src.includes('manual')) {
-                                    return (
-                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/60">
-                                        ✏️ Manual Entry
-                                      </span>
-                                    )
-                                  } else {
+                                  if (!src) return null
+                                  if (src.includes('bulk_import') || src.includes('bulk') || src.includes('import')) {
                                     return (
                                       <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800/60">
                                         📥 Bulk Import
                                       </span>
                                     )
                                   }
+                                  if (src.includes('inbound') || src.includes('whatsapp')) {
+                                    return (
+                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
+                                        💬 Inbound WhatsApp
+                                      </span>
+                                    )
+                                  }
+                                  if (src.includes('google_maps') || src.includes('scraper')) {
+                                    return (
+                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800/60">
+                                        🗺️ Scraper
+                                      </span>
+                                    )
+                                  }
+                                  if (src.includes('manual')) {
+                                    return (
+                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/60">
+                                        ✏️ Manual Entry
+                                      </span>
+                                    )
+                                  }
+                                  return (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 font-mono capitalize">
+                                      📌 {src}
+                                    </span>
+                                  )
                                 })()}
                               </div>
                               {(lead as any).assigned_at && (new Date((lead as any).assigned_at).getTime() >= new Date().setHours(0,0,0,0)) && (
@@ -1029,10 +1038,21 @@ function LeadsContent() {
                               const truncatedVal = displayVal.length > 50 ? displayVal.substring(0, 50) + '...' : displayVal;
 
                               if (key.toLowerCase() === 'source') {
-                                const srcVal = String(val || 'bulk_import').toLowerCase()
-                                let label = '📥 Bulk Import'
-                                let badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300'
-                                if (srcVal.includes('inbound') || srcVal.includes('whatsapp')) {
+                                if (!val) {
+                                  return (
+                                    <td key={key} className="px-6 py-4 whitespace-nowrap text-xs text-gray-400">
+                                      -
+                                    </td>
+                                  )
+                                }
+                                const srcVal = String(val).toLowerCase()
+                                let label = srcVal
+                                let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300'
+
+                                if (srcVal.includes('bulk_import') || srcVal.includes('bulk') || srcVal.includes('import')) {
+                                  label = '📥 Bulk Import'
+                                  badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300'
+                                } else if (srcVal.includes('inbound') || srcVal.includes('whatsapp')) {
                                   label = '💬 Inbound WhatsApp'
                                   badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300'
                                 } else if (srcVal.includes('google_maps') || srcVal.includes('scraper')) {
