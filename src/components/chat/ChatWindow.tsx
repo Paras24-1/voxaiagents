@@ -1311,23 +1311,35 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         )}
 
         {(() => {
+          const leadObj = Array.isArray((conversation as any)?.leads) ? (conversation as any).leads[0] : (conversation as any)?.leads || (conversation as any)?.lead || {}
+          const meta = typeof leadObj?.metadata === 'object' ? leadObj.metadata : (typeof (conversation as any)?.metadata === 'object' ? (conversation as any).metadata : {})
+          const src = String(leadObj?.source || meta?.source || (conversation as any)?.source || '').toLowerCase()
+          const isBulkImport = src.includes('bulk_import') || src.includes('bulk') || src.includes('import')
+
           const hasIncomingDate = !!conversation?.last_incoming_message_at;
           const lastIncoming = hasIncomingDate ? new Date(conversation.last_incoming_message_at!) : null;
-          const hoursLeft = lastIncoming ? 24 - (new Date().getTime() - lastIncoming.getTime()) / (1000 * 60 * 60) : 24;
-          const isExpired = lastIncoming ? hoursLeft <= 0 : false;
+          const hoursLeft = lastIncoming ? 24 - (new Date().getTime() - lastIncoming.getTime()) / (1000 * 60 * 60) : 0;
+          
+          // Require approved template for bulk import leads without incoming messages OR expired conversations
+          const isExpired = lastIncoming ? hoursLeft <= 0 : (isBulkImport ? true : false);
 
           if (isExpired) {
+            const isNewBulkLead = isBulkImport && !hasIncomingDate;
             return (
-              <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/60 rounded-2xl gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 rounded-2xl gap-3">
                 <div className="text-center sm:text-left">
-                  <span className="text-sm font-bold text-red-600 dark:text-red-400 block">24-Hour Messaging Window Expired</span>
-                  <span className="text-xs font-medium text-red-500/80 dark:text-red-400/80 mt-0.5 block">
-                    Freeform text messages are blocked by Meta. Send an approved Template Message to re-open the 24h window.
+                  <span className="text-sm font-bold text-amber-800 dark:text-amber-300 block flex items-center gap-1.5 justify-center sm:justify-start">
+                    {isNewBulkLead ? '📥 Bulk Import Lead (Template Required)' : '24-Hour Messaging Window Expired'}
+                  </span>
+                  <span className="text-xs font-medium text-amber-700/90 dark:text-amber-400/90 mt-0.5 block">
+                    {isNewBulkLead
+                      ? 'Meta WhatsApp policy requires an approved Template Message to initiate contact with newly imported bulk leads.'
+                      : 'Freeform text messages are blocked by Meta. Send an approved Template Message to re-open the 24h window.'}
                   </span>
                 </div>
                 <button
                   onClick={() => setShowTemplateModal(true)}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0 transition-all"
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0 transition-all cursor-pointer"
                 >
                   <FileText className="w-4 h-4" />
                   <span>Send Template</span>

@@ -882,17 +882,36 @@ function ConversationItem({
 
           {/* 24h Window Status Badge */}
           {(() => {
-            const is24hActive = conv.last_incoming_message_at
-              ? (Date.now() - new Date(conv.last_incoming_message_at).getTime() <= 24 * 60 * 60 * 1000)
-              : false
+            const leadObj = Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead || {}
+            const meta = typeof leadObj?.metadata === 'object' ? leadObj.metadata : (typeof (conv as any).metadata === 'object' ? (conv as any).metadata : {})
+            const src = String(leadObj?.source || meta?.source || (conv as any).source || '').toLowerCase()
+            const isBulkImport = src.includes('bulk_import') || src.includes('bulk') || src.includes('import')
+
+            const hasIncoming = !!conv.last_incoming_message_at
+            const is24hActive = hasIncoming && (Date.now() - new Date(conv.last_incoming_message_at!).getTime() <= 24 * 60 * 60 * 1000)
+
+            if (is24hActive) {
+              return (
+                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  24h Open
+                </span>
+              )
+            }
+
+            if (isBulkImport && !hasIncoming) {
+              return (
+                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  Template Required
+                </span>
+              )
+            }
+
             return (
-              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 ${
-                is24hActive
-                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50'
-                  : 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 border border-red-200/40'
-              }`}>
-                <div className={`w-1.5 h-1.5 rounded-full ${is24hActive ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                {is24hActive ? '24h Open' : '24h Expired'}
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 border border-red-200/40">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                24h Expired
               </span>
             )
           })()}
