@@ -25,74 +25,6 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 1000)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
-    // Ensure all leads in org have an associated conversation record
-    try {
-      let orgLeads: any[] = []
-      let from = 0
-      let fetchMore = true
-      while (fetchMore) {
-        const { data: chunk } = await supabaseAdmin
-          .from('leads')
-          .select('id, phone_number, name, customer_name, stage, created_at, osmo_category')
-          .eq('org_id', orgId)
-          .not('phone_number', 'is', null)
-          .range(from, from + 999)
-
-        if (!chunk || chunk.length === 0) {
-          fetchMore = false
-        } else {
-          orgLeads.push(...chunk)
-          if (chunk.length < 1000) fetchMore = false
-          else from += 1000
-        }
-      }
-
-      if (orgLeads && orgLeads.length > 0) {
-        let existingConvs: any[] = []
-        let cFrom = 0
-        let cFetchMore = true
-        while (cFetchMore) {
-          const { data: cChunk } = await supabaseAdmin
-            .from('conversations')
-            .select('phone_number')
-            .eq('org_id', orgId)
-            .range(cFrom, cFrom + 999)
-
-          if (!cChunk || cChunk.length === 0) {
-            cFetchMore = false
-          } else {
-            existingConvs.push(...cChunk)
-            if (cChunk.length < 1000) cFetchMore = false
-            else cFrom += 1000
-          }
-        }
-
-        const existingPhones = new Set((existingConvs || []).map(c => (c.phone_number || '').replace(/\D/g, '').slice(-10)))
-        const missingLeads = orgLeads.filter(l => {
-          const p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
-          return p && !existingPhones.has(p)
-        })
-
-        if (missingLeads.length > 0) {
-          const newConvsToInsert = missingLeads.map(l => ({
-            org_id: orgId,
-            phone_number: l.phone_number,
-            name: l.name || l.customer_name || l.phone_number,
-            stage: l.stage || 'new',
-            unread_count: 0,
-            updated_at: l.created_at || new Date().toISOString(),
-            last_message: 'No messages yet'
-          }))
-          // Insert in chunks of 50
-          for (let i = 0; i < newConvsToInsert.length; i += 50) {
-            await supabaseAdmin.from('conversations').insert(newConvsToInsert.slice(i, i + 50))
-          }
-        }
-      }
-    } catch (e) {
-      console.error('[GET /api/conversations] Auto-heal missing conversations error:', e)
-    }
-
     let query = supabaseAdmin
       .from('conversations')
       .select('*, leads(*)', { count: 'exact' })
@@ -104,13 +36,13 @@ export async function GET(req: NextRequest) {
         let lFrom = 0
         let lFetchMore = true
         while (lFetchMore) {
-          const { data: chunk } = await supabaseAdmin
+          const { data: chunk, error: chunkErr } = await supabaseAdmin
             .from('leads')
             .select('phone_number, osmo_category, metadata')
             .eq('org_id', orgId)
             .range(lFrom, lFrom + 999)
 
-          if (!chunk || chunk.length === 0) {
+          if (chunkErr || !chunk || chunk.length === 0) {
             lFetchMore = false
           } else {
             catLeads.push(...chunk)
