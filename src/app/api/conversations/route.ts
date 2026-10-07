@@ -27,17 +27,45 @@ export async function GET(req: NextRequest) {
 
     // Ensure all leads in org have an associated conversation record
     try {
-      const { data: orgLeads } = await supabaseAdmin
-        .from('leads')
-        .select('id, phone_number, name, customer_name, stage, created_at, osmo_category')
-        .eq('org_id', orgId)
-        .not('phone_number', 'is', null)
+      let orgLeads: any[] = []
+      let from = 0
+      let fetchMore = true
+      while (fetchMore) {
+        const { data: chunk } = await supabaseAdmin
+          .from('leads')
+          .select('id, phone_number, name, customer_name, stage, created_at, osmo_category')
+          .eq('org_id', orgId)
+          .not('phone_number', 'is', null)
+          .range(from, from + 999)
+
+        if (!chunk || chunk.length === 0) {
+          fetchMore = false
+        } else {
+          orgLeads.push(...chunk)
+          if (chunk.length < 1000) fetchMore = false
+          else from += 1000
+        }
+      }
 
       if (orgLeads && orgLeads.length > 0) {
-        const { data: existingConvs } = await supabaseAdmin
-          .from('conversations')
-          .select('phone_number')
-          .eq('org_id', orgId)
+        let existingConvs: any[] = []
+        let cFrom = 0
+        let cFetchMore = true
+        while (cFetchMore) {
+          const { data: cChunk } = await supabaseAdmin
+            .from('conversations')
+            .select('phone_number')
+            .eq('org_id', orgId)
+            .range(cFrom, cFrom + 999)
+
+          if (!cChunk || cChunk.length === 0) {
+            cFetchMore = false
+          } else {
+            existingConvs.push(...cChunk)
+            if (cChunk.length < 1000) cFetchMore = false
+            else cFrom += 1000
+          }
+        }
 
         const existingPhones = new Set((existingConvs || []).map(c => (c.phone_number || '').replace(/\D/g, '').slice(-10)))
         const missingLeads = orgLeads.filter(l => {
@@ -72,12 +100,26 @@ export async function GET(req: NextRequest) {
 
     if (categoryFilter && categoryFilter !== 'all') {
       try {
-        const { data: catLeads } = await supabaseAdmin
-          .from('leads')
-          .select('phone_number, osmo_category, metadata')
-          .eq('org_id', orgId)
+        let catLeads: any[] = []
+        let lFrom = 0
+        let lFetchMore = true
+        while (lFetchMore) {
+          const { data: chunk } = await supabaseAdmin
+            .from('leads')
+            .select('phone_number, osmo_category, metadata')
+            .eq('org_id', orgId)
+            .range(lFrom, lFrom + 999)
 
-        if (catLeads) {
+          if (!chunk || chunk.length === 0) {
+            lFetchMore = false
+          } else {
+            catLeads.push(...chunk)
+            if (chunk.length < 1000) lFetchMore = false
+            else lFrom += 1000
+          }
+        }
+
+        if (catLeads && catLeads.length > 0) {
           const matchingPhones = catLeads.filter(l => {
             let parsedMeta: Record<string, any> = l.metadata || {}
             if (typeof l.metadata === 'string') {
