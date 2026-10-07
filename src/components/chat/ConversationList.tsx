@@ -157,6 +157,8 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     selectedId,
   })
 
+  const prevTabRef = useRef(osmoTab)
+
   useEffect(() => {
     const handleLeadUpdated = () => {
       refetch()
@@ -167,13 +169,13 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   }, [refetch, fetchCategoryStats])
 
   useEffect(() => {
-    if (!loading && conversations.length > 0 && selectedId) {
-      const exists = conversations.some(c => c.id === selectedId)
-      if (!exists) {
+    if (prevTabRef.current !== osmoTab) {
+      prevTabRef.current = osmoTab
+      if (!loading && conversations.length > 0) {
         onSelect(conversations[0])
       }
     }
-  }, [conversations, loading, selectedId, onSelect])
+  }, [osmoTab, loading, conversations, onSelect])
 
   const totalUnreadConvs = useMemo(() => {
     return conversations.filter(c => (c.unread_count && c.unread_count > 0) || (c as any).unread).length
