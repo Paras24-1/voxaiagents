@@ -20,9 +20,50 @@ export async function GET(req: NextRequest) {
     const unread       = searchParams.get('unread')        === 'true'
     const assignedTo   = searchParams.get('assigned_to')   || ''
     const assignFilter = searchParams.get('assign_filter') || ''
+    const categoryFilter = (searchParams.get('category')  || searchParams.get('osmo_category') || '').toLowerCase().trim()
 
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 1000)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
+
+    // Ensure all leads in org have an associated conversation record
+    try {
+      const { data: orgLeads } = await supabaseAdmin
+        .from('leads')
+        .select('id, phone_number, name, customer_name, stage, created_at, osmo_category')
+        .eq('org_id', orgId)
+        .not('phone_number', 'is', null)
+
+      if (orgLeads && orgLeads.length > 0) {
+        const { data: existingConvs } = await supabaseAdmin
+          .from('conversations')
+          .select('phone_number')
+          .eq('org_id', orgId)
+
+        const existingPhones = new Set((existingConvs || []).map(c => (c.phone_number || '').replace(/\D/g, '').slice(-10)))
+        const missingLeads = orgLeads.filter(l => {
+          const p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
+          return p && !existingPhones.has(p)
+        })
+
+        if (missingLeads.length > 0) {
+          const newConvsToInsert = missingLeads.map(l => ({
+            org_id: orgId,
+            phone_number: l.phone_number,
+            name: l.name || l.customer_name || l.phone_number,
+            stage: l.stage || 'new',
+            unread_count: 0,
+            updated_at: l.created_at || new Date().toISOString(),
+            last_message: 'No messages yet'
+          }))
+          // Insert in chunks of 50
+          for (let i = 0; i < newConvsToInsert.length; i += 50) {
+            await supabaseAdmin.from('conversations').insert(newConvsToInsert.slice(i, i + 50))
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[GET /api/conversations] Auto-heal missing conversations error:', e)
+    }
 
     let query = supabaseAdmin
       .from('conversations')
@@ -152,6 +193,27 @@ export async function GET(req: NextRequest) {
       }
     } catch (e) {
       console.error('[GET /api/conversations] Fallback lead lookup error:', e)
+    }
+
+    // Filter by category if requested
+    if (categoryFilter && categoryFilter !== 'all') {
+      enrichedData = enrichedData.filter(c => {
+        const leadObj = c.lead || (Array.isArray(c.leads) ? c.leads[0] : c.leads) || {}
+        const meta = typeof leadObj?.metadata === 'object' ? leadObj.metadata : (typeof c.metadata === 'object' ? c.metadata : {})
+        const cat = String(
+          leadObj?.osmo_category || 
+          leadObj?.category || 
+          leadObj?.lead_type || 
+          meta?.osmo_category || 
+          meta?.category || 
+          meta?.lead_type || 
+          c.osmo_category || 
+          c.category || 
+          c.lead_type || 
+          'unfiltered'
+        ).toLowerCase()
+        return cat === categoryFilter
+      })
     }
 
     // Apply search filter if present

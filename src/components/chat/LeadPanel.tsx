@@ -674,6 +674,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                         }
 
                         setSavingCategoryStatus('success')
+                        window.dispatchEvent(new CustomEvent('lead-updated'))
                         setShowCategoryToast(true)
                         setTimeout(() => {
                           setSavingCategoryStatus('idle')

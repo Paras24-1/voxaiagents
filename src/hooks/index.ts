@@ -12,6 +12,7 @@ export function useConversations(filters: {
   stage?: string
   unread?: boolean
   assignFilter?: string
+  category?: string
   userId?: string
   isAdmin?: boolean
   userRole?: string
@@ -125,9 +126,10 @@ export function useConversations(filters: {
     }
 
     const params = new URLSearchParams()
-    if (filters.search) params.set('search', filters.search)
-    if (filters.stage)  params.set('stage',  filters.stage)
-    if (filters.unread) params.set('unread', 'true')
+    if (filters.search)   params.set('search',   filters.search)
+    if (filters.stage)    params.set('stage',    filters.stage)
+    if (filters.unread)   params.set('unread',   'true')
+    if (filters.category) params.set('category', filters.category)
 
     if (filters.userRole === 'employee' && filters.userId) {
       params.set('assigned_to', filters.userId)
@@ -158,6 +160,7 @@ export function useConversations(filters: {
     }
 
     const data = await res.json()
+
     if (Array.isArray(data)) {
       if (data.length < 300) {
         setHasMore(false)
@@ -204,7 +207,7 @@ export function useConversations(filters: {
       }
     }
     setLoading(false)
-  }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.userId, filters.userRole])
+  }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.category, filters.userId, filters.userRole])
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || loading) return
@@ -212,9 +215,10 @@ export function useConversations(filters: {
 
     const offset = conversations.length
     const params = new URLSearchParams()
-    if (filters.search) params.set('search', filters.search)
-    if (filters.stage)  params.set('stage',  filters.stage)
-    if (filters.unread) params.set('unread', 'true')
+    if (filters.search)   params.set('search',   filters.search)
+    if (filters.stage)    params.set('stage',    filters.stage)
+    if (filters.unread)   params.set('unread',   'true')
+    if (filters.category) params.set('category', filters.category)
 
     if (filters.userRole === 'employee' && filters.userId) {
       params.set('assigned_to', filters.userId)

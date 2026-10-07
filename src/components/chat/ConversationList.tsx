@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Conversation, Stage } from '@/types'
 import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
@@ -74,20 +74,21 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const [osmoTab, setOsmoTab] = useState<string>('unfiltered')
   const [categoryStats, setCategoryStats] = useState<Record<string, number> | null>(null)
 
-  useEffect(() => {
-    const fetchCategoryStats = async () => {
-      try {
-        const res = await fetchWithAuth('/api/leads/stats')
-        if (res.ok) {
-          const data = await res.json()
-          setCategoryStats(data)
-        }
-      } catch (err) {
-        console.error('Failed to fetch lead category stats:', err)
+  const fetchCategoryStats = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth('/api/leads/stats')
+      if (res.ok) {
+        const data = await res.json()
+        setCategoryStats(data)
       }
+    } catch (err) {
+      console.error('Failed to fetch lead category stats:', err)
     }
-    fetchCategoryStats()
   }, [])
+
+  useEffect(() => {
+    fetchCategoryStats()
+  }, [fetchCategoryStats, osmoTab])
 
   const [confirmId, setConfirmId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -149,11 +150,21 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     stage, 
     unread,
     assignFilter: assignedFilter,
+    category: isOsmo ? osmoTab : undefined,
     userId: profile?.id,
     isAdmin: !!isAdmin,
     userRole: profile?.role,
     selectedId,
   })
+
+  useEffect(() => {
+    const handleLeadUpdated = () => {
+      refetch()
+      fetchCategoryStats()
+    }
+    window.addEventListener('lead-updated', handleLeadUpdated)
+    return () => window.removeEventListener('lead-updated', handleLeadUpdated)
+  }, [refetch, fetchCategoryStats])
 
   const totalUnreadConvs = useMemo(() => {
     return conversations.filter(c => (c.unread_count && c.unread_count > 0) || (c as any).unread).length
