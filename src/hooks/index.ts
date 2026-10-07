@@ -289,19 +289,11 @@ export function useConversations(filters: {
     fetchConversations()
   }, [fetchConversations])
 
-  // Silent background poll (120s safety net + focus listener) — Realtime socket handles instant updates
+  // Focus listener only — Realtime socket handles all live updates, no polling needed
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchConversations(false) // false = no loading spinner
-    }, 120_000)
-
     const handleFocus = () => fetchConversations(false)
     window.addEventListener('focus', handleFocus)
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('focus', handleFocus)
-    }
+    return () => window.removeEventListener('focus', handleFocus)
   }, [fetchConversations])
 
   useEffect(() => {
@@ -471,21 +463,12 @@ export function useMessages(conversationId: string | null) {
     fetchMessages(true)
   }, [conversationId, fetchMessages])
 
-  // Background polling (60s safety net) + window focus listener to catch any missed realtime events
+  // Focus listener only — Realtime socket handles all live updates, no polling needed
   useEffect(() => {
     if (!conversationId) return
-
-    const interval = setInterval(() => {
-      fetchMessages(false)
-    }, 180000)
-
     const handleFocus = () => fetchMessages(false)
     window.addEventListener('focus', handleFocus)
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('focus', handleFocus)
-    }
+    return () => window.removeEventListener('focus', handleFocus)
   }, [conversationId, fetchMessages])
 
   // Real-time message subscription

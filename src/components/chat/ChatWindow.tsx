@@ -114,7 +114,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         }
       } catch {}
     }
-    const timer = setInterval(runScheduleProcessor, 60000)
+    const timer = setInterval(runScheduleProcessor, 300000) // 5 min — scheduled messages don't need checking every 60s
     return () => clearInterval(timer)
   }, [fetchScheduledMessages])
 

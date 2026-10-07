@@ -5,7 +5,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // Client-only Supabase instances (Safe for client component bundling)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  realtime: { params: { eventsPerSecond: 10 } },
+  realtime: { params: { eventsPerSecond: 2 } },
 })
 
 const voiceSupabaseUrl = process.env.NEXT_PUBLIC_VOICE_SUPABASE_URL
@@ -13,7 +13,7 @@ const voiceSupabaseAnonKey = process.env.NEXT_PUBLIC_VOICE_SUPABASE_ANON_KEY
 
 export const supabaseVoice = voiceSupabaseUrl && voiceSupabaseAnonKey
   ? createClient(voiceSupabaseUrl, voiceSupabaseAnonKey, {
-      realtime: { params: { eventsPerSecond: 10 } },
+      realtime: { params: { eventsPerSecond: 2 } },
     })
   : null
 
