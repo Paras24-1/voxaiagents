@@ -25,63 +25,25 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 1000)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
-    let query = supabaseAdmin
-      .from('conversations')
-      .select('*, leads(*)', { count: 'exact' })
-      .eq('org_id', orgId)
+    let query: any
 
-    if (categoryFilter && categoryFilter !== 'all') {
-      try {
-        let catLeads: any[] = []
-        let lFrom = 0
-        let lFetchMore = true
-        while (lFetchMore) {
-          const { data: chunk, error: chunkErr } = await supabaseAdmin
-            .from('leads')
-            .select('phone_number, osmo_category, metadata')
-            .eq('org_id', orgId)
-            .range(lFrom, lFrom + 999)
-
-          if (chunkErr || !chunk || chunk.length === 0) {
-            lFetchMore = false
-          } else {
-            catLeads.push(...chunk)
-            if (chunk.length < 1000) lFetchMore = false
-            else lFrom += 1000
-          }
-        }
-
-        if (catLeads && catLeads.length > 0) {
-          const matchingPhones = catLeads.filter(l => {
-            let parsedMeta: Record<string, any> = l.metadata || {}
-            if (typeof l.metadata === 'string') {
-              try { parsedMeta = JSON.parse(l.metadata) } catch {}
-            }
-            const cat = String(
-              l.osmo_category || 
-              parsedMeta.osmo_category || 
-              parsedMeta.category || 
-              parsedMeta.lead_type || 
-              'unfiltered'
-            ).toLowerCase()
-            return cat === categoryFilter
-          }).map(l => l.phone_number).filter(Boolean)
-
-          const uniquePhones = Array.from(new Set(matchingPhones))
-          if (uniquePhones.length === 0) {
-            return NextResponse.json([], {
-              headers: {
-                'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0',
-                'X-Total-Count': '0'
-              }
-            })
-          }
-          query = query.in('phone_number', uniquePhones)
-        }
-      } catch (e) {
-        console.error('[GET /api/conversations] Category phone filter error:', e)
-      }
+    if (categoryFilter === 'unfiltered') {
+      query = supabaseAdmin
+        .from('conversations')
+        .select('*, leads!inner(*)', { count: 'exact' })
+        .or('osmo_category.eq.unfiltered,osmo_category.is.null', { foreignTable: 'leads' })
+    } else if (categoryFilter && categoryFilter !== 'all') {
+      query = supabaseAdmin
+        .from('conversations')
+        .select('*, leads!inner(*)', { count: 'exact' })
+        .eq('leads.osmo_category', categoryFilter)
+    } else {
+      query = supabaseAdmin
+        .from('conversations')
+        .select('*, leads(*)', { count: 'exact' })
     }
+
+    query = query.eq('org_id', orgId)
 
     if (isStaffEmployee) {
       query = query.eq('assigned_to', userId)
@@ -158,9 +120,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const allConvs = convs || []
+    const allConvs: any[] = (convs as any[]) || []
 
-    let enrichedData = (allConvs || []).map(conv => {
+    let enrichedData = allConvs.map((conv: any) => {
       const leadObj = Array.isArray(conv.leads) ? conv.leads[0] : conv.leads
       return {
         ...conv,
@@ -170,9 +132,9 @@ export async function GET(req: NextRequest) {
 
     // Fallback: for conversations missing a joined lead, check if a lead exists by phone number (in chunks of 50 to prevent URI length limits)
     try {
-      const unlinkedConvs = enrichedData.filter(c => !c.lead && c.phone_number)
+      const unlinkedConvs = enrichedData.filter((c: any) => !c.lead && c.phone_number)
       if (unlinkedConvs.length > 0) {
-        const phoneNumbers = Array.from(new Set(unlinkedConvs.map(c => c.phone_number)))
+        const phoneNumbers = Array.from(new Set(unlinkedConvs.map((c: any) => c.phone_number)))
         const CHUNK_SIZE = 50
         const fallbackLeads: any[] = []
 
@@ -189,12 +151,12 @@ export async function GET(req: NextRequest) {
 
         if (fallbackLeads.length > 0) {
           const leadByPhone = new Map<string, any>()
-          fallbackLeads.forEach(l => {
+          fallbackLeads.forEach((l: any) => {
             const p = (l.phone_number || '').replace(/\D/g, '').slice(-10)
             if (p && !leadByPhone.has(p)) leadByPhone.set(p, l)
           })
 
-          enrichedData.forEach(c => {
+          enrichedData.forEach((c: any) => {
             if (!c.lead && c.phone_number) {
               const p = c.phone_number.replace(/\D/g, '').slice(-10)
               if (leadByPhone.has(p)) {
@@ -210,7 +172,7 @@ export async function GET(req: NextRequest) {
 
     // Filter by category if requested
     if (categoryFilter && categoryFilter !== 'all') {
-      enrichedData = enrichedData.filter(c => {
+      enrichedData = enrichedData.filter((c: any) => {
         const leadObj = c.lead || (Array.isArray(c.leads) ? c.leads[0] : c.leads) || {}
         const meta = typeof leadObj?.metadata === 'object' ? leadObj.metadata : (typeof c.metadata === 'object' ? c.metadata : {})
         const cat = String(
@@ -232,7 +194,7 @@ export async function GET(req: NextRequest) {
     // Apply search filter if present
     if (search) {
       const srch = search.toLowerCase()
-      enrichedData = enrichedData.filter(conv => {
+      enrichedData = enrichedData.filter((conv: any) => {
         const p = (conv.phone_number || '').toLowerCase()
         const n = (conv.name || conv.lead?.name || '').toLowerCase()
         const msg = (conv.last_message || '').toLowerCase()
