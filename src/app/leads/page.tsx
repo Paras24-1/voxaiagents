@@ -888,12 +888,45 @@ function LeadsContent() {
                 return a.localeCompare(b);
               });
 
+              const getHeaderLabelWithIcon = (key: string) => {
+                const lower = key.toLowerCase();
+                const formatted = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                if (lower.includes('tehsil') || lower.includes('village') || lower.includes('location') || lower.includes('pincode')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {formatted}</span>
+                }
+                if (lower.includes('district') || lower.includes('city') || lower.includes('state')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🏙️</span> {formatted}</span>
+                }
+                if (lower.includes('crop') || lower.includes('farm')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🌾</span> {formatted}</span>
+                }
+                if (lower.includes('product') || lower.includes('item') || lower.includes('requirement') || lower.includes('machine')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">📦</span> {formatted}</span>
+                }
+                if (lower.includes('intent') || lower.includes('purpose') || lower.includes('goal')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🎯</span> {formatted}</span>
+                }
+                if (lower.includes('score')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><TrendingUp className="w-3.5 h-3.5 text-amber-500 shrink-0" /> {formatted}</span>
+                }
+                if (lower.includes('quality') || lower.includes('temperature')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🔥</span> {formatted}</span>
+                }
+                if (lower.includes('source')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">📌</span> {formatted}</span>
+                }
+                if (lower.includes('stage')) {
+                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><Tag className="w-3.5 h-3.5 text-purple-500 shrink-0" /> {formatted}</span>
+                }
+                return <span className="inline-flex items-center gap-1.5 font-extrabold">{formatted}</span>
+              }
+
               return (
                 <div className="overflow-x-auto flex-1 pb-4">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                    <thead className="bg-emerald-50/50 dark:bg-emerald-950/30 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 tracking-widest text-left uppercase sticky top-0 z-20 backdrop-blur-md">
+                    <thead className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 text-[11px] font-black tracking-wider text-left uppercase sticky top-0 z-20 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-2xs">
                       <tr>
-                        <th className="px-3 py-4 whitespace-nowrap sticky left-0 bg-emerald-50/90 dark:bg-emerald-950/90 backdrop-blur-xl z-30 w-10 text-center">
+                        <th className="px-3 py-4 whitespace-nowrap sticky left-0 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 w-10 text-center">
                           <input
                             type="checkbox"
                             checked={displayedLeads.length > 0 && displayedLeads.every(l => selectedLeadPhones.includes(l.phone_number))}
@@ -904,17 +937,29 @@ function LeadsContent() {
                                 setSelectedLeadPhones([])
                               }
                             }}
-                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                            className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
                           />
                         </th>
-                        <th className="px-6 py-4 whitespace-nowrap sticky left-10 bg-emerald-50/90 dark:bg-emerald-950/90 backdrop-blur-xl z-30 shadow-[inset_-1px_0_0_0_rgba(16,185,129,0.2)] dark:shadow-[inset_-1px_0_0_0_rgba(16,185,129,0.1)]">Lead Contact</th>
+                        <th className="px-6 py-4 whitespace-nowrap sticky left-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.08)] dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.08)] font-black text-slate-900 dark:text-white">
+                          <span className="inline-flex items-center gap-1.5">
+                            <User className="w-4 h-4 text-emerald-500" />
+                            Lead Contact
+                          </span>
+                        </th>
                         {uniqueCustomKeys.map(key => (
-                          <th key={key} className="px-6 py-4 whitespace-nowrap">
-                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          <th key={key} className="px-6 py-4 whitespace-nowrap font-black text-slate-900 dark:text-white">
+                            {getHeaderLabelWithIcon(key)}
                           </th>
                         ))}
-                        <th className="px-6 py-4 whitespace-nowrap">Date Added</th>
-                        <th className="px-6 py-4 text-right whitespace-nowrap sticky right-0 bg-emerald-50/90 dark:bg-emerald-950/90 backdrop-blur-xl z-30 shadow-[inset_1px_0_0_0_rgba(16,185,129,0.2)] dark:shadow-[inset_1px_0_0_0_rgba(16,185,129,0.1)]">Actions</th>
+                        <th className="px-6 py-4 whitespace-nowrap font-black text-slate-900 dark:text-white">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4 text-emerald-500" />
+                            Date Added
+                          </span>
+                        </th>
+                        <th className="px-6 py-4 text-right whitespace-nowrap sticky right-0 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 shadow-[inset_1px_0_0_0_rgba(0,0,0,0.08)] dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.08)] font-black text-slate-900 dark:text-white">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-800/60 text-sm">
@@ -950,12 +995,12 @@ function LeadsContent() {
                         return (
                           <tr 
                             key={lead.id} 
-                            className={`group hover:bg-emerald-50/40 dark:hover:bg-emerald-900/10 transition-all cursor-pointer relative ${
-                              selectedLeadPhones.includes(lead.phone_number) ? 'bg-emerald-50/30 dark:bg-emerald-950/20' : ''
+                            className={`group hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 transition-all cursor-pointer relative ${
+                              selectedLeadPhones.includes(lead.phone_number) ? 'bg-emerald-50/40 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500' : ''
                             }`}
                             onClick={() => handleViewLead(lead)}
                           >
-                            <td className="px-3 py-4 whitespace-nowrap sticky left-0 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 text-center" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-3 py-4 whitespace-nowrap sticky left-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 text-center" onClick={(e) => e.stopPropagation()}>
                               <input
                                 type="checkbox"
                                 checked={selectedLeadPhones.includes(lead.phone_number)}
@@ -963,145 +1008,160 @@ function LeadsContent() {
                                   const phone = lead.phone_number
                                   setSelectedLeadPhones(prev => prev.includes(phone) ? prev.filter(p => p !== phone) : [...prev, phone])
                                 }}
-                                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
                               />
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap sticky left-10 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 shadow-[inset_-1px_0_0_0_#f3f4f6] dark:shadow-[inset_-1px_0_0_0_#1f2937]">
-                              <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                <span>{displayName}</span>
-                                {isOsmoRo && (
-                                  <div className="relative inline-flex items-center ml-1" onClick={(e) => e.stopPropagation()}>
-                                    <select
-                                      value={classifyLead(lead)}
-                                      onChange={(e) => handleQuickCategoryChange(lead, e.target.value)}
-                                      className={`text-[9px] font-bold pl-1.5 pr-3.5 py-0.5 rounded-full uppercase tracking-wider border cursor-pointer appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-sm ${
-                                        classifyLead(lead) === 'osmo_dealer' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800' :
-                                        classifyLead(lead) === 'dealer' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800' :
-                                        classifyLead(lead) === 'customer' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border-teal-200 dark:border-teal-800' :
-                                        'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-750'
-                                      }`}
-                                      title="Change Category (Osmo Dealer, Dealer, Customer, Unfiltered)"
-                                    >
-                                      <option value="unfiltered">Unfiltered</option>
-                                      <option value="osmo_dealer">Osmo Dealer</option>
-                                      <option value="dealer">Dealer</option>
-                                      <option value="customer">Customer</option>
-                                    </select>
-                                    <ChevronDown className="w-2 h-2 absolute right-1 pointer-events-none opacity-60" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                                <Phone className="w-3 h-3" />
-                                {lead.phone_number}
-                              </div>
-                              {/* Source Badge Tag */}
-                              <div className="mt-1">
-                                {(() => {
-                                  const src = String(allCustomData.source || '').toLowerCase()
-                                  if (!src) return null
-                                  if (src.includes('bulk_import') || src.includes('bulk') || src.includes('import')) {
-                                    return (
-                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800/60">
-                                        📥 Bulk Import
-                                      </span>
-                                    )
-                                  }
-                                  if (src.includes('inbound') || src.includes('whatsapp')) {
-                                    return (
-                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
-                                        💬 Inbound WhatsApp
-                                      </span>
-                                    )
-                                  }
-                                  if (src.includes('google_maps') || src.includes('scraper')) {
-                                    return (
-                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800/60">
-                                        🗺️ Scraper
-                                      </span>
-                                    )
-                                  }
-                                  if (src.includes('manual')) {
-                                    return (
-                                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/60">
-                                        ✏️ Manual Entry
-                                      </span>
-                                    )
-                                  }
-                                  return (
-                                    <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 font-mono capitalize">
-                                      📌 {src}
-                                    </span>
-                                  )
-                                })()}
-                              </div>
-                              {(lead as any).assigned_at && (new Date((lead as any).assigned_at).getTime() >= new Date().setHours(0,0,0,0)) && (
-                                <div className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 inline-flex items-center gap-1 mt-1">
-                                  <Clock className="w-2.5 h-2.5" />
-                                  Assigned Today ({formatISTDate((lead as any).assigned_at).split(',')[1] || formatISTDate((lead as any).assigned_at)})
+                            <td className="px-6 py-4 whitespace-nowrap sticky left-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.06)] dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0 ring-2 ring-emerald-500/20">
+                                  {(displayName || 'U').charAt(0).toUpperCase()}
                                 </div>
-                              )}
-                              {rawFollowup && <div className="text-cyan-600 dark:text-cyan-400 text-[10px] truncate font-medium mt-1">📌 {rawFollowup}</div>}
+                                <div className="flex flex-col">
+                                  <div className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 text-sm tracking-tight">
+                                    <span>{displayName}</span>
+                                    {isOsmoRo && (
+                                      <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
+                                        <select
+                                          value={classifyLead(lead)}
+                                          onChange={(e) => handleQuickCategoryChange(lead, e.target.value)}
+                                          className={`text-[9px] font-black pl-2 pr-4 py-0.5 rounded-full uppercase tracking-wider border cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs ${
+                                            classifyLead(lead) === 'osmo_dealer' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200 border-purple-300 dark:border-purple-700' :
+                                            classifyLead(lead) === 'dealer' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 border-amber-300 dark:border-amber-700' :
+                                            classifyLead(lead) === 'customer' ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200 border-teal-300 dark:border-teal-700' :
+                                            'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                                          }`}
+                                          title="Change Category"
+                                        >
+                                          <option value="unfiltered">Unfiltered</option>
+                                          <option value="osmo_dealer">Osmo Dealer</option>
+                                          <option value="dealer">Dealer</option>
+                                          <option value="customer">Customer</option>
+                                        </select>
+                                        <ChevronDown className="w-2.5 h-2.5 absolute right-1 pointer-events-none opacity-60" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 mt-0.5">
+                                    <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
+                                    <span>{lead.phone_number}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                    {(() => {
+                                      const src = String(allCustomData.source || '').toLowerCase()
+                                      if (!src) return null
+                                      if (src.includes('bulk_import') || src.includes('bulk') || src.includes('import')) {
+                                        return (
+                                          <span className="inline-flex items-center gap-1 text-[9px] font-black text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
+                                            📥 Bulk Import
+                                          </span>
+                                        )
+                                      }
+                                      if (src.includes('inbound') || src.includes('whatsapp') || src.includes('chat')) {
+                                        return (
+                                          <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                                            💬 Inbound WhatsApp
+                                          </span>
+                                        )
+                                      }
+                                      if (src.includes('google_maps') || src.includes('scraper')) {
+                                        return (
+                                          <span className="inline-flex items-center gap-1 text-[9px] font-black text-purple-700 dark:text-purple-300 bg-purple-100/80 dark:bg-purple-950/60 px-2 py-0.5 rounded-md border border-purple-200 dark:border-purple-800">
+                                            🗺️ Scraper
+                                          </span>
+                                        )
+                                      }
+                                      if (src.includes('manual')) {
+                                        return (
+                                          <span className="inline-flex items-center gap-1 text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800">
+                                            ✏️ Manual Entry
+                                          </span>
+                                        )
+                                      }
+                                      return (
+                                        <span className="inline-flex items-center gap-1 text-[9px] font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 uppercase">
+                                          📌 {src}
+                                        </span>
+                                      )
+                                    })()}
+                                    {(lead as any).assigned_at && (new Date((lead as any).assigned_at).getTime() >= new Date().setHours(0,0,0,0)) && (
+                                      <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-700 inline-flex items-center gap-1 shadow-2xs">
+                                        <Clock className="w-2.5 h-2.5 text-amber-600" />
+                                        Assigned Today
+                                      </span>
+                                    )}
+                                  </div>
+                                  {rawFollowup && (
+                                    <div className="text-cyan-700 dark:text-cyan-300 text-[10px] font-bold mt-1 bg-cyan-50 dark:bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-800/60 inline-block truncate max-w-[200px]">
+                                      📌 {rawFollowup}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </td>
 
                             {uniqueCustomKeys.map(key => {
-                              // Prefer the metadata value for this key; fall back to the top-level
-                              // lead field. This is the correct source of truth since all custom
-                              // fields originate from the metadata JSON column.
+                              const lowerKey = key.toLowerCase();
                               const val = (meta as any)[key] !== undefined ? (meta as any)[key] : allCustomData[key];
-                              const displayVal = val !== undefined && val !== null ? String(val) : '-';
-                              const truncatedVal = displayVal.length > 50 ? displayVal.substring(0, 50) + '...' : displayVal;
+                              const displayVal = val !== undefined && val !== null ? String(val).trim() : '-';
+                              const isMissing = !displayVal || displayVal === '-';
 
-                              if (key.toLowerCase() === 'source') {
-                                if (!val) {
-                                  return (
-                                    <td key={key} className="px-6 py-4 whitespace-nowrap text-xs text-gray-400">
-                                      -
-                                    </td>
-                                  )
-                                }
-                                const srcVal = String(val).toLowerCase()
-                                let label = srcVal
+                              if (isMissing) {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap text-center">
+                                    <span className="text-gray-300 dark:text-gray-700 font-mono text-xs">-</span>
+                                  </td>
+                                );
+                              }
+
+                              // 1. Source Field
+                              if (lowerKey === 'source') {
+                                const srcVal = displayVal.toLowerCase()
+                                let label = displayVal
                                 let badgeStyle = 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300'
 
                                 if (srcVal.includes('bulk_import') || srcVal.includes('bulk') || srcVal.includes('import')) {
                                   label = '📥 Bulk Import'
-                                  badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300'
-                                } else if (srcVal.includes('inbound') || srcVal.includes('whatsapp')) {
+                                  badgeStyle = 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60 shadow-2xs'
+                                } else if (srcVal.includes('inbound') || srcVal.includes('whatsapp') || srcVal.includes('chat')) {
                                   label = '💬 Inbound WhatsApp'
-                                  badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                  badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60 shadow-2xs'
                                 } else if (srcVal.includes('google_maps') || srcVal.includes('scraper')) {
                                   label = '🗺️ Scraper'
-                                  badgeStyle = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300'
+                                  badgeStyle = 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/60 shadow-2xs'
                                 } else if (srcVal.includes('manual')) {
                                   label = '✏️ Manual Entry'
-                                  badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300'
+                                  badgeStyle = 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60 shadow-2xs'
                                 }
 
                                 return (
                                   <td key={key} className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border ${badgeStyle}`}>
+                                    <span className={`inline-flex items-center gap-1 text-xs font-extrabold px-2.5 py-1 rounded-lg border ${badgeStyle}`}>
                                       {label}
                                     </span>
                                   </td>
                                 )
                               }
                               
-                              if (key.toLowerCase() === 'lead_score') {
+                              // 2. Lead Score Field
+                              if (lowerKey === 'lead_score') {
                                  const score = Number(val ?? allCustomData.lead_score) || 0;
                                  return (
                                    <td key={key} className="px-6 py-4 whitespace-nowrap">
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-16 bg-gray-200 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                                      <div className="flex items-center gap-2.5">
+                                        <div className="w-16 bg-gray-200 dark:bg-gray-800 rounded-full h-2 overflow-hidden shadow-inner">
                                           <div 
-                                            className={`h-1.5 rounded-full ${score >= 70 ? 'bg-red-500' : score >= 40 ? 'bg-amber-500' : 'bg-blue-500'}`} 
+                                            className={`h-full rounded-full transition-all duration-500 ${
+                                              score >= 70 ? 'bg-gradient-to-r from-red-500 to-rose-600 shadow-sm shadow-red-500/50' : 
+                                              score >= 40 ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-sm shadow-amber-500/50' : 
+                                              'bg-gradient-to-r from-blue-500 to-sky-500'
+                                            }`} 
                                             style={{ width: `${Math.min(100, Math.max(0, score))}%` }} 
                                           />
                                         </div>
-                                        <span className={`text-xs font-bold font-mono px-2 py-0.5 rounded border ${
-                                          score >= 70 ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300' : 
-                                          score >= 40 ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300' : 
-                                          'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300'
+                                        <span className={`text-xs font-black font-mono px-2 py-0.5 rounded-md border shadow-2xs ${
+                                          score >= 70 ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800/60' : 
+                                          score >= 40 ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60' : 
+                                          'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60'
                                         }`}>
                                           {score}
                                         </span>
@@ -1109,65 +1169,156 @@ function LeadsContent() {
                                    </td>
                                  )
                               }
-                              if (key.toLowerCase() === 'lead_quality' || key.toLowerCase() === 'lead_temperature') {
+
+                              // 3. Lead Quality / Temperature
+                              if (lowerKey === 'lead_quality' || lowerKey === 'lead_temperature') {
                                 const qVal = String(val || allCustomData.lead_quality || allCustomData.lead_temperature || (metaScore >= 70 ? 'HOT' : metaScore >= 40 ? 'WARM' : 'COLD')).toUpperCase();
-                                return (
-                                   <td key={key} className="px-6 py-4 whitespace-nowrap">
-                                      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${QUALITY_COLORS[qVal] || 'bg-gray-100 text-gray-600'}`}>
-                                        {qVal}
-                                      </span>
-                                   </td>
-                                )
-                              }
-                              if (key.toLowerCase() === 'stage' || key.toLowerCase() === 'state') {
-                                const sVal = String(val || allCustomData.state || allCustomData.stage || 'new').toLowerCase();
-                                const matched = stages.find(st => st.name === sVal || st.name.toLowerCase() === sVal || st.id === sVal || st.label.toLowerCase() === sVal)
-                                const badgeColor = matched?.color || STAGE_COLORS[sVal] || 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50'
-                                const badgeLabel = matched?.label || sVal.replace(/_/g, ' ')
-                                return (
-                                   <td key={key} className="px-6 py-4 whitespace-nowrap">
-                                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${badgeColor}`}>
-                                        {badgeLabel}
-                                      </span>
-                                   </td>
-                                )
-                              }
+                                
+                                let qualityBadge = (
+                                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                    {qVal}
+                                  </span>
+                                );
 
-                              if (key.toLowerCase() === 'assigned_at') {
-                                return (
-                                  <td key={key} className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                    {formatISTDate(val)}
-                                  </td>
-                                )
-                              }
-
-                              return (
-                                <td key={key} className="px-6 py-4 whitespace-nowrap text-xs text-gray-700 dark:text-gray-300">
-                                  {truncatedVal !== '-' ? (
-                                    <span className="font-medium text-gray-700 dark:text-gray-300">
-                                      {truncatedVal}
+                                if (qVal === 'HOT') {
+                                  qualityBadge = (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-md shadow-red-500/25 ring-2 ring-red-400/20">
+                                      🔥 HOT
                                     </span>
-                                  ) : (
-                                    <span className="text-gray-300 dark:text-gray-700">-</span>
-                                  )}
+                                  );
+                                } else if (qVal === 'WARM') {
+                                  qualityBadge = (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/20">
+                                      ⚡ WARM
+                                    </span>
+                                  );
+                                } else if (qVal === 'COLD') {
+                                  qualityBadge = (
+                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/25 ring-2 ring-sky-400/20">
+                                      ❄️ COLD
+                                    </span>
+                                  );
+                                }
+
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    {qualityBadge}
+                                  </td>
+                                );
+                              }
+
+                              // 4. Stage or State
+                              if (lowerKey === 'stage' || lowerKey === 'state') {
+                                const sVal = String(val || allCustomData.state || allCustomData.stage || 'new').toLowerCase();
+                                const matched = stages.find(st => st.name === sVal || st.name.toLowerCase() === sVal || st.id === sVal || st.label.toLowerCase() === sVal);
+                                const badgeColor = matched?.color || STAGE_COLORS[sVal] || 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50';
+                                const badgeLabel = matched?.label || sVal.replace(/_/g, ' ');
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xs ${badgeColor}`}>
+                                      <Tag className="w-3 h-3 opacity-70" />
+                                      {badgeLabel}
+                                    </span>
+                                  </td>
+                                );
+                              }
+
+                              // 5. Assigned At Date
+                              if (lowerKey === 'assigned_at') {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap text-xs font-bold text-gray-800 dark:text-gray-200">
+                                    <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/80 px-2.5 py-1 rounded-lg border border-gray-200/70 dark:border-gray-700/60">
+                                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                      {formatISTDate(val)}
+                                    </div>
+                                  </td>
+                                );
+                              }
+
+                              // 6. Location Fields (Tehsil, District, Village, City, Location, Pincode)
+                              if (lowerKey.includes('tehsil') || lowerKey.includes('village') || lowerKey.includes('location') || lowerKey.includes('pincode')) {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800/60 font-bold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
+                                      <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                      {displayVal}
+                                    </span>
+                                  </td>
+                                );
+                              }
+
+                              if (lowerKey.includes('district') || lowerKey.includes('city')) {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5 bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 border border-teal-200 dark:border-teal-800/60 font-bold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
+                                      <span className="text-xs">🏙️</span>
+                                      {displayVal}
+                                    </span>
+                                  </td>
+                                );
+                              }
+
+                              // 7. Crop Requirement / Farm Fields
+                              if (lowerKey.includes('crop') || lowerKey.includes('farm')) {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5 bg-green-50 dark:bg-green-950/40 text-green-900 dark:text-green-200 border border-green-200 dark:border-green-800/60 font-extrabold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
+                                      <span className="text-xs">🌾</span>
+                                      {displayVal}
+                                    </span>
+                                  </td>
+                                );
+                              }
+
+                              // 8. Product Interest / Requirement
+                              if (lowerKey.includes('product') || lowerKey.includes('item') || lowerKey.includes('requirement') || lowerKey.includes('machine') || lowerKey.includes('model')) {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800/60 font-extrabold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
+                                      <span className="text-xs">📦</span>
+                                      {displayVal}
+                                    </span>
+                                  </td>
+                                );
+                              }
+
+                              // 9. Intent / Purpose / Goal
+                              if (lowerKey.includes('intent') || lowerKey.includes('purpose') || lowerKey.includes('inquiry')) {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5 bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 border border-purple-200 dark:border-purple-800/60 font-bold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-2xs">
+                                      <span className="text-xs">🎯</span>
+                                      {displayVal.replace(/_/g, ' ')}
+                                    </span>
+                                  </td>
+                                );
+                              }
+
+                              // 10. Default Custom Field Value (High Contrast Badge / Text)
+                              const truncatedVal = displayVal.length > 45 ? displayVal.substring(0, 45) + '...' : displayVal;
+                              return (
+                                <td key={key} className="px-6 py-4 whitespace-nowrap text-xs">
+                                  <span className="inline-block font-semibold text-gray-900 dark:text-gray-100 bg-gray-100/80 dark:bg-gray-800/80 px-2.5 py-1 rounded-lg border border-gray-200/80 dark:border-gray-700/80 shadow-2xs">
+                                    {truncatedVal}
+                                  </span>
                                 </td>
-                              )
+                              );
                             })}
                             
-                            <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
+                            <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-medium">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
                                 {formatISTDate(lead.created_at)}
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-xs sticky right-0 bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl group-hover:bg-emerald-50/60 dark:group-hover:bg-emerald-900/20 transition-colors z-10 shadow-[inset_1px_0_0_0_#f3f4f6] dark:shadow-[inset_1px_0_0_0_#1f2937]" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1.5">
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-xs sticky right-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 shadow-[inset_1px_0_0_0_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.06)]" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => {
                                     const cleanP = (lead.phone_number || '').replace(/\D/g, '').slice(-10)
                                     if (cleanP) router.push(`/chats?phone=${cleanP}`)
                                   }}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg border border-emerald-500 font-bold shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-extrabold text-xs shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
                                   title="Open chat conversation for this lead"
                                 >
                                   <MessageSquare className="w-3.5 h-3.5" />
@@ -1175,16 +1326,15 @@ function LeadsContent() {
                                 </button>
                                 <button
                                   onClick={() => handleViewLead(lead)}
-                                  className="px-3 py-1.5 bg-white dark:bg-gray-800 text-emerald-600 hover:text-white hover:bg-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white rounded-lg border border-emerald-200 dark:border-emerald-800/50 font-bold shadow-xs transition-all flex items-center gap-1"
+                                  className="px-3 py-1.5 bg-white dark:bg-gray-800 text-slate-700 hover:text-emerald-600 dark:text-slate-200 dark:hover:text-emerald-400 rounded-xl border border-gray-200 dark:border-gray-700 font-extrabold text-xs shadow-2xs hover:bg-gray-50 dark:hover:bg-gray-750 transition-all flex items-center gap-1.5 cursor-pointer"
                                 >
-                                  <Eye className="w-3.5 h-3.5" />
+                                  <Eye className="w-3.5 h-3.5 text-emerald-500" />
                                   View
                                 </button>
                               </div>
                             </td>
                           </tr>
                         )
-                      })}
                     </tbody>
                   </table>
                   
