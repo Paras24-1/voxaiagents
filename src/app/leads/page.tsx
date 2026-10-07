@@ -867,6 +867,8 @@ function LeadsContent() {
                   if (typeof metaOnly !== 'object' || Array.isArray(metaOnly)) return [];
                   return Object.keys(metaOnly).filter(key => {
                     if (skipKeys.includes(key.toLowerCase())) return false;
+                    // Guard: filter out pure numeric keys (0, 1, 2, 250...) produced if a string is indexed
+                    if (/^\d+$/.test(key)) return false;
                     const val = metaOnly[key];
                     // Skip nested objects/arrays and empty values
                     if (typeof val === 'object' && !Array.isArray(val)) return false;

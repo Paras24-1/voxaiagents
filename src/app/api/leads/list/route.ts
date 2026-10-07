@@ -71,7 +71,24 @@ export async function GET(req: NextRequest) {
       const ca = Array.isArray(c.conversation_assignments) ? c.conversation_assignments[0] || {} : c.conversation_assignments || {}
       const assignedAt = ca.assigned_at || c.updated_at || l.created_at
 
-      let parsedMetadata: Record<string, any> = l.metadata || {}
+      // CRITICAL: l.metadata may arrive as a raw JSON string (text column) rather than
+      // a parsed object (jsonb). If we spread a string with {...string}, JavaScript
+      // iterates its characters and creates numeric index keys (0,1,2,3,...) which then
+      // appear as garbled column headers in the CRM table. Always parse it first.
+      let parsedMetadata: Record<string, any> = {}
+      try {
+        if (typeof l.metadata === 'string' && l.metadata.trim()) {
+          parsedMetadata = JSON.parse(l.metadata)
+        } else if (l.metadata && typeof l.metadata === 'object' && !Array.isArray(l.metadata)) {
+          parsedMetadata = l.metadata
+        }
+        // Extra guard: if after parse it's still not a plain object, reset to {}
+        if (typeof parsedMetadata !== 'object' || Array.isArray(parsedMetadata) || parsedMetadata === null) {
+          parsedMetadata = {}
+        }
+      } catch (e) {
+        parsedMetadata = {}
+      }
       
       const score = Number(parsedMetadata.lead_score ?? 0)
       let q = (parsedMetadata.lead_quality || parsedMetadata.lead_temperature || l.lead_temperature || 'cold').toLowerCase()
