@@ -166,6 +166,15 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     return () => window.removeEventListener('lead-updated', handleLeadUpdated)
   }, [refetch, fetchCategoryStats])
 
+  useEffect(() => {
+    if (!loading && conversations.length > 0 && selectedId) {
+      const exists = conversations.some(c => c.id === selectedId)
+      if (!exists) {
+        onSelect(conversations[0])
+      }
+    }
+  }, [conversations, loading, selectedId, onSelect])
+
   const totalUnreadConvs = useMemo(() => {
     return conversations.filter(c => (c.unread_count && c.unread_count > 0) || (c as any).unread).length
   }, [conversations])

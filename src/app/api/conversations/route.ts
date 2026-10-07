@@ -70,6 +70,45 @@ export async function GET(req: NextRequest) {
       .select('*, leads(*)', { count: 'exact' })
       .eq('org_id', orgId)
 
+    if (categoryFilter && categoryFilter !== 'all') {
+      try {
+        const { data: catLeads } = await supabaseAdmin
+          .from('leads')
+          .select('phone_number, osmo_category, metadata')
+          .eq('org_id', orgId)
+
+        if (catLeads) {
+          const matchingPhones = catLeads.filter(l => {
+            let parsedMeta: Record<string, any> = l.metadata || {}
+            if (typeof l.metadata === 'string') {
+              try { parsedMeta = JSON.parse(l.metadata) } catch {}
+            }
+            const cat = String(
+              l.osmo_category || 
+              parsedMeta.osmo_category || 
+              parsedMeta.category || 
+              parsedMeta.lead_type || 
+              'unfiltered'
+            ).toLowerCase()
+            return cat === categoryFilter
+          }).map(l => l.phone_number).filter(Boolean)
+
+          const uniquePhones = Array.from(new Set(matchingPhones))
+          if (uniquePhones.length === 0) {
+            return NextResponse.json([], {
+              headers: {
+                'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0',
+                'X-Total-Count': '0'
+              }
+            })
+          }
+          query = query.in('phone_number', uniquePhones)
+        }
+      } catch (e) {
+        console.error('[GET /api/conversations] Category phone filter error:', e)
+      }
+    }
+
     if (isStaffEmployee) {
       query = query.eq('assigned_to', userId)
     } else {
