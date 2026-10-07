@@ -848,19 +848,29 @@ function LeadsContent() {
                 'source', 'lead_score', 'lead_quality', 'state', 'industry', 'business_intent'
               ];
 
-              // Collect all unique custom keys across leads (merging top-level and metadata)
+              // Collect all unique custom keys by scanning ONLY the metadata JSON object.
+              // IMPORTANT: Do NOT use { ...lead, ...meta } here — the API already spreads
+              // parsedMetadata onto the lead object, so top-level lead fields may be plain
+              // string values. Calling Object.keys() on a combined object that includes those
+              // string-typed keys causes JavaScript to iterate their character indices
+              // (e.g. Object.keys("Biaora") → ["0","1","2","3","4","5"]), producing the
+              // garbled numeric column headers (0, 1, 10, 100...) seen in the CRM table.
               const rawKeys = Array.from(new Set([
                 ...standardKeys,
                 ...displayedLeads.flatMap(lead => {
-                  let meta = (lead.metadata || {}) as Record<string, any>;
-                  if (typeof meta === 'string') {
-                    try { meta = JSON.parse(meta) } catch (e) { meta = {} }
+                  // Parse metadata cleanly — never spread the full lead object
+                  let metaOnly = (lead.metadata || {}) as Record<string, any>;
+                  if (typeof metaOnly === 'string') {
+                    try { metaOnly = JSON.parse(metaOnly) } catch (e) { metaOnly = {} }
                   }
-                  const combined = { ...lead, ...meta } as Record<string, any>;
-                  return Object.keys(combined).filter(key => {
+                  // Guard: if metadata is not a plain object (e.g. still a string), skip
+                  if (typeof metaOnly !== 'object' || Array.isArray(metaOnly)) return [];
+                  return Object.keys(metaOnly).filter(key => {
                     if (skipKeys.includes(key.toLowerCase())) return false;
-                    const val = combined[key];
-                    if (typeof val === 'object' || val === null || val === undefined || String(val).trim() === '') return false;
+                    const val = metaOnly[key];
+                    // Skip nested objects/arrays and empty values
+                    if (typeof val === 'object' && !Array.isArray(val)) return false;
+                    if (val === null || val === undefined || String(val).trim() === '') return false;
                     return true;
                   });
                 })
@@ -1033,7 +1043,10 @@ function LeadsContent() {
                             </td>
 
                             {uniqueCustomKeys.map(key => {
-                              const val = allCustomData[key];
+                              // Prefer the metadata value for this key; fall back to the top-level
+                              // lead field. This is the correct source of truth since all custom
+                              // fields originate from the metadata JSON column.
+                              const val = (meta as any)[key] !== undefined ? (meta as any)[key] : allCustomData[key];
                               const displayVal = val !== undefined && val !== null ? String(val) : '-';
                               const truncatedVal = displayVal.length > 50 ? displayVal.substring(0, 50) + '...' : displayVal;
 
