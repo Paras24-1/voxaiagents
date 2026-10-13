@@ -164,6 +164,8 @@ export async function POST(req: NextRequest) {
 
     let leadData = null
     const targetCategory = category || 'unfiltered'
+    const targetStage = stage || 'new'
+
     if (existingLead) {
       let existingMeta = existingLead.metadata || {}
       if (typeof existingMeta === 'string') { try { existingMeta = JSON.parse(existingMeta) } catch {} }
@@ -173,9 +175,8 @@ export async function POST(req: NextRequest) {
           conversation_id: conv.id,
           name: name || cleanPhone,
           customer_name: name || cleanPhone,
-          stage: stage || 'new',
           osmo_category: targetCategory,
-          metadata: { ...existingMeta, category: targetCategory, source: 'manual_entry' }
+          metadata: { ...existingMeta, category: targetCategory, stage: targetStage, source: 'manual_entry' }
         })
         .eq('id', existingLead.id)
         .select()
@@ -191,9 +192,8 @@ export async function POST(req: NextRequest) {
           phone_number: cleanPhone,
           name: name || cleanPhone,
           customer_name: name || cleanPhone,
-          stage: stage || 'new',
           osmo_category: targetCategory,
-          metadata: { category: targetCategory, source: 'manual_entry' }
+          metadata: { category: targetCategory, stage: targetStage, source: 'manual_entry' }
         })
         .select()
         .single()
