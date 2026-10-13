@@ -118,7 +118,7 @@ export default function TemplatePickerModal({
       if (selectedTemplate.header_format && selectedTemplate.header_format !== 'TEXT' && headerMediaUrl) {
         const formatKey = selectedTemplate.header_format.toLowerCase()
         components.push({
-          type: 'HEADER',
+          type: 'header',
           parameters: [
             {
               type: formatKey,
@@ -131,12 +131,15 @@ export default function TemplatePickerModal({
       // Body Variables Component
       const varKeys = Object.keys(variableValues)
       if (varKeys.length > 0) {
-        const bodyParameters = varKeys.map((key) => ({
-          type: 'text',
-          text: variableValues[key] || ''
-        }))
+        const bodyParameters = varKeys.map((key) => {
+          const val = variableValues[key] !== undefined && variableValues[key] !== null ? variableValues[key].trim() : ''
+          return {
+            type: 'text',
+            text: val.length > 0 ? val : ' '
+          }
+        })
         components.push({
-          type: 'BODY',
+          type: 'body',
           parameters: bodyParameters
         })
       }

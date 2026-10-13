@@ -1550,6 +1550,16 @@ function LeadsContent() {
         onSuccess={() => fetchLeads(false)}
       />
 
+      {/* Custom Stages Modal */}
+      <CustomStageModal
+        isOpen={isStageModalOpen}
+        onClose={() => setIsStageModalOpen(false)}
+        stages={stages}
+        customStages={customStages}
+        onAddStage={addCustomStage}
+        onDeleteStage={deleteCustomStage}
+      />
+
       {/* Floating Bulk Lead Assignment Action Bar */}
       {selectedLeadPhones.length > 0 && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 dark:bg-slate-950/95 border border-emerald-500/40 text-slate-100 px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-5 animate-in slide-in-from-bottom-5">

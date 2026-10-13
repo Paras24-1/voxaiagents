@@ -507,14 +507,14 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
     if (!conversation) return
     setNotes((conversation as any).notes || '')
     setNotesSaved(false)
-  }, [conversation?.id])
+  }, [conversation?.id, (conversation as any)?.notes])
 
   const handleSaveNotes = async () => {
-    if (!conversation) return
+    if (!conversation || savingNotes) return
     setSavingNotes(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      await fetch(`/api/conversations/${conversation.id}`, {
+      const res = await fetch(`/api/conversations/${conversation.id}`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -522,6 +522,22 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         },
         body: JSON.stringify({ notes })
       })
+
+      if (!res.ok) {
+        throw new Error('Failed to save notes')
+      }
+
+      // Update in-memory reference immediately
+      ;(conversation as any).notes = notes
+
+      // Dispatch event so conversation list and chat state retain notes in memory across tab switches
+      window.dispatchEvent(new CustomEvent('update-conversation', {
+        detail: {
+          ...conversation,
+          notes
+        }
+      }))
+
       setNotesSaved(true)
       setTimeout(() => setNotesSaved(false), 2000)
     } catch (err) {
@@ -1039,6 +1055,11 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           <textarea
             value={notes}
             onChange={e => setNotes(e.target.value)}
+            onBlur={() => {
+              if (notes !== ((conversation as any)?.notes || '')) {
+                handleSaveNotes()
+              }
+            }}
             placeholder="Add internal operator notes about this lead..."
             rows={4}
             className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-55/50 dark:bg-gray-800 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 border border-gray-150 dark:border-gray-700 leading-relaxed font-medium"

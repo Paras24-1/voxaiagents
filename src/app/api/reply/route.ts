@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     // 3. Fetch Organization Credentials for Direct Meta Cloud API Dispatch
     const { data: settings } = await supabaseAdmin
       .from('organization_settings')
-      .select('whatsapp_token, whatsapp_phone_id, n8n_reply_webhook_url, n8n_webhook_url')
+      .select('whatsapp_token, whatsapp_phone_id, n8n_reply_webhook_url, n8n_webhook_url, n8n_inbound_webhook_url')
       .eq('org_id', orgId)
       .single()
 
@@ -114,11 +114,32 @@ export async function POST(req: NextRequest) {
       }
 
       if (isTemplate) {
+        // Sanitize components: ensure type is lowercase ('body', 'header')
+        // and ensure text parameter values are non-empty strings so Meta doesn't reject
+        let sanitizedComponents = template_components
+        if (Array.isArray(template_components)) {
+          sanitizedComponents = template_components.map((comp: any) => {
+            const cType = (comp.type || 'body').toLowerCase()
+            const params = Array.isArray(comp.parameters) ? comp.parameters.map((p: any) => {
+              if (p.type === 'text') {
+                const val = p.text !== undefined && p.text !== null ? String(p.text).trim() : ''
+                return { ...p, text: val.length > 0 ? val : ' ' }
+              }
+              return p
+            }) : []
+            return {
+              ...comp,
+              type: cType,
+              parameters: params
+            }
+          })
+        }
+
         metaPayload.type = 'template'
         metaPayload.template = {
           name: template_name,
           language: { code: template_language || 'en' },
-          ...(template_components && Array.isArray(template_components) ? { components: template_components } : {})
+          ...(sanitizedComponents && Array.isArray(sanitizedComponents) && sanitizedComponents.length > 0 ? { components: sanitizedComponents } : {})
         }
       } else if (media_url) {
         const isAudio = media_type?.startsWith('audio') || media_type?.includes('audio')
@@ -174,18 +195,23 @@ export async function POST(req: NextRequest) {
         })
       } else {
         console.error(`[reply:direct-meta] Meta API error (${metaRes.status}):`, JSON.stringify(metaData))
-        // If direct Meta fails and no reply webhook, rollback message and return error
-        if (!settings?.n8n_reply_webhook_url) {
-          await supabaseAdmin.from('messages').delete().eq('id', msg.id)
-          return NextResponse.json({ 
-            error: metaData.error?.message || `Meta API error (${metaRes.status})`
-          }, { status: 400 })
-        }
+        // Rollback pending message and return Meta's exact error
+        await supabaseAdmin.from('messages').delete().eq('id', msg.id)
+        return NextResponse.json({ 
+          error: metaData.error?.message || `Meta API error (${metaRes.status})`
+        }, { status: 400 })
       }
     }
 
-    // Fallback: Webhook Routing if direct Meta credentials are not set
-    const primaryWebhookUrl = settings?.n8n_reply_webhook_url
+    // Fallback: Webhook Routing only if direct Meta credentials are not configured
+    // Strictly guard against ever calling the inbound chatbot webhook
+    const validReplyWebhook = (
+      settings?.n8n_reply_webhook_url && 
+      settings.n8n_reply_webhook_url !== settings.n8n_inbound_webhook_url && 
+      !settings.n8n_reply_webhook_url.startsWith('has_calendar:')
+    ) ? settings.n8n_reply_webhook_url : null
+
+    const primaryWebhookUrl = validReplyWebhook
     const fallbackWebhookUrl = settings?.n8n_webhook_url || process.env.N8N_BULK_WEBHOOK_URL || 'https://resplendent-rejoicing-production-4b92.up.railway.app/webhook/bulk-sendMulti'
 
     const payload = {

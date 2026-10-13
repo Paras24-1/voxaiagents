@@ -1079,7 +1079,12 @@ function AddLeadModal({
       // Reconstruct preview message
       let previewMessage = selectedTemplate.body || ''
       variables.forEach((val, i) => {
-        previewMessage = previewMessage.replace(`{{${i + 1}}}`, val)
+        previewMessage = previewMessage.replace(`{{${i + 1}}}`, val?.trim() || ' ')
+      })
+
+      const sanitizedVars = variables.map((v) => {
+        const val = v !== undefined && v !== null ? v.trim() : ''
+        return val.length > 0 ? val : ' '
       })
 
       const { data: { session } } = await supabase.auth.getSession()
@@ -1093,8 +1098,8 @@ function AddLeadModal({
           phone,
           name: leadName,
           template_name: selectedTemplate.name,
-          template_lang: selectedTemplate.language,
-          variables,
+          template_lang: selectedTemplate.language || 'en',
+          variables: sanitizedVars,
           message_text: previewMessage,
           userId: profile?.id
         })

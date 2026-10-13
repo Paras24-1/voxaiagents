@@ -30,49 +30,104 @@ export async function POST(req: NextRequest) {
     // 1. Fetch organization settings
     const { data: settings } = await supabaseAdmin
       .from('organization_settings')
-      .select('n8n_reply_webhook_url, n8n_webhook_url')
+      .select('whatsapp_token, whatsapp_phone_id, n8n_reply_webhook_url, n8n_webhook_url, n8n_inbound_webhook_url')
       .eq('org_id', orgId)
       .maybeSingle()
-
-    const targetWebhookUrl = 
-      settings?.n8n_reply_webhook_url || 
-      settings?.n8n_webhook_url || 
-      process.env.N8N_BULK_WEBHOOK_URL || 
-      'https://resplendent-rejoicing-production-4b92.up.railway.app/webhook/bulk-sendMulti'
 
     // 2. Format components for Meta Template message
     const components: any[] = []
     if (variables && Array.isArray(variables) && variables.length > 0) {
       components.push({
         type: 'body',
-        parameters: variables.map(v => ({
-          type: 'text',
-          text: String(v)
-        }))
+        parameters: variables.map(v => {
+          const val = v !== undefined && v !== null ? String(v).trim() : ''
+          return {
+            type: 'text',
+            text: val.length > 0 ? val : ' '
+          }
+        })
       })
     }
 
-    // 3. Send template message via n8n hybrid flow
-    const n8nRes = await fetch(targetWebhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        org_id: orgId,
-        phone_number: cleanPhone,
-        type: 'template',
-        template_name,
-        template_language: template_lang,
-        template_components: components,
-        message: message_text || `Template: ${template_name}`,
-        direction: 'outgoing',
-        timestamp: new Date().toISOString()
-      })
-    })
+    let wamid: string | null = null
 
-    if (!n8nRes.ok) {
-      const errText = await n8nRes.text()
-      console.error('[initiate conversation] n8n Webhook Error:', errText)
-      return NextResponse.json({ error: `n8n webhook error: ${errText}` }, { status: 400 })
+    // 3. Prefer direct Meta Cloud API dispatch if credentials exist
+    if (settings?.whatsapp_token && settings?.whatsapp_phone_id) {
+      console.log(`[initiate conversation] Dispatching template directly via Meta Cloud API for org: ${orgId}, phone: ${cleanPhone}`)
+
+      let formattedPhone = cleanPhone
+      if (formattedPhone.length === 10 && /^[6789]/.test(formattedPhone)) {
+        formattedPhone = '91' + formattedPhone
+      }
+
+      const metaPayload = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: formattedPhone,
+        type: 'template',
+        template: {
+          name: template_name,
+          language: { code: template_lang || 'en' },
+          ...(components.length > 0 ? { components } : {})
+        }
+      }
+
+      const metaRes = await fetch(`https://graph.facebook.com/v19.0/${settings.whatsapp_phone_id}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${settings.whatsapp_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(metaPayload)
+      })
+
+      const metaData = await metaRes.json()
+
+      if (!metaRes.ok || !metaData.messages?.[0]?.id) {
+        console.error('[initiate conversation] Meta API Error:', JSON.stringify(metaData))
+        return NextResponse.json({
+          error: metaData.error?.message || `Meta API error (${metaRes.status})`
+        }, { status: 400 })
+      }
+
+      wamid = metaData.messages[0].id
+      console.log(`[initiate conversation] Meta dispatch success, wamid: ${wamid}`)
+    } else {
+      // Fallback: Webhook dispatch only if direct credentials are not configured
+      // Strictly guard against ever calling the inbound chatbot webhook
+      const validReplyWebhook = (
+        settings?.n8n_reply_webhook_url &&
+        settings.n8n_reply_webhook_url !== settings.n8n_inbound_webhook_url &&
+        !settings.n8n_reply_webhook_url.startsWith('has_calendar:')
+      ) ? settings.n8n_reply_webhook_url : null
+
+      const targetWebhookUrl = 
+        settings?.n8n_webhook_url || 
+        validReplyWebhook || 
+        process.env.N8N_BULK_WEBHOOK_URL || 
+        'https://resplendent-rejoicing-production-4b92.up.railway.app/webhook/bulk-sendMulti'
+
+      const n8nRes = await fetch(targetWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          org_id: orgId,
+          phone_number: cleanPhone,
+          type: 'template',
+          template_name,
+          template_language: template_lang,
+          template_components: components,
+          message: message_text || `Template: ${template_name}`,
+          direction: 'outgoing',
+          timestamp: new Date().toISOString()
+        })
+      })
+
+      if (!n8nRes.ok) {
+        const errText = await n8nRes.text()
+        console.error('[initiate conversation] n8n Webhook Error:', errText)
+        return NextResponse.json({ error: `n8n webhook error: ${errText}` }, { status: 400 })
+      }
     }
 
     const resolvedMessageText = message_text || `Template: ${template_name}`
@@ -117,7 +172,9 @@ export async function POST(req: NextRequest) {
         phone_number: cleanPhone,
         message: resolvedMessageText,
         direction: 'outgoing',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        provider_message_id: wamid || null,
+        status: wamid ? 'sent' : 'pending'
       })
 
     if (msgError) throw msgError
