@@ -471,11 +471,11 @@ export default function LandingPage() {
           {/* Header Action Buttons */}
           <div className="hidden items-center gap-3 sm:flex">
             <Link
-              href={user ? "/chats" : "/login"}
+              href={user ? "/dashboard" : "/login"}
               className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3.5 py-2 text-xs font-medium text-slate-200 transition-all hover:bg-white/10 hover:border-white/25"
             >
               <LayoutDashboard className="h-3.5 w-3.5 text-cyan-400" />
-              <span>{user ? "Client Portal" : "Client Login"}</span>
+              <span>{user ? "Dashboard" : "Login"}</span>
             </Link>
 
             <a
@@ -1354,7 +1354,7 @@ export default function LandingPage() {
             <p>© {new Date().getFullYear()} Vox AI Agents. Custom AI Solutions for Business. All rights reserved.</p>
             <div className="flex items-center gap-6">
               <Link href="/privacy-policy.html" className="hover:text-slate-400 transition-colors">Privacy Policy</Link>
-              <Link href="/login" className="hover:text-slate-400 transition-colors">Client Portal</Link>
+              <Link href="/dashboard" className="hover:text-slate-400 transition-colors">Dashboard</Link>
               <span className="font-mono text-cyan-400">AUTONOMOUS WORKFORCE ENGINE</span>
             </div>
           </div>
