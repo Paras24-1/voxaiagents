@@ -23,7 +23,8 @@ import {
   Plus,
   UploadCloud,
   Clock,
-  UserCheck
+  UserCheck,
+  UserPlus
 } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
@@ -32,6 +33,7 @@ import { useRouter } from 'next/navigation'
 import { useLeadStages } from '@/hooks/useLeadStages'
 import CustomStageModal from '@/components/leads/CustomStageModal'
 import BulkImportLeadsModal from '@/components/leads/BulkImportLeadsModal'
+import CreateLeadModal from '@/components/leads/CreateLeadModal'
 
 interface Lead {
   id: string
@@ -134,6 +136,7 @@ function LeadsContent() {
   const { stages, customStages, addCustomStage, deleteCustomStage } = useLeadStages()
   const [isStageModalOpen, setIsStageModalOpen] = useState(false)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
 
   const isOsmoRo = 
     profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
@@ -577,6 +580,13 @@ function LeadsContent() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAddLeadModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm border border-emerald-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            + Add Lead
+          </button>
           <button
             onClick={() => setIsImportModalOpen(true)}
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-sm border border-blue-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
@@ -1558,6 +1568,16 @@ function LeadsContent() {
         customStages={customStages}
         onAddStage={addCustomStage}
         onDeleteStage={deleteCustomStage}
+      />
+
+      {/* Manual Create Lead Modal */}
+      <CreateLeadModal
+        isOpen={isAddLeadModalOpen}
+        onClose={() => setIsAddLeadModalOpen(false)}
+        onSuccess={() => fetchLeads(false)}
+        stages={stages}
+        staffList={staffList}
+        initialCategory={leadTypeFilter}
       />
 
       {/* Floating Bulk Lead Assignment Action Bar */}

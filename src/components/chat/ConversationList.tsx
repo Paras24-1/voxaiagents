@@ -9,6 +9,7 @@ import { useOrg } from '@/contexts/OrgContext'
 import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion'
 import { useLeadStages } from '@/hooks/useLeadStages'
+import CreateLeadModal from '@/components/leads/CreateLeadModal'
 
 const STAGES: Stage[] = ['new', 'interested', 'booking', 'confirmed', 'cancelled', 'completed', 'followup', 'not_interested', 'call_done', 'low_budget', 'hot_customer', 'not_connected', 'joined', 'not_joined', 'contact_save', 'contact_not_save', 'unknown']
 
@@ -261,14 +262,17 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
     <aside className="flex flex-col h-full bg-white dark:bg-gray-950 border-r border-gray-200/80 dark:border-gray-800/80">
       {/* Add Lead & Initiate Chat Modal */}
       {showAddLead && (
-        <AddLeadModal
+        <CreateLeadModal
+          isOpen={showAddLead}
           onClose={() => setShowAddLead(false)}
           onSuccess={(newConv) => {
             refetch()
-            onSelect(newConv)
+            if (newConv) onSelect(newConv)
             setShowAddLead(false)
           }}
-          profile={profile}
+          stages={stages}
+          staffList={employees}
+          initialCategory={osmoTab}
         />
       )}
 
