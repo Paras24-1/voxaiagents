@@ -1224,8 +1224,17 @@ function CampaignHistory({ campaigns, onRefresh }: { campaigns: Campaign[]; onRe
   return (
     <div className="space-y-3">
       {campaigns.map((campaign) => {
-        const pct          = campaign.total > 0 ? Math.round((campaign.sent / campaign.total) * 100) : 0
-        const deliveryRate = campaign.sent  > 0 ? Math.round((campaign.delivered / campaign.sent) * 100) : 0
+        const processed    = campaign.status === 'completed'
+          ? campaign.total
+          : Math.min(campaign.total, (campaign.sent || 0) + (campaign.delivered || 0) + (campaign.failed || 0))
+        const pct          = campaign.status === 'completed'
+          ? 100
+          : (campaign.total > 0 ? Math.min(100, Math.round((processed / campaign.total) * 100)) : 0)
+
+        const totalAttempted = (campaign.sent || 0) + (campaign.delivered || 0) + (campaign.failed || 0)
+        const deliveryRate   = totalAttempted > 0
+          ? Math.min(100, Math.round(((campaign.delivered || 0) / totalAttempted) * 100))
+          : 0
         const isExpanded   = expanded === campaign.id
 
         return (
@@ -1271,7 +1280,7 @@ function CampaignHistory({ campaigns, onRefresh }: { campaigns: Campaign[]; onRe
 
               <div className="mb-2">
                 <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                  <span>Progress</span><span>{pct}% ({campaign.sent}/{campaign.total})</span>
+                  <span>Progress</span><span>{pct}% ({processed}/{campaign.total})</span>
                 </div>
                 <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
@@ -1285,7 +1294,7 @@ function CampaignHistory({ campaigns, onRefresh }: { campaigns: Campaign[]; onRe
                 <MiniStat label="Failed"    value={campaign.failed}    color="text-red-500" />
               </div>
 
-              {campaign.sent > 0 && (
+              {(campaign.delivered > 0 || campaign.sent > 0) && (
                 <p className="mt-2 text-[10px] text-gray-400">
                   Delivery rate: <span className="text-green-600 font-medium">{deliveryRate}%</span>
                 </p>
