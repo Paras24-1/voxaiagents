@@ -367,68 +367,63 @@ export default function LandingPage() {
     <div className="vox-landing-theme min-h-screen bg-[var(--bg)] text-[var(--ink)] paper-grain selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden text-[16px]">
       {/* ─── 1. Minimal Sticky Header ───────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[#F6F1E7]/95 backdrop-blur-md transition-colors">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Brand Logo */}
-          <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--brand)] text-[#F6F1E7] shadow-sm transition-transform group-hover:scale-105">
-              <span className="font-serif text-2xl font-bold tracking-tight">V</span>
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
+          {/* Brand Logo — Clean, Tight & Uncluttered */}
+          <Link href="/" className="group flex items-center gap-2.5 shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand)] text-[#F6F1E7] shadow-sm transition-transform group-hover:scale-105">
+              <span className="font-serif text-xl font-bold tracking-tight">V</span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif text-xl font-bold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
-                  VOX AI AGENTS
-                </span>
-                <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-xs font-mono font-semibold text-[var(--brand-soft-text)]">
-                  AI Employee
-                </span>
-              </div>
-              <p className="text-xs sm:text-[13px] text-[var(--ink-muted)]">
-                Autonomous AI Employees for Indian Businesses
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="font-serif text-xl font-bold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors whitespace-nowrap">
+                VOX AI
+              </span>
+              <span className="hidden xl:inline-block rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-[11px] font-mono font-semibold text-[var(--brand-soft-text)]">
+                AI Employee
+              </span>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden items-center gap-6 xl:gap-8 lg:flex text-[15px] font-semibold text-[var(--ink-muted)]">
-            <a href="#how-it-works" className="hover:text-[var(--ink)] transition-colors">
+          {/* Desktop Navigation Links — Single-line, No Wrapping, Evenly Spaced */}
+          <nav className="hidden items-center gap-4 xl:gap-7 lg:flex text-sm xl:text-[15px] font-semibold text-[var(--ink-muted)]">
+            <a href="#how-it-works" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
               How it works
             </a>
-            <a href="#channels" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#channels" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
               Channels
             </a>
-            <a href="#roi-calculator" className="hover:text-[var(--ink)] transition-colors">
-              ROI Calculator
+            <a href="#roi-calculator" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
+              Calculator
             </a>
-            <a href="#comparison" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#comparison" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
               Comparison
             </a>
-            <a href="#pricing" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#pricing" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
               Pricing
             </a>
-            <a href="#faq" className="hover:text-[var(--ink)] transition-colors">
+            <a href="#faq" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
               FAQ
             </a>
           </nav>
 
-          {/* Action Buttons — Highlighted Appealing Login + Primary Coral CTA */}
-          <div className="hidden items-center gap-3 sm:flex">
+          {/* Action Buttons — Clean, Highlighted Login + Primary Coral CTA */}
+          <div className="hidden items-center gap-2.5 xl:gap-3 sm:flex shrink-0">
             <Link
               href={user ? "/dashboard" : "/login"}
-              className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--brand)]/35 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-[var(--brand)] shadow-sm transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 group"
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--brand)]/25 bg-white px-3.5 xl:px-4 py-2 text-xs xl:text-sm font-bold text-[var(--brand)] shadow-xs transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 group whitespace-nowrap"
             >
-              <span className="relative flex h-2.5 w-2.5">
+              <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <LayoutDashboard className="h-4 w-4 text-[var(--brand)] group-hover:text-white transition-colors" />
-              <span>{user ? "Open Dashboard" : "Client Portal / Login"}</span>
+              <LayoutDashboard className="h-3.5 w-3.5 xl:h-4 xl:w-4 text-[var(--brand)] group-hover:text-white transition-colors" />
+              <span>{user ? "Dashboard" : "Client Portal"}</span>
             </Link>
 
             <a
               href={WHATSAPP_CTA}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+              className="inline-flex items-center gap-1.5 xl:gap-2 rounded-xl bg-[var(--accent)] px-4 xl:px-5 py-2 text-xs xl:text-sm font-bold text-white shadow-sm transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
             >
               <span>Deploy AI Employee</span>
               <ArrowRight className="h-4 w-4" />
