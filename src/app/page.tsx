@@ -9,9 +9,9 @@ import {
   Check,
   CheckCheck,
   CheckCircle2,
-  ChevronRight,
   Clock,
   ExternalLink,
+  FileText,
   Headphones,
   Instagram,
   LayoutDashboard,
@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Shield,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -56,32 +57,32 @@ const CALENDLY_CTA = `https://wa.me/917015551637?text=${encodeURIComponent(
 const clientLogos = [
   {
     name: "DAMAC Properties",
-    category: "Luxury Real Estate",
+    category: "Luxury Real Estate & Towers",
     logo: "/clients/damac.png",
   },
   {
     name: "Innoveg",
-    category: "Wholesale & Agritech",
+    category: "Wholesale & Fresh Agritech",
     logo: "/clients/innoveg.jpeg",
   },
   {
     name: "Nelson Business School",
-    category: "Executive Education",
+    category: "Higher & Executive Education",
     logo: "/clients/nelson-business-school.jpeg",
   },
   {
     name: "Osmo RO Care",
-    category: "Water Purification Systems",
+    category: "Pan-India Water Systems",
     logo: "/clients/osmo-ro-care.jpg",
   },
   {
     name: "Printevr",
-    category: "Digital Print & Merch",
+    category: "Digital Printing & Merchandise",
     logo: "/clients/printevr.jpeg",
   },
   {
     name: "SME Network",
-    category: "Enterprise Advisory",
+    category: "SMB Advisory & Enterprise",
     logo: "/clients/sme.jpeg",
   },
 ]
@@ -89,7 +90,6 @@ const clientLogos = [
 export default function LandingPage() {
   const { user } = useOrg()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [activeChannel, setActiveChannel] = useState<'voice' | 'whatsapp' | 'instagram' | 'email'>('voice')
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const [audioTranscriptIndex, setAudioTranscriptIndex] = useState(0)
 
@@ -100,20 +100,20 @@ export default function LandingPage() {
       label: "Today's Briefing",
       question: "Hey Nova, give me a complete debrief of today's business activity.",
       response: {
-        headline: "Operational Debrief for Today",
+        headline: "Operational Debrief for Today Across All 4 Channels",
         bullets: [
-          "Phone Calls: 42 inbound/outbound calls handled autonomously. 9 booked for direct sales demo, 4 warm-transferred to human closers.",
-          "WhatsApp: 114 prospective conversations active. Generated ₹5,80,000 in customized quotes with zero human manual intervention.",
-          "Instagram: Auto-responded to 68 Reel comments, converted 23 direct DMs into verified phone numbers in CRM.",
-          "Email: Cleaned incoming inbox, categorized 14 partner inquiries, and pre-drafted 3 enterprise RFP proposals for your 1-click approval.",
+          "Phone Calls: 42 inbound calls handled autonomously with 0 dropped sessions. 9 qualified prospects scheduled direct sales meetings on Google Calendar; 4 high-budget leads were warm-transferred live to human closers.",
+          "WhatsApp: 114 prospective conversations engaged in Hindi and English. Generated ₹5,80,000 in customized PDF quotations with zero human manual intervention.",
+          "Instagram: Auto-responded to 68 Reel comments, converted 23 direct DMs into verified Indian phone numbers automatically pushed to CRM.",
+          "Email: Cleaned incoming inbox to Inbox Zero, categorized 14 wholesale partner inquiries, and pre-drafted 3 enterprise RFP proposals awaiting your 1-click approval.",
         ],
         kpis: [
-          { label: "Leads Captured", val: "179" },
-          { label: "Avg Response Time", val: "1.2 sec" },
-          { label: "Qualified Pipeline", val: "₹18.4L" },
-          { label: "Human Hours Saved", val: "7.5 hrs" },
+          { label: "Leads Captured", val: "179 Leads" },
+          { label: "Avg Response", val: "1.2 sec" },
+          { label: "Qualified Pipeline", val: "₹18.4 Lakh" },
+          { label: "Hours Saved", val: "7.5 hrs" },
         ],
-        alert: "2 high-ticket prospects requested custom ERP API integration. Briefing dossiers prepared on your desk.",
+        alert: "Action Required: 2 high-ticket wholesale distributors requested custom ERP API integration. Briefing dossiers and call recordings are pre-loaded in your dashboard.",
       },
     },
     {
@@ -121,19 +121,19 @@ export default function LandingPage() {
       label: "Hot Leads to Close",
       question: "Which high-intent leads are ready for my human closers right now?",
       response: {
-        headline: "High-Intent Prospects Awaiting Human Handoff",
+        headline: "High-Intent Prospects Awaiting Immediate Human Handoff",
         bullets: [
-          "1. Rajesh Singhania (Industrial Manufacturing): Confirmed ₹15L budget for 4-factory automation. Wants contract call tomorrow at 3 PM.",
-          "2. Dr. Ananya Verma (Clinic Network, 6 branches): Qualified for multi-doctor patient triage & WhatsApp booking. Call transcript attached.",
-          "3. Vikram Mehta (Luxury Real Estate): Ready to deploy Instagram Reel DM automation for 3 luxury residential towers in Gurgaon.",
+          "1. Rajesh Singhania (Industrial Manufacturing): Confirmed ₹15L budget for 4-factory automated order intake. Requested contract closing call tomorrow at 3 PM.",
+          "2. Dr. Ananya Verma (Clinic Network, 6 branches): Fully qualified for multi-doctor patient triage & WhatsApp booking. Complete symptom questionnaire and call recording attached.",
+          "3. Vikram Mehta (Luxury Real Estate): Ready to deploy Instagram Reel DM lead automation for 3 luxury residential towers in Gurgaon. Verified phone number synced to CRM.",
         ],
         kpis: [
-          { label: "High-Intent Deals", val: "3" },
-          { label: "Total Deal Value", val: "₹28,50,000" },
-          { label: "Qualification Score", val: "9.8 / 10" },
-          { label: "Handoff Status", val: "Context Pushed to CRM" },
+          { label: "Ready Deals", val: "3 Buyers" },
+          { label: "Deal Pipeline", val: "₹28.5 Lakh" },
+          { label: "Quality Score", val: "9.8 / 10" },
+          { label: "CRM Status", val: "Auto Synced" },
         ],
-        alert: "Full conversation summaries and audio call recordings are pre-loaded in your dashboard.",
+        alert: "All 3 prospect summaries, audio recordings, and WhatsApp chat transcripts are pre-loaded on your dashboard with full context.",
       },
     },
     {
@@ -141,19 +141,19 @@ export default function LandingPage() {
       label: "Voice Calls & Objections",
       question: "Summarise the phone calls and customer objections from today.",
       response: {
-        headline: "Voice Telephony Sentiment & Objection Analysis",
+        headline: "Voice Telephony Sentiment & Objection Analysis (Sub-350ms Latency)",
         bullets: [
-          "Total Call Minutes: 94 mins across 42 automated calls with 0 dropped sessions.",
-          "Most Common Question (58%): 'Can your AI employee speak both Hindi and English?' — AI answered affirmatively and switched languages seamlessly.",
-          "Second Question (34%): 'Can it connect directly to my existing phone number?' — AI explained SIP trunking and number forwarding without changing SIMs.",
+          "Total Call Minutes: 94 minutes across 42 automated phone calls with zero dropped calls and 100% audio clarity.",
+          "Primary Question (58% of callers): 'Can your AI employee speak both Hindi and English fluently?' — AI confirmed fluently and switched languages mid-sentence with natural inflection.",
+          "Second Question (34% of callers): 'Can it connect directly to my existing office phone number?' — AI explained SIP trunking and instant call forwarding without buying new SIM cards.",
         ],
         kpis: [
           { label: "Speech Latency", val: "340ms" },
           { label: "Human Cadence", val: "99.4%" },
-          { label: "Objections Handled", val: "31 / 34" },
-          { label: "Transferred Live", val: "4 to Closers" },
+          { label: "Objections Won", val: "31 / 34" },
+          { label: "Warm Transferred", val: "4 Callers" },
         ],
-        alert: "Zero robotic tone complaints. 92% of callers believed they were speaking to an in-office executive.",
+        alert: "Zero robotic tone complaints. 92% of callers believed they were speaking with an in-office human customer representative.",
       },
     },
     {
@@ -161,19 +161,19 @@ export default function LandingPage() {
       label: "Instagram & WhatsApp Ads",
       question: "How are our Instagram ads and WhatsApp campaigns converting today?",
       response: {
-        headline: "Social Omnichannel Conversion Velocity",
+        headline: "Social Omnichannel Conversion & Speed-to-Lead Velocity",
         bullets: [
-          "Meta Ads: 86 clicks triggered instant WhatsApp conversations within 1.5 seconds.",
-          "Instagram Reel 'How AI Replaces 5 Employees' generated 140 comments with keyword 'DEMO', instantly triggering private DM sales sequences.",
-          "Conversion Rate: 26.7% of all social interactions progressed to budget qualification stage.",
+          "Meta Ads: 86 ad clicks triggered instant WhatsApp conversations within 1.5 seconds, preventing lead drop-off.",
+          "Instagram Reel 'How AI Replaces 5 Employees' generated 140 comments with keyword 'DEMO', instantly triggering automated private DM sales sequences.",
+          "Conversion Velocity: 26.7% of all social interactions progressed to verified phone extraction and budget qualification stage.",
         ],
         kpis: [
-          { label: "Ad Leads Engaged", val: "86" },
-          { label: "Reel DMs Triggered", val: "140" },
-          { label: "Phone Numbers Extracted", val: "54" },
-          { label: "Ad CPA Reduction", val: "-38%" },
+          { label: "Ad Clicks", val: "86 Leads" },
+          { label: "Reel DMs Sent", val: "140 Chats" },
+          { label: "Phones Saved", val: "54 Numbers" },
+          { label: "CPA Reduction", val: "-38% Cost" },
         ],
-        alert: "Zero lead leakage: Even night-time leads (11 PM - 4 AM) were fully qualified and booked.",
+        alert: "Zero lead leakage: Even night-time leads (11 PM - 4 AM) were fully qualified and booked into your calendar while your human team slept.",
       },
     },
   ]
@@ -190,9 +190,9 @@ export default function LandingPage() {
 
   // ─── Real Speech Synthesis Audio Simulation ─────────────────────────────────
   const audioSamplePhrases = [
-    "Hello! I am your company's custom AI Employee. I answer customer calls in under 350 milliseconds.",
-    "I handle inquiries across WhatsApp and Instagram simultaneously, qualifying budgets and timelines.",
-    "When a high-intent prospect is ready to buy, I transfer them straight to your human closers with full context.",
+    "Hello! I am your company's custom AI Employee. I answer customer phone calls in under 350 milliseconds.",
+    "I handle inquiries across WhatsApp and Instagram simultaneously, qualifying budgets, sharing catalogs, and calculating quotes.",
+    "When a high-intent prospect is ready to buy, I transfer them straight to your human closers with full audio briefings.",
   ]
 
   const toggleVoicePlayback = () => {
@@ -220,10 +220,10 @@ export default function LandingPage() {
 
   // ─── Live Activity Feed Ticker ─────────────────────────────────────────────
   const [tickerItems, setTickerItems] = useState([
-    { channel: "WHATSAPP", text: "Sent customized PDF quotation (₹4,20,000 value) to wholesale distributor", time: "42s ago" },
-    { channel: "PHONE CALL", text: "Completed 2m 45s inbound qualification — meeting booked on Google Calendar", time: "18s ago" },
-    { channel: "INSTAGRAM", text: "Auto-converted Reel comment into qualified WhatsApp lead (+91 98XXX)", time: "Just now" },
-    { channel: "EMAIL", text: "Auto-triaged inbound enterprise RFP and generated executive draft for review", time: "1m ago" },
+    { channel: "WHATSAPP", text: "Sent customized PDF quotation (₹4,20,000 value) to wholesale distributor in Pune", time: "42s ago" },
+    { channel: "PHONE CALL", text: "Completed 2m 45s inbound qualification in Hindi — meeting booked on Google Calendar", time: "18s ago" },
+    { channel: "INSTAGRAM", text: "Auto-converted Reel comment into verified WhatsApp lead (+91 98XXX)", time: "Just now" },
+    { channel: "EMAIL", text: "Auto-triaged inbound enterprise RFP and generated executive draft proposal for review", time: "1m ago" },
   ])
 
   useEffect(() => {
@@ -238,100 +238,10 @@ export default function LandingPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // ─── Channels Bento Data ───────────────────────────────────────────────────
-  const channelData = {
-    voice: {
-      name: "AI Voice Employee",
-      tagline: "Ultra-realistic telephony with zero awkward delay",
-      badge: "Sub-350ms Latency",
-      stat: "99.4% human score",
-      icon: PhoneCall,
-      description:
-        "Sounds like your highest-performing sales executive. Answers inbound phone calls within one ring, calls new leads within 45 seconds, understands interruptions and colloquial slang, and warm-transfers hot deals to your human team.",
-      capabilities: [
-        "Inbound receptionist & proactive outbound lead caller",
-        "Sub-350ms response latency with natural pacing and breath",
-        "Multilingual speech: English, Hindi, and regional inflections",
-        "Direct warm-transfer to live human sales reps with full audio briefing",
-      ],
-      sampleDialog: [
-        { sender: "caller", text: "Hi, I saw your automation package. Do you do custom ERP integrations for wholesale distributors?" },
-        { sender: "ai", text: "Yes, absolutely! We connect directly with SAP, Tally, Zoho, and custom PostgreSQL databases. How many SKUs and warehouse locations are you managing?" },
-        { sender: "caller", text: "Around 12,000 SKUs across four warehouses in North India." },
-        { sender: "ai", text: "Got it. That fits our custom multi-warehouse workflow. Let me connect you directly with our senior solutions architect right now." },
-      ],
-      telemetry: { "Speech Engine": "Neural PCM Stream", Latency: "340ms", Intent: "Enterprise Lead" },
-    },
-    whatsapp: {
-      name: "WhatsApp AI Employee",
-      tagline: "Your 24/7 multilingual conversational closer",
-      badge: "Official Meta Cloud API",
-      stat: "100+ msg/sec capacity",
-      icon: MessageSquare,
-      description:
-        "An autonomous salesperson on WhatsApp that never sleeps. Qualifies buyers, shares product catalogs, calculates customized estimates, sends PDF brochures, and schedules appointments right into your team's calendar.",
-      capabilities: [
-        "Instant reply in customer's preferred language (English, Hindi, etc.)",
-        "Grounded in product specs, pricing guidelines, and live inventory",
-        "Dispatches payment links, PDFs, catalog carousels, and location maps",
-        "Enrolls unresponsive leads into polite, non-spam drip nurturing",
-      ],
-      sampleDialog: [
-        { sender: "user", text: "Hi, what is the cost of deploying an AI employee for my clinic?" },
-        { sender: "ai", text: "Hello! Our clinic setup handles patient triage, doctor appointment booking, and WhatsApp reminders at ₹20,000 one-time setup and ₹5,000/mo retainer. How many doctors practice at your clinic?" },
-        { sender: "user", text: "We have 4 doctors and see about 50 patients daily." },
-        { sender: "ai", text: "Perfect. We can have your patient booking system live in 72 hours. Would you like me to book an onboarding session or send our medical clinic case study?" },
-      ],
-      telemetry: { "Message Rate": "100+ msg/sec", "Token Speed": "92 tok/sec", Status: "Lead Scored: 9.8/10" },
-    },
-    instagram: {
-      name: "Instagram AI Employee",
-      tagline: "Turns Reel comments and DMs into paying customers",
-      badge: "Direct Social Conversion",
-      stat: "< 1.5s comment to DM",
-      icon: Instagram,
-      description:
-        "Never miss a viral Reel spike. When followers comment on your Reels or reply to your Stories, your AI employee replies in milliseconds, opens a DM conversation, extracts their phone number, and syncs them to your CRM.",
-      capabilities: [
-        "Comment keyword trigger: Sends instant DM with pricing and links",
-        "Story reply and direct message triage 24 hours a day",
-        "Screens out spam and converts casual scrollers into warm buyers",
-        "Captures verified contact details without hiring social media agencies",
-      ],
-      sampleDialog: [
-        { sender: "user", text: "Saw your Reel on luxury villas! What is the price range for 4BHK in Sector 65?" },
-        { sender: "ai", text: "Hey there! The 4BHK luxury residences start at ₹4.2 Cr with private elevators and golf view. Are you looking for self-use or high-yield investment?" },
-        { sender: "user", text: "Self-use, planning to move in by next quarter." },
-        { sender: "ai", text: "Wonderful. I have 2 ready-to-move penthouses available. What is your WhatsApp number so I can send the video walk-through and layout plans?" },
-      ],
-      telemetry: { "Comment-to-DM": "< 1.5s", "Lead Extraction": "Verified Phone", Status: "Site Visit Pending" },
-    },
-    email: {
-      name: "Executive Email AI Employee",
-      tagline: "Inbox Zero, hyper-personalized triage and RFP drafting",
-      badge: "Cognitive Inbox Partner",
-      stat: "1.2s triage speed",
-      icon: Mail,
-      description:
-        "An executive email partner that reads incoming enterprise inquiries, categorizes opportunities, generates bespoke context-aware replies matching your company voice, and keeps high-value pipelines warm.",
-      capabilities: [
-        "Inbox Zero triage: separates critical client deals from junk mail",
-        "Generates context-aware, hyper-personalized email drafts",
-        "Synchronizes every lead touchpoint with your CRM and Google Sheets",
-        "Re-engages dormant opportunities with contextual check-ins",
-      ],
-      sampleDialog: [
-        { sender: "client", text: "Subject: Urgent: Custom AI employee for regional franchise network (18 outlets)" },
-        { sender: "ai", text: "Subject: Re: Vox AI Architecture for 18 Franchise Outlets\n\nDear Director Chopra,\nThank you for reaching out. We have configured specialized multi-outlet retail routing. Attached is our architectural breakdown and security compliance framework for review..." },
-      ],
-      telemetry: { "Triage Speed": "1.2s", Grounding: "99.9% Factual", Status: "Proposal Dispatched" },
-    },
-  }
-
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] paper-grain selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden">
+    <div className="vox-landing-theme min-h-screen bg-[var(--bg)] text-[var(--ink)] paper-grain selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden">
       {/* ─── 1. Minimal Sticky Header ───────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[#F6F1E7]/90 dark:bg-[#0A1410]/90 backdrop-blur-md transition-colors">
+      <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[#F6F1E7]/95 backdrop-blur-md transition-colors">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Brand Logo */}
           <Link href="/" className="group flex items-center gap-3">
@@ -341,19 +251,19 @@ export default function LandingPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-serif text-lg font-bold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
-                  VOX AI
+                  VOX AI AGENTS
                 </span>
-                <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-[11px] font-mono font-medium text-[var(--brand-soft-text)]">
+                <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[11px] font-mono font-medium text-[var(--brand-soft-text)]">
                   AI Employee
                 </span>
               </div>
               <p className="text-[11px] text-[var(--ink-muted)]">
-                Custom business representatives for Indian SMBs
+                Autonomous Business Representatives for Indian SMBs
               </p>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links — Only 4 links as required */}
+          {/* Desktop Navigation Links — Strictly 4 links as required */}
           <nav className="hidden items-center gap-8 lg:flex text-sm font-medium text-[var(--ink-muted)]">
             <a href="#how-it-works" className="hover:text-[var(--ink)] transition-colors">
               How it works
@@ -468,7 +378,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] shadow-sm mb-6"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs text-[var(--ink-muted)] shadow-xs mb-6"
               >
                 <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
                 <span className="font-medium text-[var(--ink)]">Custom AI Employees for Indian Businesses</span>
@@ -484,14 +394,14 @@ export default function LandingPage() {
                 Your business, <em className="italic font-normal text-[var(--brand)]">cloned</em> into an autonomous AI employee.
               </motion.h1>
 
-              {/* Subcopy */}
+              {/* Comprehensive Subcopy for Indian SMBs */}
               <motion.p
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.16 }}
                 className="mt-6 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed max-w-xl font-normal"
               >
-                We build dedicated AI employees that answer calls, WhatsApp, Instagram DMs, and email 24/7 for Indian wholesale, clinics, real estate, and services. It qualifies leads, sends customized quotes, and books revenue deals while you sleep.
+                We engineer custom AI employees that answer inbound phone calls, WhatsApp messages, Instagram DMs, and emails 24/7. Trained on your exact product catalog, pricing, and objection playbook to qualify leads, send instant quotations, and book high-ticket deals while you sleep.
               </motion.p>
 
               {/* Primary Actions & Voice Audio Link */}
@@ -530,7 +440,7 @@ export default function LandingPage() {
                 </a>
               </motion.div>
 
-              {/* Thin Row of Trust Stats */}
+              {/* Thin Row of Trust Stats with Context */}
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -540,18 +450,22 @@ export default function LandingPage() {
                 <div>
                   <div className="font-mono text-lg font-bold text-[var(--brand)]">1.2s</div>
                   <div className="text-xs text-[var(--ink-muted)]">Avg response time</div>
+                  <div className="text-[10px] text-[var(--ink-faint)]">Across all channels</div>
                 </div>
                 <div>
-                  <div className="font-mono text-lg font-bold text-[var(--brand)]">24/7</div>
+                  <div className="font-mono text-lg font-bold text-[var(--brand)]">24/7/365</div>
                   <div className="text-xs text-[var(--ink-muted)]">Always answering</div>
+                  <div className="text-[10px] text-[var(--ink-faint)]">Zero lead leakage</div>
                 </div>
                 <div>
                   <div className="font-mono text-lg font-bold text-[var(--brand)]">72 hours</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Live launch</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Live deployment</div>
+                  <div className="text-[10px] text-[var(--ink-faint)]">Keep existing phone</div>
                 </div>
                 <div>
                   <div className="font-mono text-lg font-bold text-[var(--brand)]">4 channels</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Calls, WA, IG, Email</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Unified coverage</div>
+                  <div className="text-[10px] text-[var(--ink-faint)]">Calls, WA, IG, Email</div>
                 </div>
               </motion.div>
             </div>
@@ -559,17 +473,17 @@ export default function LandingPage() {
             {/* Right Column: Realistic Phone Mockup (Above the fold product preview) */}
             <div className="lg:col-span-5 relative flex justify-center">
               {/* Soft background aura */}
-              <div className="absolute -inset-4 rounded-full bg-[var(--brand-soft)]/40 blur-3xl -z-10" />
+              <div className="absolute -inset-4 rounded-full bg-[var(--brand-soft)]/50 blur-3xl -z-10" />
 
               {/* Phone Frame */}
-              <div className="relative w-full max-w-[340px] rounded-[38px] border-[7px] border-[#16211C] bg-[#ECE5DD] shadow-2xl overflow-hidden text-[var(--ink)]">
+              <div className="relative w-full max-w-[350px] rounded-[40px] border-[8px] border-[#16211C] bg-[#ECE5DD] shadow-2xl overflow-hidden text-[var(--ink)]">
                 {/* Speaker pill */}
-                <div className="h-5 bg-[#16211C] flex items-center justify-center">
-                  <div className="w-14 h-3 bg-[#0C120F] rounded-full" />
+                <div className="h-6 bg-[#16211C] flex items-center justify-center">
+                  <div className="w-16 h-3 bg-[#0C120F] rounded-full" />
                 </div>
 
                 {/* WhatsApp Chat App Bar */}
-                <div className="bg-[var(--brand)] text-[#F6F1E7] px-4 py-3 flex items-center justify-between shadow-sm">
+                <div className="bg-[var(--brand)] text-[#F6F1E7] px-4 py-3.5 flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-2.5">
                     <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)] font-bold text-xs">
                       VA
@@ -577,67 +491,67 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <div className="text-xs font-semibold leading-tight text-[#F6F1E7]">Vox AI Employee</div>
-                      <div className="text-[10px] text-emerald-200">Online · Instant Reply</div>
+                      <div className="text-[10px] text-[var(--brand-soft)]">Online · Answers in &lt; 1 sec</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 text-emerald-100">
+                  <div className="flex items-center gap-3 text-[#F6F1E7]/80">
                     <Phone className="h-4 w-4" />
                   </div>
                 </div>
 
-                {/* Chat Messages Canvas */}
-                <div className="p-3.5 space-y-3 text-xs min-h-[380px] flex flex-col justify-end bg-[#ECE5DD] dark:bg-[#111C17]">
+                {/* Chat Messages Canvas with comfortable padding */}
+                <div className="p-4 space-y-3.5 text-xs min-h-[430px] flex flex-col justify-end bg-[#ECE5DD]">
                   {/* Date badge */}
                   <div className="flex justify-center mb-1">
-                    <span className="rounded-md bg-white/70 dark:bg-black/40 px-2 py-0.5 text-[10px] font-mono text-[var(--ink-muted)] shadow-xs">
-                      Today
+                    <span className="rounded-md bg-white/80 px-2.5 py-0.5 text-[10px] font-mono text-[var(--ink-muted)] shadow-xs">
+                      Today · Live Chat
                     </span>
                   </div>
 
                   {/* Customer Question */}
                   <div className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl rounded-tl-xs bg-[var(--surface)] p-3 text-[12px] leading-relaxed shadow-sm text-[var(--ink)]">
-                      <p>Hi, we run a clinic with 4 doctors in Rohtak. Can your AI answer WhatsApp patient queries and book appointment slots?</p>
-                      <div className="text-[10px] text-[var(--ink-faint)] text-right mt-1 font-mono">10:14 AM</div>
+                    <div className="max-w-[86%] rounded-2xl rounded-tl-xs bg-white p-3.5 text-[12px] leading-relaxed shadow-xs text-[#14170F]">
+                      <p>Hi, we run a multi-doctor clinic in Haryana. Can your AI answer patient queries on WhatsApp, explain consultation fees, and book appointment slots?</p>
+                      <div className="text-[10px] text-[#8E9285] text-right mt-1 font-mono">10:14 AM</div>
                     </div>
                   </div>
 
                   {/* AI Response in Mint Bubble */}
                   <div className="flex justify-end">
-                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3 text-[12px] leading-relaxed shadow-sm text-[var(--brand-soft-text)]">
-                      <p>Namaste! Yes, absolutely. We sync with your appointment calendar, triage patient inquiries in English and Hindi, and confirm doctor slots with instant WhatsApp reminders.</p>
+                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3.5 text-[12px] leading-relaxed shadow-xs text-[var(--brand-soft-text)]">
+                      <p>Namaste! Yes, absolutely. We sync directly with your doctor calendar, triage inquiries in English and Hindi, and confirm slots instantly with automated WhatsApp reminders.</p>
                       <div className="flex items-center justify-end gap-1 text-[10px] text-[var(--brand)] mt-1 font-mono">
                         <span>10:14 AM</span>
-                        <CheckCheck className="h-3.5 w-3.5 text-sky-600" />
+                        <CheckCheck className="h-3.5 w-3.5 text-[#34B7F1]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Customer Followup */}
                   <div className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl rounded-tl-xs bg-[var(--surface)] p-3 text-[12px] leading-relaxed shadow-sm text-[var(--ink)]">
-                      <p>That sounds ideal. What is the onboarding cost and turnaround time?</p>
-                      <div className="text-[10px] text-[var(--ink-faint)] text-right mt-1 font-mono">10:15 AM</div>
+                    <div className="max-w-[86%] rounded-2xl rounded-tl-xs bg-white p-3 text-[12px] leading-relaxed shadow-xs text-[#14170F]">
+                      <p>Sounds perfect. What is the setup cost and how soon can we go live?</p>
+                      <div className="text-[10px] text-[#8E9285] text-right mt-1 font-mono">10:15 AM</div>
                     </div>
                   </div>
 
                   {/* AI Pricing Quote in Mint Bubble */}
                   <div className="flex justify-end">
-                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3 text-[12px] leading-relaxed shadow-sm text-[var(--brand-soft-text)]">
-                      <p>Setup is ₹20,000 one-time and ₹5,000/month retainer. We deploy your clinic employee in 72 hours. Shall I connect you to our setup team?</p>
+                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3 text-[12px] leading-relaxed shadow-xs text-[var(--brand-soft-text)]">
+                      <p>Implementation is ₹20,000 one-time and ₹5,000/month retainer. We launch your clinic AI employee in 72 hours. Shall I connect you with our deployment team?</p>
                       <div className="flex items-center justify-end gap-1 text-[10px] text-[var(--brand)] mt-1 font-mono">
                         <span>10:15 AM</span>
-                        <CheckCheck className="h-3.5 w-3.5 text-sky-600" />
+                        <CheckCheck className="h-3.5 w-3.5 text-[#34B7F1]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Typing Indicator */}
-                  <div className="flex items-center gap-1.5 bg-[var(--surface)] w-fit px-3 py-2 rounded-2xl rounded-tl-xs shadow-xs text-[var(--ink-muted)]">
+                  <div className="flex items-center gap-1.5 bg-white w-fit px-3 py-2 rounded-2xl rounded-tl-xs shadow-xs text-[#5B5F54]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '150ms' }} />
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '300ms' }} />
-                    <span className="text-[10px] font-mono ml-1 text-[var(--ink-muted)]">AI typing...</span>
+                    <span className="text-[10px] font-mono ml-1 text-[#5B5F54]">AI Employee is typing...</span>
                   </div>
                 </div>
 
@@ -647,21 +561,28 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Floating Social Proof Card */}
+              {/* Floating Social Proof Card with ample breathing room */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="absolute -bottom-5 -left-4 sm:-left-8 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-xl z-20 max-w-[210px]"
+                className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-xl z-20 min-w-[240px] sm:min-w-[260px]"
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-800">
-                    <TrendingUp className="h-3.5 w-3.5" />
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
+                      <TrendingUp className="h-3 w-3" />
+                    </span>
+                    <span className="text-[11px] font-medium text-[var(--ink-muted)]">Live SMB Activity</span>
+                  </div>
+                  <span className="text-[10px] font-mono bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-md font-semibold">
+                    +42% Today
                   </span>
-                  <span className="text-[11px] font-medium text-[var(--ink-muted)]">Live Metrics</span>
                 </div>
-                <div className="font-serif text-lg font-bold text-[var(--ink)]">₹5,80,000</div>
-                <p className="text-[11px] text-[var(--ink-muted)]">Quotes generated today autonomously</p>
+                <div className="font-serif text-2xl font-bold text-[var(--ink)]">₹5,80,000</div>
+                <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
+                  Automated quotations generated today via WhatsApp & Calls
+                </p>
               </motion.div>
             </div>
           </div>
@@ -684,7 +605,7 @@ export default function LandingPage() {
                 key={idx}
                 className="flex items-center gap-3.5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] hover:bg-white hover:border-[var(--brand)]/30 px-5 py-3 transition-all duration-200 shadow-xs shrink-0 group"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white border border-[var(--line)] p-1.5 shrink-0 overflow-hidden shadow-xs">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white border border-[var(--line)] p-1.5 shrink-0 overflow-hidden shadow-xs">
                   <img
                     src={client.logo}
                     alt={`${client.name} logo`}
@@ -708,10 +629,10 @@ export default function LandingPage() {
 
       {/* ─── Live Telemetry Strip ───────────────────────────────────────────── */}
       <div className="mx-auto max-w-4xl px-4 sm:px-6 my-14">
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3 sm:py-3 sm:px-5 shadow-xs flex items-center justify-between gap-4 text-xs font-mono">
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 sm:py-3.5 sm:px-6 shadow-xs flex items-center justify-between gap-4 text-xs font-mono">
           <div className="flex items-center gap-2 shrink-0">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-semibold text-[var(--brand)] text-[11px] tracking-wide uppercase">Live Activity</span>
+            <span className="font-semibold text-[var(--brand)] text-[11px] tracking-wide uppercase">Live Stream</span>
           </div>
           <div className="truncate text-[var(--ink)]">
             <span className="font-bold text-[var(--brand)] mr-2">[{tickerItems[0].channel}]</span>
@@ -725,7 +646,7 @@ export default function LandingPage() {
       <section id="chat-with-ai" className="relative py-16 md:py-24 border-t border-[var(--line)] bg-[var(--surface-alt)]">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
               <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
               <span>Founder Briefing Interface</span>
             </div>
@@ -733,7 +654,7 @@ export default function LandingPage() {
               Ask your AI Employee anything.
             </h2>
             <p className="mt-3 text-base text-[var(--ink-muted)]">
-              Click any executive question below to see how your AI Employee synthesizes real-time business telemetry across Calls, WhatsApp, Instagram, and Email.
+              Your AI Employee doesn't just talk to customers—it keeps you briefed. Click any executive question below to see how it synthesizes performance across Calls, WhatsApp, Instagram, and Email into a clear management debrief.
             </p>
           </div>
 
@@ -770,7 +691,7 @@ export default function LandingPage() {
                     <button
                       key={p.id}
                       onClick={() => handleSelectPrompt(idx)}
-                      className={`text-left rounded-xl p-3 text-xs transition-all border ${
+                      className={`text-left rounded-xl p-3.5 text-xs transition-all border ${
                         isSelected
                           ? "border-[var(--brand)] bg-[var(--brand)] text-[#F6F1E7] shadow-sm"
                           : "border-[var(--line)] bg-[var(--surface-alt)] text-[var(--ink)] hover:border-[var(--ink-muted)]"
@@ -795,9 +716,9 @@ export default function LandingPage() {
             <div className="p-6 sm:p-8 space-y-6">
               {/* Founder Query Bubble */}
               <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl bg-[var(--brand)] px-5 py-3 text-sm text-[#F6F1E7] shadow-sm">
+                <div className="max-w-[85%] rounded-2xl bg-[var(--brand)] px-5 py-3.5 text-sm text-[#F6F1E7] shadow-sm">
                   <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-200 mb-1">
-                    <Users className="h-3 w-3" /> YOU (BUSINESS OWNER)
+                    <Users className="h-3 w-3" /> YOU (FOUNDER / BUSINESS OWNER)
                   </div>
                   <p className="font-medium">“{executivePrompts[activePromptIndex].question}”</p>
                 </div>
@@ -818,12 +739,12 @@ export default function LandingPage() {
                       </div>
                     </div>
                     <span className="rounded-md bg-[var(--surface)] border border-[var(--line)] px-2.5 py-1 text-[11px] font-mono text-[var(--ink-muted)]">
-                      Synthesized in 240ms
+                      Synthesized in 240ms from 4 live channels
                     </span>
                   </div>
 
                   {/* Bullet points */}
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     {isTypingTerminal ? (
                       <div className="text-xs text-[var(--ink-muted)] italic flex items-center gap-2 py-4">
                         <RefreshCw className="h-4 w-4 animate-spin text-[var(--brand)]" />
@@ -839,27 +760,27 @@ export default function LandingPage() {
                     )}
                   </div>
 
-                  {/* 4 KPI Tiles in Bento Layout */}
+                  {/* 4 KPI Tiles in Bento Layout — Clean numbers with zero text overflow */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[var(--line)]">
                     {executivePrompts[activePromptIndex].response.kpis.map((kpi, idx) => (
                       <div key={idx} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-center shadow-xs">
-                        <span className="text-[10px] font-mono text-[var(--ink-muted)] block">{kpi.label}</span>
-                        <span className="font-serif text-xl font-bold text-[var(--brand)] mt-1 block">{kpi.val}</span>
+                        <span className="text-[10px] font-mono text-[var(--ink-muted)] block uppercase tracking-wider">{kpi.label}</span>
+                        <span className="font-serif text-lg sm:text-xl font-bold text-[var(--brand)] mt-1 block truncate">{kpi.val}</span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Priority Alert Box */}
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50 p-3.5 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
-                    <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                    <span>{executivePrompts[activePromptIndex].response.alert}</span>
+                  {/* Priority Alert Box in refined warm forest-mint callout */}
+                  <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-soft)]/60 p-4 text-xs text-[var(--brand-soft-text)] flex items-start gap-2.5">
+                    <Zap className="h-4 w-4 text-[var(--brand)] shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{executivePrompts[activePromptIndex].response.alert}</span>
                   </div>
 
                   {/* Action Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                     <div className="flex gap-2 text-xs font-mono">
-                      <span className="rounded bg-[var(--surface)] px-2.5 py-1 text-[var(--ink-muted)] border border-[var(--line)]">Verified Data</span>
-                      <span className="rounded bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-2.5 py-1 font-medium">Ready for Handoff</span>
+                      <span className="rounded bg-[var(--surface)] px-2.5 py-1 text-[var(--ink-muted)] border border-[var(--line)]">Live Data Verified</span>
+                      <span className="rounded bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-2.5 py-1 font-medium">Ready for Human Handoff</span>
                     </div>
                     <a
                       href={WHATSAPP_CTA}
@@ -908,21 +829,21 @@ export default function LandingPage() {
       <section id="channels" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--bg)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-14">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
               <span>Omnichannel Coverage</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               One unified AI brain. Four channels covered.
             </h2>
-            <p className="mt-4 text-base text-[var(--ink-muted)]">
-              Your AI Employee doesn’t live in an isolated silo. If a customer leaves a comment on Instagram, messages on WhatsApp, and calls on the phone, your AI remembers their entire history.
+            <p className="mt-4 text-base text-[var(--ink-muted)] leading-relaxed">
+              Your AI Employee doesn’t live in an isolated silo. If a customer leaves a comment on an Instagram Reel, messages your WhatsApp business number, and later calls your office landline, your AI remembers their entire history, previous quotes, and preferences.
             </p>
           </div>
 
-          {/* Asymmetric Bento Grid */}
+          {/* Asymmetric Bento Grid in Unified Warm Palette */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Featured Card 1: AI Voice Employee (Wide Card with simulated call dialog) */}
-            <div className="lg:col-span-7 rounded-3xl border border-[var(--line)] bg-[#EBF5EE] dark:bg-[#10221A] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-7 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
@@ -937,37 +858,44 @@ export default function LandingPage() {
                   AI Voice Employee
                 </h3>
                 <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
-                  Ultra-realistic telephony with zero delay
+                  Ultra-realistic phone reception & proactive outbound lead caller
                 </p>
                 <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
-                  Sounds like your highest-performing sales executive. Answers inbound phone calls within one ring, calls new leads within 45 seconds, understands Hindi & English seamlessly, and warm-transfers hot deals to your human team.
+                  Sounds identical to your highest-performing in-house sales closer. Answers inbound phone calls within one ring, calls web leads back within 45 seconds, understands colloquial Indian English and Hindi seamlessly, and warm-transfers hot deals to your human reps with an audio debrief.
                 </p>
 
                 {/* Simulated Call Transcript as Chat Bubbles */}
-                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-2.5 text-xs">
+                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-4 space-y-2.5 text-xs">
                   <div className="text-[10px] font-mono text-[var(--ink-muted)] border-b border-[var(--line)] pb-1.5 flex items-center justify-between">
                     <span>Live Call Stream Simulation</span>
-                    <span className="text-emerald-600 font-semibold">Active Inbound</span>
+                    <span className="text-[var(--brand)] font-semibold">Active Inbound Telephony</span>
                   </div>
-                  {channelData.voice.sampleDialog.map((msg, i) => {
-                    const isAI = msg.sender === "ai"
-                    return (
-                      <div key={i} className={`flex ${isAI ? "justify-start" : "justify-end"}`}>
-                        <div
-                          className={`max-w-[85%] rounded-2xl px-3.5 py-2 leading-relaxed ${
-                            isAI
-                              ? "bg-[var(--brand-soft)] text-[var(--brand-soft-text)] font-medium"
-                              : "bg-[var(--surface-alt)] text-[var(--ink)]"
-                          }`}
-                        >
-                          <div className="text-[9px] font-mono opacity-70 mb-0.5">
-                            {isAI ? "VOX AI VOICE" : "CALLER"}
-                          </div>
-                          <p>{msg.text}</p>
-                        </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-start">
+                      <div className="max-w-[85%] rounded-2xl bg-white p-3 text-[var(--ink)] shadow-xs">
+                        <div className="text-[9px] font-mono opacity-70 mb-0.5">CALLER</div>
+                        <p>Hi, I saw your package. Do you do custom ERP integrations for wholesale distributors with multiple warehouses?</p>
                       </div>
-                    )
-                  })}
+                    </div>
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl bg-[var(--brand-soft)] p-3 text-[var(--brand-soft-text)] font-medium shadow-xs">
+                        <div className="text-[9px] font-mono opacity-70 mb-0.5">VOX AI VOICE</div>
+                        <p>Yes, absolutely! We connect directly with SAP, Tally, Zoho, and custom PostgreSQL databases. How many SKUs and warehouse locations are you managing?</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <div className="max-w-[85%] rounded-2xl bg-white p-3 text-[var(--ink)] shadow-xs">
+                        <div className="text-[9px] font-mono opacity-70 mb-0.5">CALLER</div>
+                        <p>Around 12,000 SKUs across four warehouses in North India.</p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl bg-[var(--brand-soft)] p-3 text-[var(--brand-soft-text)] font-medium shadow-xs">
+                        <div className="text-[9px] font-mono opacity-70 mb-0.5">VOX AI VOICE</div>
+                        <p>Got it. That fits our custom multi-warehouse workflow. Let me connect you directly with our senior solutions architect right now.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -977,20 +905,20 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--brand)] hover:underline"
                 >
                   <PhoneCall className="h-3.5 w-3.5" />
-                  <span>Call Voice AI: {CALL_NUMBER}</span>
+                  <span>Call Voice AI Demo: {CALL_NUMBER}</span>
                 </a>
-                <span className="text-xs font-mono text-[var(--ink-muted)]">WebRTC + SIP Ready</span>
+                <span className="text-xs font-mono text-[var(--ink-muted)]">WebRTC + SIP Trunk Ready</span>
               </div>
             </div>
 
             {/* Card 2: WhatsApp AI Employee */}
-            <div className="lg:col-span-5 rounded-3xl border border-[var(--line)] bg-[#E8F5EB] dark:bg-[#0E2018] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-700 text-white">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
                     <MessageSquare className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full bg-emerald-100 text-emerald-900 px-3 py-1 text-xs font-mono font-medium">
+                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3 py-1 text-xs font-mono font-medium">
                     Official Meta Cloud API
                   </span>
                 </div>
@@ -998,17 +926,36 @@ export default function LandingPage() {
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
                   WhatsApp AI Employee
                 </h3>
-                <p className="text-xs font-mono font-semibold text-emerald-800 dark:text-emerald-300 mt-1">
-                  Your 24/7 multilingual conversational closer
+                <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
+                  Your 24/7 multilingual conversational sales closer
                 </p>
                 <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
-                  An autonomous salesperson on WhatsApp that never sleeps. Qualifies buyers, shares product catalogs, calculates customized estimates, sends PDF brochures, and schedules appointments right into your team's calendar.
+                  An autonomous salesperson on WhatsApp that never sleeps. Qualifies buyers, shares product catalogs, calculates customized estimates in Hindi & English, sends PDF brochures, and schedules appointments right into your team's calendar.
                 </p>
 
+                {/* Simulated WhatsApp Interaction */}
+                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 space-y-2 text-xs">
+                  <div className="flex justify-start">
+                    <div className="rounded-xl bg-white p-2.5 shadow-xs text-[var(--ink)] max-w-[90%]">
+                      <p>“What is the pricing for clinic onboarding?”</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="rounded-xl bg-[var(--brand-soft)] p-2.5 shadow-xs text-[var(--brand-soft-text)] font-medium max-w-[90%]">
+                      <p>“Setup is ₹20,000 one-time and ₹5,000/mo retainer. Includes 24/7 patient triage and doctor scheduling.”</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="mt-5 space-y-2">
-                  {channelData.whatsapp.capabilities.map((cap, i) => (
+                  {[
+                    "Instant bilingual reply (English, Hindi, and regional slang)",
+                    "Dispatches payment links, PDF brochures, and location maps",
+                    "Direct Google Calendar booking with WhatsApp confirmation",
+                    "Polite, non-spam drip follow-ups on unresponsive leads",
+                  ].map((cap, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-[var(--brand)] shrink-0 mt-0.5" />
                       <span>{cap}</span>
                     </div>
                   ))}
@@ -1020,7 +967,7 @@ export default function LandingPage() {
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:underline"
                 >
                   <span>Deploy WhatsApp AI Closer</span>
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -1029,31 +976,47 @@ export default function LandingPage() {
             </div>
 
             {/* Card 3: Instagram AI Employee */}
-            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[#FDF2F0] dark:bg-[#201416] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
                     <Instagram className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full bg-rose-100 text-rose-900 px-3 py-1 text-xs font-mono font-medium">
-                    &lt; 1.5s Comment-to-DM
+                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3 py-1 text-xs font-mono font-medium">
+                    &lt; 1.5s Comment-to-DM Trigger
                   </span>
                 </div>
 
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
                   Instagram AI Employee
                 </h3>
-                <p className="text-xs font-mono font-semibold text-rose-800 dark:text-rose-300 mt-1">
+                <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
                   Turns Reel comments & DMs into paying customers
                 </p>
                 <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
-                  Never miss a viral Reel spike. When followers comment on your Reels or reply to Stories, your AI employee replies in milliseconds, opens a DM conversation, extracts their phone number, and syncs them to your CRM.
+                  Never miss a viral Reel spike. When followers comment keywords on your Reels or reply to Stories, your AI employee replies in milliseconds, opens a DM conversation, extracts their verified phone number, and syncs them to your CRM.
                 </p>
 
+                {/* Simulated Instagram Flow */}
+                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 space-y-2 text-xs">
+                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-1 text-[10px] font-mono text-[var(--ink-muted)]">
+                    <span>Reel Comment: "PRICE"</span>
+                    <span className="text-[var(--brand)]">Auto-DM in 1.2s</span>
+                  </div>
+                  <p className="text-[11px] text-[var(--ink)] italic">
+                    “Hey Vikram! The 4BHK luxury penthouses start at ₹4.2 Cr. What is your WhatsApp number so I can send the video walk-through?”
+                  </p>
+                </div>
+
                 <div className="mt-5 space-y-2">
-                  {channelData.instagram.capabilities.map((cap, i) => (
+                  {[
+                    "Reel Comment trigger: Automatically sends instant DM with pricing",
+                    "Story reply and direct message triage 24 hours a day",
+                    "Screens out casual scrollers and converts high-intent buyers",
+                    "Extracts verified phone numbers into CRM automatically",
+                  ].map((cap, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-rose-600 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-[var(--brand)] shrink-0 mt-0.5" />
                       <span>{cap}</span>
                     </div>
                   ))}
@@ -1065,7 +1028,7 @@ export default function LandingPage() {
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-800 dark:text-rose-300 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:underline"
                 >
                   <span>Connect Instagram Graph API</span>
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -1074,13 +1037,13 @@ export default function LandingPage() {
             </div>
 
             {/* Card 4: Executive Email AI Employee */}
-            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[#F0F4F8] dark:bg-[#121A22] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-700 text-white">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
                     <Mail className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full bg-blue-100 text-blue-900 px-3 py-1 text-xs font-mono font-medium">
+                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3 py-1 text-xs font-mono font-medium">
                     Inbox Zero · 1.2s Triage
                   </span>
                 </div>
@@ -1088,17 +1051,33 @@ export default function LandingPage() {
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
                   Executive Email AI Employee
                 </h3>
-                <p className="text-xs font-mono font-semibold text-blue-800 dark:text-blue-300 mt-1">
-                  Hyper-personalized triage & proposal drafting
+                <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
+                  Hyper-personalized triage & enterprise proposal drafting
                 </p>
                 <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
-                  An executive email partner that reads incoming enterprise inquiries, categorizes opportunities, generates bespoke context-aware replies matching your company voice, and keeps high-value pipelines warm.
+                  An executive email partner that reads incoming enterprise inquiries, categorizes high-value opportunities, generates bespoke context-aware replies matching your company voice, and keeps sales pipelines warm.
                 </p>
 
+                {/* Simulated Email Flow */}
+                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-1 text-[10px] font-mono text-[var(--ink-muted)]">
+                    <span>Subject: Enterprise Franchise Proposal (18 Outlets)</span>
+                    <span className="text-[var(--brand)]">Draft Prepared</span>
+                  </div>
+                  <p className="text-[11px] text-[var(--ink)] italic line-clamp-2">
+                    “Dear Director Chopra, We have prepared specialized retail routing for your 18 outlets. Attached is the architectural breakdown...”
+                  </p>
+                </div>
+
                 <div className="mt-5 space-y-2">
-                  {channelData.email.capabilities.map((cap, i) => (
+                  {[
+                    "Inbox Zero triage: separates critical client deals from junk mail",
+                    "Pre-drafts context-aware, hyper-personalized email proposals",
+                    "Synchronizes lead touchpoints with Google Sheets and CRM",
+                    "Re-engages dormant client opportunities with contextual follow-ups",
+                  ].map((cap, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-[var(--brand)] shrink-0 mt-0.5" />
                       <span>{cap}</span>
                     </div>
                   ))}
@@ -1110,7 +1089,7 @@ export default function LandingPage() {
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-800 dark:text-blue-300 hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:underline"
                 >
                   <span>Set Up Enterprise Email Triage</span>
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -1125,15 +1104,15 @@ export default function LandingPage() {
       <section id="voice-audio" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-12">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
               <Headphones className="h-3.5 w-3.5 text-[var(--brand)]" />
               <span>Sub-350ms Voice Telephony Engine</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               Hear what your AI Employee sounds like.
             </h2>
-            <p className="mt-4 text-base text-[var(--ink-muted)]">
-              Indistinguishable from an experienced sales representative. Natural breathing, pauses, tone variation, and sub-350ms response latency so there are never awkward delays.
+            <p className="mt-4 text-base text-[var(--ink-muted)] leading-relaxed">
+              Indistinguishable from an experienced sales representative. Natural breathing, pauses, tone variation, and sub-350ms response latency so there are never awkward robotic delays.
             </p>
           </div>
 
@@ -1154,12 +1133,12 @@ export default function LandingPage() {
                 <div>
                   <div className="text-base font-bold text-[var(--ink)] flex items-center gap-2">
                     <span>Vox Voice Model v4 (Ultra-Low Latency)</span>
-                    <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-[10px] font-mono text-[var(--brand-soft-text)] font-semibold">
+                    <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[10px] font-mono text-[var(--brand-soft-text)] font-semibold">
                       LIVE
                     </span>
                   </div>
                   <p className="text-xs text-[var(--ink-muted)] mt-1">
-                    {isPlayingAudio ? "Speaking via Web Audio Synthesis..." : "Click play to listen to spoken speech sample"}
+                    {isPlayingAudio ? "Speaking live via Web Audio Synthesis..." : "Click play to listen to spoken speech sample"}
                   </p>
                 </div>
               </div>
@@ -1222,18 +1201,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 6. How We Build It (Stepper) ───────────────────────────────────── */}
+      {/* ─── 6. How We Build It (Stepper 01-04 Expanded) ─────────────────────── */}
       <section id="how-it-works" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--bg)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
               <span>Engineering Process</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               How we build your custom AI Employee.
             </h2>
-            <p className="mt-4 text-base text-[var(--ink-muted)]">
-              Not a generic template. We extract your business DNA, train custom memory models, configure safety guardrails, and hook directly into your phone and social channels.
+            <p className="mt-4 text-base text-[var(--ink-muted)] leading-relaxed">
+              Not a generic template. We extract your proprietary business knowledge, calibrate voice and sales demeanor, configure strict safety guardrails, and hook directly into your phone and social channels.
             </p>
           </div>
 
@@ -1246,22 +1225,30 @@ export default function LandingPage() {
                 {
                   step: "01",
                   title: "Knowledge Ingestion",
-                  desc: "We ingest your product catalogs, past email threads, call recordings, website data, PDFs, and sales objection guides.",
+                  sub: "We extract your business DNA",
+                  desc: "Our engineers ingest your product catalogs, SKU pricing tables, past WhatsApp conversations, sales call recordings, website FAQs, and PDFs. We map every objection your buyers throw at you so the AI never stumbles.",
+                  deliverables: ["Product catalogs & price tiers", "Historical call transcripts", "Objection handling playbook"],
                 },
                 {
                   step: "02",
                   title: "Voice & Persona Tuning",
-                  desc: "We calibrate the exact tone, speaking cadence, vocabulary, and humor of your highest-performing in-house closer.",
+                  sub: "Trained to match your best closer",
+                  desc: "We calibrate the exact accent, speaking rhythm, natural pauses, polite Hindi-English code-switching, and tone of your top closer. Callers feel like they are speaking with a seasoned, courteous in-office executive.",
+                  deliverables: ["Bilingual Hindi-English fluency", "Sub-350ms natural cadence", "Tone & politeness guardrails"],
                 },
                 {
                   step: "03",
-                  title: "Safety & Logic Guardrails",
-                  desc: "Strict enterprise boundaries: your AI never hallucinates, never makes up pricing, and strictly routes sensitive cases to humans.",
+                  title: "Safety & Guardrails",
+                  sub: "Zero hallucinations, zero false promises",
+                  desc: "Strict logic boundaries prevent the AI from quoting unapproved discounts or inventing terms. When high-ticket negotiations or sensitive inquiries arise, it smoothly transfers the live call or chat to you with an executive dossier.",
+                  deliverables: ["100% price integrity", "Instant live human warm-transfer", "Audit logs & recording storage"],
                 },
                 {
                   step: "04",
                   title: "Omnichannel Deployment",
-                  desc: "Hooked into Meta Cloud WhatsApp, Instagram Graph API, SIP Telephony, and your CRM (Google Sheets, HubSpot, Supabase) in 72 hours.",
+                  sub: "Live on your phone & social numbers",
+                  desc: "We wire the AI into your official WhatsApp Cloud API, Instagram Graph API, and existing office phone line via SIP forwarding. In 72 hours, your new employee is handling live customer inquiries without changing SIM cards.",
+                  deliverables: ["WhatsApp Cloud API verification", "Retain existing phone SIM", "CRM & Google Sheets instant sync"],
                 },
               ].map((st, idx) => (
                 <div
@@ -1269,15 +1256,27 @@ export default function LandingPage() {
                   className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-7 shadow-xs flex flex-col justify-between"
                 >
                   <div>
-                    <div className="font-serif text-4xl font-normal text-[var(--brand)] mb-4">
+                    <div className="font-serif text-4xl font-normal text-[var(--brand)] mb-3">
                       {st.step}
                     </div>
-                    <h3 className="text-base font-bold text-[var(--ink)] mb-2">
+                    <h3 className="text-base font-bold text-[var(--ink)] mb-1">
                       {st.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed">
+                    <p className="text-xs font-mono text-[var(--brand)] mb-3">
+                      {st.sub}
+                    </p>
+                    <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed mb-4">
                       {st.desc}
                     </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-[var(--line)] space-y-1.5">
+                    {st.deliverables.map((d, di) => (
+                      <div key={di} className="text-[11px] text-[var(--ink)] flex items-center gap-1.5 font-medium">
+                        <Check className="h-3 w-3 text-[var(--brand)] shrink-0" />
+                        <span>{d}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -1290,14 +1289,14 @@ export default function LandingPage() {
       <section id="pricing" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-14">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
               <span>Transparent Commercials</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               A clear, two-part investment.
             </h2>
-            <p className="mt-4 text-base text-[var(--ink-muted)]">
-              One custom implementation fee to build your digital employee, and a predictable monthly retainer to keep it learning and running 24/7.
+            <p className="mt-4 text-base text-[var(--ink-muted)] leading-relaxed">
+              One custom implementation fee to build your digital employee from scratch, and a predictable monthly retainer to keep it learning, updating, and running 24/7.
             </p>
           </div>
 
@@ -1316,22 +1315,24 @@ export default function LandingPage() {
 
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="font-serif text-5xl font-bold text-[var(--ink)]">₹20,000</span>
-                  <span className="text-[var(--ink-muted)] text-sm font-mono">one-time</span>
+                  <span className="text-[var(--ink-muted)] text-sm font-mono">one-time setup</span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed mb-6">
-                  Complete custom engineering of your business AI Employee across Phone Calls, WhatsApp, Instagram, and Email.
+                  Complete custom engineering of your business AI Employee across Phone Calls, WhatsApp, Instagram, and Email. Dedicated solutions architect assigned to your account.
                 </p>
 
                 <div className="space-y-3 pt-6 border-t border-[var(--line)]">
                   {[
-                    "Complete business discovery & knowledge extraction",
-                    "Voice AI configuration with sub-350ms natural cadence",
+                    "Complete business discovery & knowledge extraction from your catalogs",
+                    "Voice AI configuration with sub-350ms natural cadence & accent tuning",
                     "Official WhatsApp Cloud API & Instagram DM automation setup",
-                    "Email inbox triage and auto-drafting integration",
+                    "Email inbox triage and auto-drafting integration for Inbox Zero",
                     "Custom qualification scoring & objection-handling playbook",
-                    "Executive debrief portal to chat with your AI in natural language",
-                    "End-to-end edge testing & 72-hour production launch",
+                    "Executive debrief portal to chat with your AI in natural English/Hindi",
+                    "Custom CRM & Google Sheets automated lead sync integration",
+                    "End-to-end edge testing & 72-hour production launch guarantee",
+                    "Staff training and founder onboarding walk-through session",
                   ].map((feat, i) => (
                     <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-[var(--ink)]">
                       <Check className="h-4 w-4 text-[var(--brand)] shrink-0 mt-0.5" />
@@ -1368,21 +1369,23 @@ export default function LandingPage() {
 
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="font-serif text-5xl font-bold text-[#F6F1E7]">₹5,000</span>
-                  <span className="text-emerald-200/80 text-sm font-mono">per month</span>
+                  <span className="text-emerald-200/80 text-sm font-mono">per month · pause anytime</span>
                 </div>
 
                 <p className="text-xs sm:text-sm text-[#F6F1E7]/80 leading-relaxed mb-6">
-                  24/7 uptime monitoring, continuous prompt optimization, and technical maintenance so your employee never breaks.
+                  24/7 uptime monitoring, continuous prompt optimization, model retraining, and technical maintenance so your employee never breaks or goes offline.
                 </p>
 
                 <div className="space-y-3 pt-6 border-t border-white/10">
                   {[
-                    "24/7 autonomous uptime monitoring & health checks",
-                    "Continuous prompt engineering and response tuning",
-                    "Monthly knowledge base updates (new products, price changes)",
-                    "API compatibility upkeep (Meta, WhatsApp, telephony updates)",
+                    "24/7 autonomous uptime monitoring & automated health checks",
+                    "Continuous prompt engineering and response tuning as your business grows",
+                    "Monthly knowledge base updates (new products, price changes, promos)",
+                    "API compatibility upkeep (Meta Cloud, WhatsApp, telephony updates)",
                     "Minor workflow adjustments as your sales process evolves",
-                    "Direct technical assistance & bug resolution",
+                    "Direct technical assistance & bug resolution via private WhatsApp group",
+                    "Weekly lead conversion & speed-to-lead audit report",
+                    "Priority emergency response hotline for your team",
                   ].map((feat, i) => (
                     <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#F6F1E7]">
                       <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -1406,10 +1409,29 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Pass-Through Transparency Callout */}
-          <div className="mt-10 max-w-4xl mx-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 text-center text-xs text-[var(--ink-muted)]">
-            <strong className="text-[var(--brand)] mr-1">Direct Pass-Through Transparency:</strong>
-            External charges (Meta WhatsApp conversation fees, Telephony SIP minute costs, and AI token API usage) are paid directly at actual platform rates with zero markup from Vox AI.
+          {/* Detailed Pass-Through Transparency Callout */}
+          <div className="mt-12 max-w-4xl mx-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-xs text-xs text-[var(--ink-muted)]">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck className="h-4 w-4 text-[var(--brand)]" />
+              <strong className="text-sm font-bold text-[var(--ink)]">100% Direct Pass-Through Transparency: Zero Markup on Platform Usage</strong>
+            </div>
+            <p className="leading-relaxed">
+              Unlike traditional agencies that mark up utility fees by 300%, Vox AI has zero markup on third-party platform costs. You pay actual provider costs directly:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-3 border-t border-[var(--line)] font-mono text-[11px]">
+              <div>
+                <span className="font-bold text-[var(--ink)] block">Meta WhatsApp API</span>
+                <span className="text-[var(--ink-muted)]">~₹0.70 to ₹0.85 per 24-hour service conversation directly to Meta</span>
+              </div>
+              <div>
+                <span className="font-bold text-[var(--ink)] block">Telephony Minutes</span>
+                <span className="text-[var(--ink-muted)]">Actual telecom SIP trunk rates (~₹0.50/min for domestic Indian calls)</span>
+              </div>
+              <div>
+                <span className="font-bold text-[var(--ink)] block">AI Model Tokens</span>
+                <span className="text-[var(--ink-muted)]">Billed directly by OpenAI / Gemini at actual token consumption</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1423,9 +1445,17 @@ export default function LandingPage() {
           <h2 className="font-serif mt-4 text-3xl sm:text-6xl font-normal text-[#F6F1E7] tracking-tight">
             Ready to hire your first AI Employee?
           </h2>
-          <p className="mt-5 text-base sm:text-lg text-[#F6F1E7]/80 max-w-2xl mx-auto font-normal">
+          <p className="mt-5 text-base sm:text-lg text-[#F6F1E7]/80 max-w-2xl mx-auto font-normal leading-relaxed">
             Stop letting after-hours leads go cold. Deploy a dedicated AI employee trained on your products, answering on Instagram, WhatsApp, Email, and Calls in seconds.
           </p>
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-emerald-200">
+            <span>✓ 72-Hour Deployment Guarantee</span>
+            <span>•</span>
+            <span>✓ Retain Existing Phone & SIM</span>
+            <span>•</span>
+            <span>✓ Live Human Handoff Anytime</span>
+          </div>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <a
@@ -1450,7 +1480,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 9. Footer (Organized Columns, Muted Ink on Cream) ──────────────── */}
-      <footer className="border-t border-[var(--line)] bg-[#EFE8DA] dark:bg-[#0A1410] pt-16 pb-12 text-xs text-[var(--ink-muted)]">
+      <footer className="border-t border-[var(--line)] bg-[#EFE8DA] pt-16 pb-12 text-xs text-[var(--ink-muted)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Official Contact Columns */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 pb-12 border-b border-[var(--line)]">

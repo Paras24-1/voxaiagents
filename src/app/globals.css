@@ -94,26 +94,26 @@
     --shadow: 0 18px 60px hsl(258 92% 66% / 0.10);
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root:not(.light) {
-      --bg: #0A1410;
-      --surface: #101E19;
-      --surface-alt: #162721;
-      --surface-muted: #1D322B;
-      --ink: #F2EFE8;
-      --ink-muted: #9BA49D;
-      --ink-faint: #647067;
-      --brand: #175342;
-      --brand-hover: #1E6652;
-      --brand-surface: #0E3B2E;
-      --brand-soft: #1D3D32;
-      --brand-soft-text: #A8E1BC;
-      --accent: #FF5A2C;
-      --accent-hover: #FF724B;
-      --accent-soft: rgba(255, 90, 44, 0.15);
-      --line: rgba(242, 239, 232, 0.10);
-      --line-strong: rgba(242, 239, 232, 0.18);
-    }
+  .vox-landing-theme {
+    --bg: #F6F1E7;
+    --surface: #FFFFFF;
+    --surface-alt: #EFE8DA;
+    --surface-muted: #E8E0D0;
+    --ink: #14170F;
+    --ink-muted: #5B5F54;
+    --ink-faint: #8E9285;
+    --brand: #0E3B2E;
+    --brand-hover: #08261D;
+    --brand-surface: #144A3B;
+    --brand-soft: #D7EBDD;
+    --brand-soft-text: #0E3B2E;
+    --accent: #FF5A2C;
+    --accent-hover: #E5491C;
+    --accent-soft: #FFEAE4;
+    --line: rgba(20, 23, 15, 0.10);
+    --line-strong: rgba(20, 23, 15, 0.18);
+    background-color: var(--bg);
+    color: var(--ink);
   }
   * {
     box-sizing: border-box;
