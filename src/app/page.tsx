@@ -5,28 +5,36 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bot,
+  Calculator,
   Calendar,
   Check,
   CheckCheck,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   ExternalLink,
   FileText,
   Headphones,
+  HelpCircle,
   Instagram,
   LayoutDashboard,
   Mail,
   Menu,
   MessageSquare,
+  Minus,
   Phone,
   PhoneCall,
   Play,
   Pause,
+  Plus,
   RefreshCw,
+  Scale,
   Search,
   Send,
   Shield,
   ShieldCheck,
+  Sliders,
   Sparkles,
   TrendingUp,
   Users,
@@ -87,11 +95,128 @@ const clientLogos = [
   },
 ]
 
+// ROI Calculator Industry Presets
+const roiPresets = [
+  { label: "Retail & Wholesaler", inquiries: 40, staff: 2, salary: 18000 },
+  { label: "Clinic & Hospital", inquiries: 80, staff: 3, salary: 22000 },
+  { label: "Real Estate & Builders", inquiries: 120, staff: 4, salary: 25000 },
+  { label: "Coaching & Education", inquiries: 60, staff: 2, salary: 20000 },
+]
+
+// Head-to-Head Comparison: Traditional Telecallers vs. VOX AI Employee
+const comparisonRows = [
+  {
+    feature: "Working Hours & Availability",
+    human: "10:00 AM – 7:00 PM (Takes Sundays, festivals & bank holidays off)",
+    humanIcon: "bad",
+    vox: "24/7/365 — Answers instantly at 2:00 AM, Sunday night, or festival holidays",
+    voxBadge: "Always Active",
+  },
+  {
+    feature: "Speed to Lead (Response Time)",
+    human: "15 mins to 4+ hours (often delayed during lunch, meetings, or peak rush)",
+    humanIcon: "bad",
+    vox: "1.2 seconds across Calls, WhatsApp, Instagram & Email simultaneously",
+    voxBadge: "1.2s Instant",
+  },
+  {
+    feature: "Call Concurrency & Capacity",
+    human: "1 customer at a time. Callers 2, 3, and 4 receive a busy tone or disconnect",
+    humanIcon: "bad",
+    vox: "100+ simultaneous phone calls and WhatsApp chats with zero busy tone",
+    voxBadge: "Unlimited Lines",
+  },
+  {
+    feature: "Monthly Cost (Fixed Overhead)",
+    human: "₹20,000 – ₹35,000 per telecaller + PF, office space, incentives & bonus",
+    humanIcon: "bad",
+    vox: "₹5,000 / month flat retainer for unlimited automated conversations",
+    voxBadge: "Flat ₹5,000/mo",
+  },
+  {
+    feature: "Staff Training & Turnover",
+    human: "3–4 weeks to train each person; high attrition (quits unexpectedly after months)",
+    humanIcon: "bad",
+    vox: "Trained once in 72 hours on your exact catalog; never quits, never forgets",
+    voxBadge: "Zero Attrition",
+  },
+  {
+    feature: "Language & Dialect Fluency",
+    human: "Usually 1 or 2 languages; tone and grammar vary with staff mood or stress",
+    humanIcon: "warning",
+    vox: "Fluent bilingual Indian English, pure Hindi, and natural everyday Hinglish",
+    voxBadge: "Bilingual Natural",
+  },
+  {
+    feature: "Lead Logging & CRM Sync",
+    human: "Manual entry into Excel or paper diaries; leads often forgotten or misrecorded",
+    humanIcon: "bad",
+    vox: "100% automated logging in Google Sheets & CRM with call recordings attached",
+    voxBadge: "Instant CRM Sync",
+  },
+  {
+    feature: "Demeanor & Politeness",
+    human: "Gets fatigued or irritable after 40 calls; quality drops towards evening",
+    humanIcon: "warning",
+    vox: "100% patient, courteous, energetic, and professional on every single interaction",
+    voxBadge: "100% Consistent",
+  },
+]
+
+// Frequently Asked Questions (Overcoming Buyer Objections)
+const faqItems = [
+  {
+    q: "Will I lose my existing WhatsApp number or SIM card?",
+    a: "No, never. You retain 100% physical ownership of your phone and existing SIM card. We configure your AI Employee using official Meta WhatsApp Cloud API credentials or smart telecom call-forwarding. Your personal contacts and private WhatsApp chats remain completely untouched on your device.",
+  },
+  {
+    q: "What happens if a customer asks a complex question the AI doesn't know?",
+    a: "The AI operates under strict boundary guardrails and never guesses or makes up false information. When a high-ticket customer requests custom pricing or asks an edge-case question, the AI politely replies: 'Let me connect you directly with our senior director.' It instantly fires an urgent notification to your personal WhatsApp with the customer's full dossier, audio call recording, and chat transcript so your team can close the deal effortlessly.",
+  },
+  {
+    q: "Can it speak natural conversational Hindi and Hinglish without sounding robotic?",
+    a: "Yes! Our voice and text AI models are specifically calibrated for the Indian business ecosystem. It naturally understands and speaks fluent conversational Hindi, clean Indian English, and everyday colloquial Hinglish with natural breathing pauses, courteous cadence, and zero robotic monotone IVR sound.",
+  },
+  {
+    q: "What is included in the ₹20,000 setup fee and the ₹5,000 monthly retainer?",
+    a: "The ₹20,000 is a one-time engineering implementation fee covering complete business knowledge extraction, voice persona tuning, Meta Cloud API verification, CRM/Google Sheets sync, and comprehensive edge testing. The predictable ₹5,000/month retainer covers continuous 24/7 uptime monitoring, prompt optimizations, monthly catalog/pricing updates, API compatibility upkeep, and private WhatsApp engineering support.",
+  },
+  {
+    q: "Are there any hidden markups or surprise charges?",
+    a: "None. Vox AI practices 100% direct pass-through transparency with zero agency markup. You pay underlying infrastructure providers at direct wholesale cost: Meta charges approximately ₹0.70 to ₹0.85 per 24-hour service conversation, and telecom telephony minutes cost ~₹0.50/min for domestic Indian calls.",
+  },
+  {
+    q: "How fast can we go live after signing up?",
+    a: "We guarantee a 72-hour turnaround. Once you provide your product catalog, website, or brochure, our engineers calibrate your custom AI employee, conduct comprehensive edge testing with you, and launch it live on your channels within 3 business days.",
+  },
+  {
+    q: "Is my customer data, pricing list, and lead database confidential?",
+    a: "100% confidential and secure. Your business data is stored in isolated, encrypted cloud databases. We never share your leads, never sell your customer phonebook, and never train public models on your proprietary business conversations. You own 100% of your data.",
+  },
+]
+
 export default function LandingPage() {
   const { user } = useOrg()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const [audioTranscriptIndex, setAudioTranscriptIndex] = useState(0)
+
+  // Interactive ROI Calculator State
+  const [inquiriesPerDay, setInquiriesPerDay] = useState(50)
+  const [telecallerCount, setTelecallerCount] = useState(2)
+  const [salaryPerCaller, setSalaryPerCaller] = useState(20000)
+  const [activePresetIndex, setActivePresetIndex] = useState<number | null>(0)
+
+  // Dynamic ROI Calculations
+  const monthlyHumanPayroll = telecallerCount * salaryPerCaller
+  const monthlyVoxCost = 5000
+  const monthlySavings = Math.max(0, monthlyHumanPayroll - monthlyVoxCost)
+  const annualSavings = monthlySavings * 12
+  const savingsPercentage = Math.round((monthlySavings / Math.max(1, monthlyHumanPayroll)) * 100)
+  const afterHoursLeadsCaptured = Math.round(inquiriesPerDay * 0.38 * 30)
+
+  // FAQ Accordion State (first item open by default)
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0)
 
   // ─── Executive Briefing Demo Queries ─────────────────────────────────────────
   const executivePrompts = [
@@ -264,15 +389,24 @@ export default function LandingPage() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden items-center gap-8 lg:flex text-[15px] font-semibold text-[var(--ink-muted)]">
+          <nav className="hidden items-center gap-6 xl:gap-8 lg:flex text-[15px] font-semibold text-[var(--ink-muted)]">
             <a href="#how-it-works" className="hover:text-[var(--ink)] transition-colors">
               How it works
             </a>
             <a href="#channels" className="hover:text-[var(--ink)] transition-colors">
               Channels
             </a>
+            <a href="#roi-calculator" className="hover:text-[var(--ink)] transition-colors">
+              ROI Calculator
+            </a>
+            <a href="#comparison" className="hover:text-[var(--ink)] transition-colors">
+              Comparison
+            </a>
             <a href="#pricing" className="hover:text-[var(--ink)] transition-colors">
               Pricing
+            </a>
+            <a href="#faq" className="hover:text-[var(--ink)] transition-colors">
+              FAQ
             </a>
           </nav>
 
@@ -320,27 +454,49 @@ export default function LandingPage() {
               exit={{ height: 0, opacity: 0 }}
               className="border-b border-[var(--line)] bg-[var(--surface)] px-5 pt-4 pb-6 shadow-xl lg:hidden"
             >
-              <div className="flex flex-col space-y-3.5 text-base font-semibold text-[var(--ink)]">
+              <div className="flex flex-col space-y-3 text-base font-semibold text-[var(--ink)]">
                 <a
                   href="#how-it-works"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2.5 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
                 >
                   How it works
                 </a>
                 <a
                   href="#channels"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2.5 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
                 >
                   Channels (Calls, WhatsApp, Instagram, Email)
                 </a>
                 <a
+                  href="#roi-calculator"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)] text-[var(--brand)] font-bold flex items-center justify-between"
+                >
+                  <span>ROI & Cost Calculator</span>
+                  <span className="text-xs bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-2 py-0.5 rounded-full font-mono font-bold">Save 80%+</span>
+                </a>
+                <a
+                  href="#comparison"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
+                >
+                  AI Employee vs. Telecallers
+                </a>
+                <a
                   href="#pricing"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2.5 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
                 >
                   Pricing (₹20,000 setup)
+                </a>
+                <a
+                  href="#faq"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
+                >
+                  Frequently Asked Questions
                 </a>
                 <div className="pt-2 flex flex-col gap-2.5">
                   <Link
@@ -1202,7 +1358,308 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 6. How We Build It (Stepper 01-04 Expanded) ─────────────────────── */}
+      {/* ─── 6. Interactive ROI / Cost Savings Calculator ────────────────────── */}
+      <section id="roi-calculator" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
+              <Calculator className="h-4 w-4 text-[var(--brand)]" />
+              <span>Interactive ROI & Financial Impact</span>
+            </div>
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+              Calculate how much you save every month.
+            </h2>
+            <p className="mt-4 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
+              Compare your current human telecalling desk against a dedicated 24/7 AI employee that never sleeps, never takes Sunday off, and responds in 1.2 seconds.
+            </p>
+
+            {/* Quick Industry Presets */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--ink-muted)] mr-1 font-bold">Quick Presets:</span>
+              {roiPresets.map((preset, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setInquiriesPerDay(preset.inquiries)
+                    setTelecallerCount(preset.staff)
+                    setSalaryPerCaller(preset.salary)
+                    setActivePresetIndex(idx)
+                  }}
+                  className={`rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-semibold transition-all ${
+                    activePresetIndex === idx
+                      ? "bg-[var(--brand)] text-[#F6F1E7] shadow-sm"
+                      : "bg-[var(--surface)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--brand)]/40 hover:bg-white"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto items-stretch">
+            {/* Left Card: Interactive Sliders & Controls */}
+            <div className="lg:col-span-7 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-9 shadow-xs flex flex-col justify-between">
+              <div className="space-y-8">
+                {/* Control 1: Daily Customer Inquiries */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm sm:text-base font-bold text-[var(--ink)] flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-[var(--brand)]" />
+                      <span>Daily Customer Inquiries / Leads</span>
+                    </label>
+                    <span className="font-mono text-base sm:text-lg font-bold text-[var(--brand)] bg-[var(--brand-soft)] px-3 py-1 rounded-lg">
+                      {inquiriesPerDay} inquiries / day
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="15"
+                    max="250"
+                    step="5"
+                    value={inquiriesPerDay}
+                    onChange={(e) => {
+                      setInquiriesPerDay(Number(e.target.value))
+                      setActivePresetIndex(null)
+                    }}
+                    className="w-full h-2.5 bg-[var(--surface-alt)] rounded-lg appearance-none cursor-pointer accent-[var(--brand)]"
+                  />
+                  <div className="flex justify-between text-xs font-mono text-[var(--ink-muted)] mt-1.5">
+                    <span>15 inquiries</span>
+                    <span>120 inquiries</span>
+                    <span>250+ inquiries</span>
+                  </div>
+                </div>
+
+                {/* Control 2: Number of Human Telecallers */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm sm:text-base font-bold text-[var(--ink)] flex items-center gap-2">
+                      <Users className="h-4 w-4 text-[var(--brand)]" />
+                      <span>Telecallers / Staff Currently Hired</span>
+                    </label>
+                    <span className="font-mono text-base sm:text-lg font-bold text-[var(--brand)] bg-[var(--brand-soft)] px-3 py-1 rounded-lg">
+                      {telecallerCount} {telecallerCount === 1 ? "staff" : "telecallers"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-6 gap-2 mt-2">
+                    {[1, 2, 3, 4, 5, 6].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => {
+                          setTelecallerCount(num)
+                          setActivePresetIndex(null)
+                        }}
+                        className={`py-2 rounded-xl text-sm font-bold transition-all ${
+                          telecallerCount === num
+                            ? "bg-[var(--brand)] text-[#F6F1E7] shadow-sm"
+                            : "bg-[var(--surface-alt)] text-[var(--ink)] border border-[var(--line)] hover:bg-white"
+                        }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Control 3: Average Monthly Salary */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm sm:text-base font-bold text-[var(--ink)] flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-[var(--brand)]" />
+                      <span>Monthly Salary per Telecaller</span>
+                    </label>
+                    <span className="font-mono text-base sm:text-lg font-bold text-[var(--brand)] bg-[var(--brand-soft)] px-3 py-1 rounded-lg">
+                      ₹{salaryPerCaller.toLocaleString("en-IN")} / mo
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="12000"
+                    max="35000"
+                    step="1000"
+                    value={salaryPerCaller}
+                    onChange={(e) => {
+                      setSalaryPerCaller(Number(e.target.value))
+                      setActivePresetIndex(null)
+                    }}
+                    className="w-full h-2.5 bg-[var(--surface-alt)] rounded-lg appearance-none cursor-pointer accent-[var(--brand)]"
+                  />
+                  <div className="flex justify-between text-xs font-mono text-[var(--ink-muted)] mt-1.5">
+                    <span>₹12,000/mo</span>
+                    <span>₹22,000/mo</span>
+                    <span>₹35,000/mo</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Cost Summary Strip */}
+              <div className="mt-8 pt-6 border-t border-[var(--line)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+                <span className="text-[var(--ink-muted)] font-medium">
+                  Current Human Telecaller Payroll:
+                </span>
+                <span className="font-mono text-base font-bold text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1 rounded-lg">
+                  ₹{monthlyHumanPayroll.toLocaleString("en-IN")} / month
+                </span>
+              </div>
+            </div>
+
+            {/* Right Card: Dynamic Output & Savings Bento in Forest Green */}
+            <div className="lg:col-span-5 rounded-3xl border border-[var(--brand)] bg-[var(--brand)] text-[#F6F1E7] p-7 sm:p-9 shadow-xl flex flex-col justify-between relative overflow-hidden">
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-xs sm:text-sm font-mono font-bold text-emerald-300 uppercase tracking-wider">
+                    Projected Return on Investment
+                  </span>
+                  <span className="rounded-full bg-[var(--brand-surface)] border border-emerald-500/30 px-3 py-0.5 text-xs font-mono text-emerald-200 font-bold">
+                    Save {savingsPercentage}%
+                  </span>
+                </div>
+
+                <div className="mb-6">
+                  <span className="text-xs sm:text-sm font-mono text-emerald-200 block mb-1">
+                    Your Net Annual Cost Savings:
+                  </span>
+                  <div className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-[#F6F1E7]">
+                    ₹{annualSavings.toLocaleString("en-IN")}
+                  </div>
+                  <p className="text-xs sm:text-sm text-emerald-200/90 mt-1 font-mono">
+                    (₹{monthlySavings.toLocaleString("en-IN")} saved every month compared to human staff)
+                  </p>
+                </div>
+
+                {/* Breakdown Tiles */}
+                <div className="space-y-3 pt-6 border-t border-white/10 text-sm">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-emerald-100">Human Desk Payroll:</span>
+                    <span className="font-mono text-rose-300 font-bold line-through">₹{monthlyHumanPayroll.toLocaleString("en-IN")}/mo</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/10 border border-emerald-400/30">
+                    <span className="text-white font-semibold">VOX AI Employee Retainer:</span>
+                    <span className="font-mono text-emerald-300 font-bold">₹{monthlyVoxCost.toLocaleString("en-IN")}/mo</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-500/20 text-xs sm:text-sm leading-relaxed text-emerald-100">
+                    <div className="flex items-center gap-1.5 font-bold text-emerald-300 mb-1">
+                      <Sparkles className="h-4 w-4" />
+                      <span>+{afterHoursLeadsCaptured} After-Hours Leads Captured / Mo</span>
+                    </div>
+                    <p className="text-emerald-200/80">
+                      ~38% of inquiries arrive past 7 PM or on Sundays. While human desks miss these, VOX AI answers in 1.2s and books the order.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-white/10 relative z-10">
+                <a
+                  href={`https://wa.me/917015551637?text=${encodeURIComponent(
+                    `Hello! I calculated that VOX AI will save my business ₹${annualSavings.toLocaleString("en-IN")} per year. I have ${telecallerCount} staff and ${inquiriesPerDay} daily leads. Let's discuss deploying an AI Employee.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] py-4 text-sm sm:text-base font-bold text-white shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <span>Claim ₹{monthlySavings.toLocaleString("en-IN")}/mo Savings on WhatsApp</span>
+                  <ArrowRight className="h-5 w-5" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 7. Head-to-Head Comparison: AI vs. Telecallers ─────────────────── */}
+      <section id="comparison" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center mb-16">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
+              <Scale className="h-4 w-4 text-[var(--brand)]" />
+              <span>Head-to-Head Comparison</span>
+            </div>
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+              Why Indian businesses are replacing telecaller desks.
+            </h2>
+            <p className="mt-4 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
+              Managing human callers means dealing with hiring, training, leaves, and missed night inquiries. Here is how a dedicated AI Employee changes the game.
+            </p>
+          </div>
+
+          {/* Comparison Matrix Table */}
+          <div className="max-w-5xl mx-auto rounded-3xl border border-[var(--line)] bg-[var(--surface)] shadow-xs overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 bg-[var(--surface-alt)] border-b border-[var(--line)] p-4 sm:p-6 text-xs sm:text-sm font-bold text-[var(--ink)]">
+              <div className="col-span-12 sm:col-span-4 font-mono uppercase tracking-wider text-[var(--ink-muted)] mb-2 sm:mb-0">
+                Operational Factor
+              </div>
+              <div className="col-span-6 sm:col-span-4 text-left text-rose-900 font-mono uppercase tracking-wider flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                <span>Human Telecallers</span>
+              </div>
+              <div className="col-span-6 sm:col-span-4 text-left text-[var(--brand)] font-mono uppercase tracking-wider flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="font-bold">VOX AI Employee</span>
+                </div>
+                <span className="hidden md:inline-block rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[11px] text-[var(--brand-soft-text)] font-bold">
+                  Recommended
+                </span>
+              </div>
+            </div>
+
+            {/* Table Rows */}
+            <div className="divide-y divide-[var(--line)]">
+              {comparisonRows.map((row, idx) => (
+                <div
+                  key={idx}
+                  className="grid grid-cols-12 p-4 sm:p-6 items-center hover:bg-[var(--surface-alt)]/40 transition-colors gap-3 sm:gap-4"
+                >
+                  <div className="col-span-12 sm:col-span-4 font-bold text-sm sm:text-base text-[var(--ink)]">
+                    {row.feature}
+                  </div>
+
+                  <div className="col-span-12 sm:col-span-4 text-xs sm:text-sm text-[var(--ink-muted)] flex items-start gap-2 bg-rose-50/60 sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-rose-100 sm:border-0">
+                    <span className="text-rose-600 font-bold shrink-0 mt-0.5">✕</span>
+                    <span className="leading-relaxed">{row.human}</span>
+                  </div>
+
+                  <div className="col-span-12 sm:col-span-4 text-xs sm:text-sm text-[var(--ink)] font-semibold flex items-start gap-2 bg-emerald-50/70 sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none border border-emerald-100 sm:border-0">
+                    <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="leading-relaxed block">{row.vox}</span>
+                      <span className="inline-block sm:hidden text-[11px] font-mono font-bold bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-2 py-0.5 rounded mt-1.5">
+                        ✓ {row.voxBadge}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom Table Strip */}
+            <div className="p-6 bg-[var(--surface-alt)] border-t border-[var(--line)] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-sm font-semibold text-[var(--ink)]">
+                  Ready to eliminate hiring headaches and scale customer response?
+                </span>
+              </div>
+              <a
+                href={WHATSAPP_CTA}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand)] px-6 py-3 text-xs sm:text-sm font-bold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-all shadow-xs"
+              >
+                <span>Hire Your AI Employee (₹20,000 setup)</span>
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 8. How We Build It (Stepper 01-04 Expanded) ─────────────────────── */}
       <section id="how-it-works" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--bg)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-16">
@@ -1437,7 +1894,88 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 8. Final CTA (Full-Width Forest-Green Block) ───────────────────── */}
+      {/* ─── 9. Frequently Asked Questions (FAQ Accordion) ─────────────────── */}
+      <section id="faq" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
+              <HelpCircle className="h-4 w-4 text-[var(--brand)]" />
+              <span>Questions & Doubts Answered</span>
+            </div>
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+              Frequently asked questions.
+            </h2>
+            <p className="mt-4 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
+              No hidden clauses, no lock-in traps. Direct answers to the most common questions from Indian business owners.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {faqItems.map((item, idx) => {
+              const isOpen = openFaqIndex === idx
+              return (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] transition-all duration-200 overflow-hidden shadow-xs"
+                >
+                  <button
+                    onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                    className="w-full flex items-center justify-between p-6 sm:p-7 text-left gap-4 hover:bg-[var(--surface-alt)]/30 transition-colors"
+                    aria-expanded={isOpen}
+                  >
+                    <span className="text-base sm:text-lg font-bold text-[var(--ink)] pr-2">
+                      {item.q}
+                    </span>
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface-alt)] border border-[var(--line)] text-[var(--brand)] transition-transform duration-200 ${
+                        isOpen ? "rotate-180 bg-[var(--brand-soft)]" : ""
+                      }`}
+                    >
+                      <ChevronDown className="h-4.5 w-4.5" />
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                      >
+                        <div className="px-6 pb-6 sm:px-7 sm:pb-7 pt-1 text-sm sm:text-base text-[var(--ink-muted)] leading-relaxed border-t border-[var(--line)]/50">
+                          {item.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Additional Question Support Box */}
+          <div className="mt-12 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 text-center shadow-xs">
+            <h3 className="text-lg sm:text-xl font-bold text-[var(--ink)] mb-2">
+              Have a custom business question or special workflow requirement?
+            </h3>
+            <p className="text-sm sm:text-base text-[var(--ink-muted)] max-w-xl mx-auto mb-6">
+              Our engineering team is ready to discuss your specific ERP, CRM, phone forwarding setup, or product catalog structure.
+            </p>
+            <a
+              href={WHATSAPP_CTA}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand)] px-6 py-3.5 text-sm font-bold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-all shadow-sm"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>Ask Our Engineers on WhatsApp</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 10. Final CTA (Full-Width Forest-Green Block) ──────────────────── */}
       <section className="relative bg-[var(--brand)] text-[#F6F1E7] py-20 md:py-28 overflow-hidden">
         <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
           <span className="font-mono text-xs sm:text-sm uppercase tracking-widest text-emerald-300 font-bold">
