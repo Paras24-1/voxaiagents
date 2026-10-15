@@ -526,43 +526,23 @@ export default function LandingPage() {
             {/* Left Column: Editorial Headline & Actions */}
             <div className="lg:col-span-7 flex flex-col items-start text-left">
               {/* Category pill */}
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-sm text-[var(--ink-muted)] shadow-xs mb-6"
-              >
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-sm text-[var(--ink-muted)] shadow-xs mb-6">
                 <span className="h-2.5 w-2.5 rounded-full bg-[var(--brand)]" />
                 <span className="font-semibold text-[var(--ink)]">Custom AI Employees for Indian Businesses</span>
-              </motion.div>
+              </div>
 
               {/* Oversized Serif Headline */}
-              <motion.h1
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.08 }}
-                className="font-serif text-[44px] sm:text-6xl lg:text-[76px] leading-[1.05] tracking-[-0.02em] font-normal text-[var(--ink)] text-balance"
-              >
+              <h1 className="font-serif text-[44px] sm:text-6xl lg:text-[76px] leading-[1.05] tracking-[-0.02em] font-normal text-[var(--ink)] text-balance">
                 Your business, <em className="italic font-normal text-[var(--brand)]">cloned</em> into an autonomous AI employee.
-              </motion.h1>
+              </h1>
 
               {/* Clear, Understandable Subcopy for Indian Business Owners */}
-              <motion.p
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.16 }}
-                className="mt-6 text-lg sm:text-xl text-[var(--ink-muted)] leading-relaxed max-w-xl font-normal"
-              >
+              <p className="mt-6 text-lg sm:text-xl text-[var(--ink-muted)] leading-relaxed max-w-xl font-normal">
                 We build a custom AI employee that answers your phone calls, WhatsApp messages, Instagram DMs, and emails 24/7. Trained on your exact products, catalog prices, and sales objections to qualify buyers, calculate quotations, and book revenue deals while you sleep.
-              </motion.p>
+              </p>
 
               {/* Primary Actions & Voice Audio Link */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.24 }}
-                className="mt-8 flex flex-wrap items-center gap-4 sm:gap-6"
-              >
+              <div className="mt-8 flex flex-wrap items-center gap-4 sm:gap-6">
                 <a
                   href={WHATSAPP_CTA}
                   target="_blank"
@@ -590,15 +570,10 @@ export default function LandingPage() {
                   <PhoneCall className="h-4 w-4 text-[var(--brand)]" />
                   <span>or call direct: <strong className="font-bold text-[var(--ink)]">{CALL_NUMBER}</strong></span>
                 </a>
-              </motion.div>
+              </div>
 
               {/* Thin Row of Trust Stats with Context */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.32 }}
-                className="mt-12 pt-6 border-t border-[var(--line)] w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-4 text-left"
-              >
+              <div className="mt-12 pt-6 border-t border-[var(--line)] w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
                 <div>
                   <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">1.2s</div>
                   <div className="text-sm font-semibold text-[var(--ink)]">Instant Reply</div>
@@ -619,7 +594,7 @@ export default function LandingPage() {
                   <div className="text-sm font-semibold text-[var(--ink)]">One Unified Brain</div>
                   <div className="text-xs text-[var(--ink-muted)]">Calls, WA, IG, Email</div>
                 </div>
-              </motion.div>
+              </div>
             </div>
 
             {/* Right Column: Realistic Phone Mockup (Clear readable text) */}
@@ -714,12 +689,7 @@ export default function LandingPage() {
               </div>
 
               {/* Floating Social Proof Card with ample breathing room */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:p-5 shadow-xl z-20 min-w-[260px] sm:min-w-[280px]"
-              >
+              <div className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:p-5 shadow-xl z-20 min-w-[260px] sm:min-w-[280px]">
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
@@ -735,7 +705,7 @@ export default function LandingPage() {
                 <p className="text-xs text-[var(--ink-muted)] mt-1 leading-normal">
                   Automated quotations generated today via WhatsApp & Phone Calls
                 </p>
-              </motion.div>
+              </div>
             </div>
           </div>
         </div>
