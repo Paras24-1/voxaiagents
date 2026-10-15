@@ -62,7 +62,7 @@ const clientLogos = [
   },
   {
     name: "Innoveg",
-    category: "Wholesale & Fresh Agritech",
+    category: "Wholesale & Fresh Produce",
     logo: "/clients/innoveg.jpeg",
   },
   {
@@ -100,20 +100,20 @@ export default function LandingPage() {
       label: "Today's Briefing",
       question: "Hey Nova, give me a complete debrief of today's business activity.",
       response: {
-        headline: "Operational Debrief for Today Across All 4 Channels",
+        headline: "Today's Business Summary (Calls, WhatsApp, Instagram, Email)",
         bullets: [
-          "Phone Calls: 42 inbound calls handled autonomously with 0 dropped sessions. 9 qualified prospects scheduled direct sales meetings on Google Calendar; 4 high-budget leads were warm-transferred live to human closers.",
-          "WhatsApp: 114 prospective conversations engaged in Hindi and English. Generated ₹5,80,000 in customized PDF quotations with zero human manual intervention.",
-          "Instagram: Auto-responded to 68 Reel comments, converted 23 direct DMs into verified Indian phone numbers automatically pushed to CRM.",
-          "Email: Cleaned incoming inbox to Inbox Zero, categorized 14 wholesale partner inquiries, and pre-drafted 3 enterprise RFP proposals awaiting your 1-click approval.",
+          "Phone Calls: 42 customer calls answered automatically without missing a single ring. 9 qualified buyers booked a direct sales meeting on Google Calendar, and 4 high-budget leads were transferred live to your sales team.",
+          "WhatsApp: 114 prospective customers answered in English and Hindi. Sent ₹5,80,000 in customized PDF quotations automatically with zero manual effort from your staff.",
+          "Instagram: Automatically replied to 68 Reel comments, and sent private DMs that saved 23 verified Indian phone numbers directly into your CRM.",
+          "Email: Sorted all incoming emails to Inbox Zero, categorized 14 wholesale inquiries, and pre-drafted 3 formal proposal quotes ready for your 1-click approval.",
         ],
         kpis: [
           { label: "Leads Captured", val: "179 Leads" },
           { label: "Avg Response", val: "1.2 sec" },
-          { label: "Qualified Pipeline", val: "₹18.4 Lakh" },
+          { label: "Pipeline Value", val: "₹18.4 Lakh" },
           { label: "Hours Saved", val: "7.5 hrs" },
         ],
-        alert: "Action Required: 2 high-ticket wholesale distributors requested custom ERP API integration. Briefing dossiers and call recordings are pre-loaded in your dashboard.",
+        alert: "Ready for Action: 2 high-value wholesale buyers requested custom order integrations. Their full details and audio call recordings are waiting in your dashboard.",
       },
     },
     {
@@ -121,19 +121,19 @@ export default function LandingPage() {
       label: "Hot Leads to Close",
       question: "Which high-intent leads are ready for my human closers right now?",
       response: {
-        headline: "High-Intent Prospects Awaiting Immediate Human Handoff",
+        headline: "Hot Prospects Ready for Human Closing Right Now",
         bullets: [
-          "1. Rajesh Singhania (Industrial Manufacturing): Confirmed ₹15L budget for 4-factory automated order intake. Requested contract closing call tomorrow at 3 PM.",
-          "2. Dr. Ananya Verma (Clinic Network, 6 branches): Fully qualified for multi-doctor patient triage & WhatsApp booking. Complete symptom questionnaire and call recording attached.",
-          "3. Vikram Mehta (Luxury Real Estate): Ready to deploy Instagram Reel DM lead automation for 3 luxury residential towers in Gurgaon. Verified phone number synced to CRM.",
+          "1. Rajesh Singhania (Industrial Manufacturing): Confirmed ₹15 Lakh budget for automated order intake across 4 factories. Requested a contract closing call tomorrow at 3 PM.",
+          "2. Dr. Ananya Verma (Clinic Network, 6 branches): Fully qualified for doctor scheduling and patient triage on WhatsApp. Complete patient questionnaire and phone recording attached.",
+          "3. Vikram Mehta (Luxury Real Estate): Ready to deploy Instagram Reel DM automation for 3 luxury towers in Gurgaon. Verified mobile number already synced to your Google Sheet.",
         ],
         kpis: [
-          { label: "Ready Deals", val: "3 Buyers" },
+          { label: "Ready Buyers", val: "3 High-Intent" },
           { label: "Deal Pipeline", val: "₹28.5 Lakh" },
-          { label: "Quality Score", val: "9.8 / 10" },
-          { label: "CRM Status", val: "Auto Synced" },
+          { label: "Lead Quality", val: "9.8 / 10" },
+          { label: "CRM Sync", val: "Instant" },
         ],
-        alert: "All 3 prospect summaries, audio recordings, and WhatsApp chat transcripts are pre-loaded on your dashboard with full context.",
+        alert: "All 3 prospect summaries, audio call recordings, and WhatsApp chat transcripts are prepared on your dashboard with full customer context.",
       },
     },
     {
@@ -141,19 +141,19 @@ export default function LandingPage() {
       label: "Voice Calls & Objections",
       question: "Summarise the phone calls and customer objections from today.",
       response: {
-        headline: "Voice Telephony Sentiment & Objection Analysis (Sub-350ms Latency)",
+        headline: "Summary of Today's Phone Calls & Common Customer Questions",
         bullets: [
-          "Total Call Minutes: 94 minutes across 42 automated phone calls with zero dropped calls and 100% audio clarity.",
-          "Primary Question (58% of callers): 'Can your AI employee speak both Hindi and English fluently?' — AI confirmed fluently and switched languages mid-sentence with natural inflection.",
-          "Second Question (34% of callers): 'Can it connect directly to my existing office phone number?' — AI explained SIP trunking and instant call forwarding without buying new SIM cards.",
+          "Total Call Time: 94 minutes across 42 automated phone calls with zero dropped calls and 100% crystal-clear audio.",
+          "Most Common Question (58% of callers): 'Can your AI employee speak both Hindi and English fluently?' — The AI replied smoothly in natural Hindi-English without robotic lag.",
+          "Second Question (34% of callers): 'Can it connect directly to our existing office phone number?' — The AI explained call forwarding and SIP trunking without changing existing SIM cards.",
         ],
         kpis: [
           { label: "Speech Latency", val: "340ms" },
           { label: "Human Cadence", val: "99.4%" },
-          { label: "Objections Won", val: "31 / 34" },
-          { label: "Warm Transferred", val: "4 Callers" },
+          { label: "Questions Solved", val: "31 / 34" },
+          { label: "Live Transferred", val: "4 Calls" },
         ],
-        alert: "Zero robotic tone complaints. 92% of callers believed they were speaking with an in-office human customer representative.",
+        alert: "Zero robotic complaints. 92% of callers felt they were speaking with a polite, professional in-office executive.",
       },
     },
     {
@@ -161,19 +161,19 @@ export default function LandingPage() {
       label: "Instagram & WhatsApp Ads",
       question: "How are our Instagram ads and WhatsApp campaigns converting today?",
       response: {
-        headline: "Social Omnichannel Conversion & Speed-to-Lead Velocity",
+        headline: "Social Media & WhatsApp Ad Conversion Report",
         bullets: [
-          "Meta Ads: 86 ad clicks triggered instant WhatsApp conversations within 1.5 seconds, preventing lead drop-off.",
-          "Instagram Reel 'How AI Replaces 5 Employees' generated 140 comments with keyword 'DEMO', instantly triggering automated private DM sales sequences.",
-          "Conversion Velocity: 26.7% of all social interactions progressed to verified phone extraction and budget qualification stage.",
+          "Meta Ads: 86 ad clicks started an immediate WhatsApp conversation within 1.5 seconds, preventing visitors from leaving.",
+          "Instagram Reel 'How AI Replaces 5 Employees': 140 viewers commented 'DEMO', instantly receiving an automated private DM with pricing and catalog links.",
+          "Conversion Rate: 26.7% of all social interactions shared their verified phone number and requested a price quotation.",
         ],
         kpis: [
           { label: "Ad Clicks", val: "86 Leads" },
           { label: "Reel DMs Sent", val: "140 Chats" },
-          { label: "Phones Saved", val: "54 Numbers" },
-          { label: "CPA Reduction", val: "-38% Cost" },
+          { label: "Numbers Saved", val: "54 Verified" },
+          { label: "Ad Cost Saved", val: "38% Lower" },
         ],
-        alert: "Zero lead leakage: Even night-time leads (11 PM - 4 AM) were fully qualified and booked into your calendar while your human team slept.",
+        alert: "Zero missed inquiries: Even night-time inquiries (11 PM to 4 AM) were fully answered, qualified, and booked into your calendar while your team was asleep.",
       },
     },
   ]
@@ -239,32 +239,32 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="vox-landing-theme min-h-screen bg-[var(--bg)] text-[var(--ink)] paper-grain selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden">
+    <div className="vox-landing-theme min-h-screen bg-[var(--bg)] text-[var(--ink)] paper-grain selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden text-[16px]">
       {/* ─── 1. Minimal Sticky Header ───────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[#F6F1E7]/95 backdrop-blur-md transition-colors">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Brand Logo */}
           <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand)] text-[#F6F1E7] shadow-sm transition-transform group-hover:scale-105">
-              <span className="font-serif text-xl font-bold tracking-tight">V</span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--brand)] text-[#F6F1E7] shadow-sm transition-transform group-hover:scale-105">
+              <span className="font-serif text-2xl font-bold tracking-tight">V</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-serif text-lg font-bold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
+                <span className="font-serif text-xl font-bold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
                   VOX AI AGENTS
                 </span>
-                <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[11px] font-mono font-medium text-[var(--brand-soft-text)]">
+                <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-xs font-mono font-semibold text-[var(--brand-soft-text)]">
                   AI Employee
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--ink-muted)]">
-                Autonomous Business Representatives for Indian SMBs
+              <p className="text-xs sm:text-[13px] text-[var(--ink-muted)]">
+                Autonomous AI Employees for Indian Businesses
               </p>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden items-center gap-8 lg:flex text-sm font-medium text-[var(--ink-muted)]">
+          <nav className="hidden items-center gap-8 lg:flex text-[15px] font-semibold text-[var(--ink-muted)]">
             <a href="#how-it-works" className="hover:text-[var(--ink)] transition-colors">
               How it works
             </a>
@@ -280,34 +280,34 @@ export default function LandingPage() {
           <div className="hidden items-center gap-3 sm:flex">
             <Link
               href={user ? "/dashboard" : "/login"}
-              className="inline-flex items-center gap-2 rounded-xl border border-[var(--brand)]/30 bg-[var(--surface)] px-4 py-2.5 text-xs font-semibold text-[var(--brand)] shadow-xs transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 group"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--brand)]/35 bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-[var(--brand)] shadow-sm transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 group"
             >
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
               </span>
-              <LayoutDashboard className="h-3.5 w-3.5 text-[var(--brand)] group-hover:text-white transition-colors" />
-              <span>{user ? "Dashboard" : "Client Login"}</span>
+              <LayoutDashboard className="h-4 w-4 text-[var(--brand)] group-hover:text-white transition-colors" />
+              <span>{user ? "Open Dashboard" : "Client Portal / Login"}</span>
             </Link>
 
             <a
               href={WHATSAPP_CTA}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
             >
               <span>Deploy AI Employee</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-4 w-4" />
             </a>
           </div>
 
           {/* Mobile Menu Trigger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] lg:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] lg:hidden"
             aria-label="Toggle Menu"
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
@@ -318,35 +318,35 @@ export default function LandingPage() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="border-b border-[var(--line)] bg-[var(--surface)] px-4 pt-3 pb-6 shadow-xl lg:hidden"
+              className="border-b border-[var(--line)] bg-[var(--surface)] px-5 pt-4 pb-6 shadow-xl lg:hidden"
             >
-              <div className="flex flex-col space-y-3 text-sm font-medium text-[var(--ink)]">
+              <div className="flex flex-col space-y-3.5 text-base font-semibold text-[var(--ink)]">
                 <a
                   href="#how-it-works"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2.5 hover:bg-[var(--surface-alt)]"
                 >
                   How it works
                 </a>
                 <a
                   href="#channels"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2.5 hover:bg-[var(--surface-alt)]"
                 >
                   Channels (Calls, WhatsApp, Instagram, Email)
                 </a>
                 <a
                   href="#pricing"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2.5 hover:bg-[var(--surface-alt)]"
                 >
                   Pricing (₹20,000 setup)
                 </a>
-                <div className="pt-2 flex flex-col gap-2">
+                <div className="pt-2 flex flex-col gap-2.5">
                   <Link
                     href={user ? "/dashboard" : "/login"}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-[var(--brand)]/30 bg-[var(--surface-alt)] py-3 text-xs font-semibold text-[var(--brand)] shadow-xs hover:bg-[var(--brand)] hover:text-white transition-all"
+                    className="flex items-center justify-center gap-2 rounded-xl border-2 border-[var(--brand)]/35 bg-[var(--surface-alt)] py-3 text-sm font-bold text-[var(--brand)] shadow-xs hover:bg-[var(--brand)] hover:text-white transition-all"
                   >
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     <LayoutDashboard className="h-4 w-4" />
@@ -356,17 +356,10 @@ export default function LandingPage() {
                     href={WHATSAPP_CTA}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3 text-xs font-semibold text-white shadow-sm"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-bold text-white shadow-sm"
                   >
                     <span>Deploy AI Employee</span>
                     <ArrowRight className="h-4 w-4" />
-                  </a>
-                  <a
-                    href={CALL_CTA}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-alt)] py-2.5 text-xs font-semibold text-[var(--ink)]"
-                  >
-                    <PhoneCall className="h-4 w-4 text-[var(--brand)]" />
-                    <span>Call Live Voice AI ({CALL_NUMBER})</span>
                   </a>
                 </div>
               </div>
@@ -386,10 +379,10 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs text-[var(--ink-muted)] shadow-xs mb-6"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-sm text-[var(--ink-muted)] shadow-xs mb-6"
               >
-                <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
-                <span className="font-medium text-[var(--ink)]">Custom AI Employees for Indian Businesses</span>
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--brand)]" />
+                <span className="font-semibold text-[var(--ink)]">Custom AI Employees for Indian Businesses</span>
               </motion.div>
 
               {/* Oversized Serif Headline */}
@@ -397,19 +390,19 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.08 }}
-                className="font-serif text-[42px] sm:text-6xl lg:text-[74px] leading-[1.05] tracking-[-0.02em] font-normal text-[var(--ink)] text-balance"
+                className="font-serif text-[44px] sm:text-6xl lg:text-[76px] leading-[1.05] tracking-[-0.02em] font-normal text-[var(--ink)] text-balance"
               >
                 Your business, <em className="italic font-normal text-[var(--brand)]">cloned</em> into an autonomous AI employee.
               </motion.h1>
 
-              {/* Comprehensive Subcopy for Indian SMBs */}
+              {/* Clear, Understandable Subcopy for Indian Business Owners */}
               <motion.p
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.16 }}
-                className="mt-6 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed max-w-xl font-normal"
+                className="mt-6 text-lg sm:text-xl text-[var(--ink-muted)] leading-relaxed max-w-xl font-normal"
               >
-                We engineer custom AI employees that answer inbound phone calls, WhatsApp messages, Instagram DMs, and emails 24/7. Trained on your exact product catalog, pricing, and objection playbook to qualify leads, send instant quotations, and book high-ticket deals while you sleep.
+                We build a custom AI employee that answers your phone calls, WhatsApp messages, Instagram DMs, and emails 24/7. Trained on your exact products, catalog prices, and sales objections to qualify buyers, calculate quotations, and book revenue deals while you sleep.
               </motion.p>
 
               {/* Primary Actions & Voice Audio Link */}
@@ -423,28 +416,28 @@ export default function LandingPage() {
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2.5 rounded-xl bg-[var(--accent)] px-7 py-4 text-sm font-semibold text-white shadow-md hover:bg-[var(--accent-hover)] hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                  className="group inline-flex items-center gap-2.5 rounded-xl bg-[var(--accent)] px-8 py-4.5 text-base sm:text-lg font-bold text-white shadow-md hover:bg-[var(--accent-hover)] hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
                 >
                   <span>Deploy Your AI Employee</span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </a>
 
                 <a
                   href="#voice-audio"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)] hover:text-[var(--brand)] transition-colors py-2"
+                  className="inline-flex items-center gap-2.5 text-base font-bold text-[var(--ink)] hover:text-[var(--brand)] transition-colors py-2"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-alt)] border border-[var(--line)]">
-                    <Headphones className="h-4 w-4 text-[var(--brand)]" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-alt)] border border-[var(--line)]">
+                    <Headphones className="h-4.5 w-4.5 text-[var(--brand)]" />
                   </div>
-                  <span>Hear the voice</span>
+                  <span>Hear the voice demo</span>
                 </a>
 
                 <a
                   href={CALL_CTA}
-                  className="text-xs sm:text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors inline-flex items-center gap-1.5"
+                  className="text-sm sm:text-base text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors inline-flex items-center gap-2"
                 >
-                  <PhoneCall className="h-3.5 w-3.5 text-[var(--brand)]" />
-                  <span>or call <strong className="font-semibold text-[var(--ink)]">{CALL_NUMBER}</strong></span>
+                  <PhoneCall className="h-4 w-4 text-[var(--brand)]" />
+                  <span>or call direct: <strong className="font-bold text-[var(--ink)]">{CALL_NUMBER}</strong></span>
                 </a>
               </motion.div>
 
@@ -456,35 +449,35 @@ export default function LandingPage() {
                 className="mt-12 pt-6 border-t border-[var(--line)] w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-4 text-left"
               >
                 <div>
-                  <div className="font-mono text-lg font-bold text-[var(--brand)]">1.2s</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Avg response time</div>
-                  <div className="text-[10px] text-[var(--ink-faint)]">Across all channels</div>
+                  <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">1.2s</div>
+                  <div className="text-sm font-semibold text-[var(--ink)]">Instant Reply</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Across all 4 channels</div>
                 </div>
                 <div>
-                  <div className="font-mono text-lg font-bold text-[var(--brand)]">24/7/365</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Always answering</div>
-                  <div className="text-[10px] text-[var(--ink-faint)]">Zero lead leakage</div>
+                  <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">24/7/365</div>
+                  <div className="text-sm font-semibold text-[var(--ink)]">Always Working</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Zero missed inquiries</div>
                 </div>
                 <div>
-                  <div className="font-mono text-lg font-bold text-[var(--brand)]">72 hours</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Live deployment</div>
-                  <div className="text-[10px] text-[var(--ink-faint)]">Keep existing phone</div>
+                  <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">72 Hours</div>
+                  <div className="text-sm font-semibold text-[var(--ink)]">Fast Launch</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Keep existing SIM</div>
                 </div>
                 <div>
-                  <div className="font-mono text-lg font-bold text-[var(--brand)]">4 channels</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Unified coverage</div>
-                  <div className="text-[10px] text-[var(--ink-faint)]">Calls, WA, IG, Email</div>
+                  <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">4 Channels</div>
+                  <div className="text-sm font-semibold text-[var(--ink)]">One Unified Brain</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Calls, WA, IG, Email</div>
                 </div>
               </motion.div>
             </div>
 
-            {/* Right Column: Realistic Phone Mockup (Above the fold product preview) */}
+            {/* Right Column: Realistic Phone Mockup (Clear readable text) */}
             <div className="lg:col-span-5 relative flex justify-center">
               {/* Soft background aura */}
               <div className="absolute -inset-4 rounded-full bg-[var(--brand-soft)]/50 blur-3xl -z-10" />
 
               {/* Phone Frame */}
-              <div className="relative w-full max-w-[350px] rounded-[40px] border-[8px] border-[#16211C] bg-[#ECE5DD] shadow-2xl overflow-hidden text-[var(--ink)]">
+              <div className="relative w-full max-w-[370px] rounded-[42px] border-[8px] border-[#16211C] bg-[#ECE5DD] shadow-2xl overflow-hidden text-[var(--ink)]">
                 {/* Speaker pill */}
                 <div className="h-6 bg-[#16211C] flex items-center justify-center">
                   <div className="w-16 h-3 bg-[#0C120F] rounded-full" />
@@ -492,74 +485,74 @@ export default function LandingPage() {
 
                 {/* WhatsApp Chat App Bar */}
                 <div className="bg-[var(--brand)] text-[#F6F1E7] px-4 py-3.5 flex items-center justify-between shadow-sm">
-                  <div className="flex items-center gap-2.5">
-                    <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)] font-bold text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)] font-bold text-sm">
                       VA
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-[var(--brand)]" />
+                      <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-[var(--brand)]" />
                     </div>
                     <div>
-                      <div className="text-xs font-semibold leading-tight text-[#F6F1E7]">Vox AI Employee</div>
-                      <div className="text-[10px] text-[var(--brand-soft)]">Online · Answers in &lt; 1 sec</div>
+                      <div className="text-sm font-bold leading-tight text-[#F6F1E7]">Vox AI Employee</div>
+                      <div className="text-xs text-[var(--brand-soft)]">Online · Answers in &lt; 1 sec</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-[#F6F1E7]/80">
-                    <Phone className="h-4 w-4" />
+                    <Phone className="h-5 w-5" />
                   </div>
                 </div>
 
-                {/* Chat Messages Canvas with comfortable padding */}
-                <div className="p-4 space-y-3.5 text-xs min-h-[430px] flex flex-col justify-end bg-[#ECE5DD]">
+                {/* Chat Messages Canvas with comfortable, readable font */}
+                <div className="p-4 space-y-4 min-h-[440px] flex flex-col justify-end bg-[#ECE5DD]">
                   {/* Date badge */}
                   <div className="flex justify-center mb-1">
-                    <span className="rounded-md bg-white/80 px-2.5 py-0.5 text-[10px] font-mono text-[var(--ink-muted)] shadow-xs">
-                      Today · Live Chat
+                    <span className="rounded-md bg-white/80 px-3 py-1 text-xs font-mono text-[var(--ink-muted)] shadow-xs">
+                      Today · Customer Inquiry
                     </span>
                   </div>
 
                   {/* Customer Question */}
                   <div className="flex justify-start">
-                    <div className="max-w-[86%] rounded-2xl rounded-tl-xs bg-white p-3.5 text-[12px] leading-relaxed shadow-xs text-[#14170F]">
-                      <p>Hi, we run a multi-doctor clinic in Haryana. Can your AI answer patient queries on WhatsApp, explain consultation fees, and book appointment slots?</p>
-                      <div className="text-[10px] text-[#8E9285] text-right mt-1 font-mono">10:14 AM</div>
+                    <div className="max-w-[86%] rounded-2xl rounded-tl-xs bg-white p-3.5 text-[14px] leading-relaxed shadow-xs text-[#14170F]">
+                      <p>Hi, we run a multi-doctor clinic in Haryana. Can your AI answer patient questions on WhatsApp, share fees, and book doctor appointments?</p>
+                      <div className="text-xs text-[#8E9285] text-right mt-1 font-mono">10:14 AM</div>
                     </div>
                   </div>
 
                   {/* AI Response in Mint Bubble */}
                   <div className="flex justify-end">
-                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3.5 text-[12px] leading-relaxed shadow-xs text-[var(--brand-soft-text)]">
-                      <p>Namaste! Yes, absolutely. We sync directly with your doctor calendar, triage inquiries in English and Hindi, and confirm slots instantly with automated WhatsApp reminders.</p>
-                      <div className="flex items-center justify-end gap-1 text-[10px] text-[var(--brand)] mt-1 font-mono">
+                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3.5 text-[14px] leading-relaxed shadow-xs text-[var(--brand-soft-text)] font-medium">
+                      <p>Namaste! Yes, absolutely. We sync directly with your doctor calendar, answer in Hindi and English, and confirm appointment slots instantly with automated WhatsApp reminders.</p>
+                      <div className="flex items-center justify-end gap-1 text-xs text-[var(--brand)] mt-1 font-mono">
                         <span>10:14 AM</span>
-                        <CheckCheck className="h-3.5 w-3.5 text-[#34B7F1]" />
+                        <CheckCheck className="h-4 w-4 text-[#34B7F1]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Customer Followup */}
                   <div className="flex justify-start">
-                    <div className="max-w-[86%] rounded-2xl rounded-tl-xs bg-white p-3 text-[12px] leading-relaxed shadow-xs text-[#14170F]">
+                    <div className="max-w-[86%] rounded-2xl rounded-tl-xs bg-white p-3.5 text-[14px] leading-relaxed shadow-xs text-[#14170F]">
                       <p>Sounds perfect. What is the setup cost and how soon can we go live?</p>
-                      <div className="text-[10px] text-[#8E9285] text-right mt-1 font-mono">10:15 AM</div>
+                      <div className="text-xs text-[#8E9285] text-right mt-1 font-mono">10:15 AM</div>
                     </div>
                   </div>
 
                   {/* AI Pricing Quote in Mint Bubble */}
                   <div className="flex justify-end">
-                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3 text-[12px] leading-relaxed shadow-xs text-[var(--brand-soft-text)]">
-                      <p>Implementation is ₹20,000 one-time and ₹5,000/month retainer. We launch your clinic AI employee in 72 hours. Shall I connect you with our deployment team?</p>
-                      <div className="flex items-center justify-end gap-1 text-[10px] text-[var(--brand)] mt-1 font-mono">
+                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3.5 text-[14px] leading-relaxed shadow-xs text-[var(--brand-soft-text)] font-medium">
+                      <p>Implementation is ₹20,000 one-time, and ₹5,000/month retainer. We deploy your clinic AI employee in 72 hours. Shall I connect you with our deployment team?</p>
+                      <div className="flex items-center justify-end gap-1 text-xs text-[var(--brand)] mt-1 font-mono">
                         <span>10:15 AM</span>
-                        <CheckCheck className="h-3.5 w-3.5 text-[#34B7F1]" />
+                        <CheckCheck className="h-4 w-4 text-[#34B7F1]" />
                       </div>
                     </div>
                   </div>
 
                   {/* Typing Indicator */}
-                  <div className="flex items-center gap-1.5 bg-white w-fit px-3 py-2 rounded-2xl rounded-tl-xs shadow-xs text-[#5B5F54]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '300ms' }} />
-                    <span className="text-[10px] font-mono ml-1 text-[#5B5F54]">AI Employee is typing...</span>
+                  <div className="flex items-center gap-2 bg-white w-fit px-3.5 py-2 rounded-2xl rounded-tl-xs shadow-xs text-[#5B5F54]">
+                    <span className="h-2 w-2 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="h-2 w-2 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="h-2 w-2 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <span className="text-xs font-semibold ml-1 text-[#5B5F54]">AI Employee is typing...</span>
                   </div>
                 </div>
 
@@ -574,22 +567,22 @@ export default function LandingPage() {
                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-xl z-20 min-w-[240px] sm:min-w-[260px]"
+                className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:p-5 shadow-xl z-20 min-w-[260px] sm:min-w-[280px]"
               >
                 <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
-                      <TrendingUp className="h-3 w-3" />
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
+                      <TrendingUp className="h-3.5 w-3.5" />
                     </span>
-                    <span className="text-[11px] font-medium text-[var(--ink-muted)]">Live SMB Activity</span>
+                    <span className="text-xs font-semibold text-[var(--ink-muted)]">Live SMB Activity</span>
                   </div>
-                  <span className="text-[10px] font-mono bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-md font-semibold">
+                  <span className="text-xs font-mono bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md font-bold">
                     +42% Today
                   </span>
                 </div>
-                <div className="font-serif text-2xl font-bold text-[var(--ink)]">₹5,80,000</div>
-                <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
-                  Automated quotations generated today via WhatsApp & Calls
+                <div className="font-serif text-3xl font-bold text-[var(--ink)]">₹5,80,000</div>
+                <p className="text-xs text-[var(--ink-muted)] mt-1 leading-normal">
+                  Automated quotations generated today via WhatsApp & Phone Calls
                 </p>
               </motion.div>
             </div>
@@ -598,9 +591,9 @@ export default function LandingPage() {
       </section>
 
       {/* ─── Client Logo Carousel Section ───────────────────────────────────── */}
-      <section className="relative py-12 border-y border-[var(--line)] bg-[var(--surface)] overflow-hidden">
+      <section className="relative py-14 border-y border-[var(--line)] bg-[var(--surface)] overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-6 text-center">
-          <p className="text-[11px] font-mono tracking-widest uppercase text-[var(--ink-muted)]">
+          <p className="text-xs sm:text-sm font-mono tracking-widest uppercase text-[var(--ink-muted)] font-semibold">
             Trusted by fast-growing Indian businesses & enterprises
           </p>
         </div>
@@ -611,7 +604,7 @@ export default function LandingPage() {
             {[...clientLogos, ...clientLogos].map((client, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-3.5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] hover:bg-white hover:border-[var(--brand)]/30 px-5 py-3 transition-all duration-200 shadow-xs shrink-0 group"
+                className="flex items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] hover:bg-white hover:border-[var(--brand)]/30 px-6 py-3.5 transition-all duration-200 shadow-xs shrink-0 group"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white border border-[var(--line)] p-1.5 shrink-0 overflow-hidden shadow-xs">
                   <img
@@ -622,10 +615,10 @@ export default function LandingPage() {
                   />
                 </div>
                 <div className="text-left">
-                  <div className="text-xs font-bold text-[var(--ink)] tracking-tight whitespace-nowrap">
+                  <div className="text-sm font-bold text-[var(--ink)] tracking-tight whitespace-nowrap">
                     {client.name}
                   </div>
-                  <div className="text-[10px] font-mono text-[var(--ink-muted)] whitespace-nowrap">
+                  <div className="text-xs font-mono text-[var(--ink-muted)] whitespace-nowrap mt-0.5">
                     {client.category}
                   </div>
                 </div>
@@ -637,16 +630,16 @@ export default function LandingPage() {
 
       {/* ─── Live Telemetry Strip ───────────────────────────────────────────── */}
       <div className="mx-auto max-w-4xl px-4 sm:px-6 my-14">
-        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3.5 sm:py-3.5 sm:px-6 shadow-xs flex items-center justify-between gap-4 text-xs font-mono">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-semibold text-[var(--brand)] text-[11px] tracking-wide uppercase">Live Stream</span>
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:py-4 sm:px-6 shadow-xs flex items-center justify-between gap-4 text-sm font-mono">
+          <div className="flex items-center gap-2.5 shrink-0">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-bold text-[var(--brand)] text-xs uppercase tracking-wide">Live Activity</span>
           </div>
-          <div className="truncate text-[var(--ink)]">
+          <div className="truncate text-[var(--ink)] text-xs sm:text-sm">
             <span className="font-bold text-[var(--brand)] mr-2">[{tickerItems[0].channel}]</span>
             <span className="text-[var(--ink-muted)]">{tickerItems[0].text}</span>
           </div>
-          <span className="text-[10px] text-[var(--ink-faint)] shrink-0 hidden sm:inline">{tickerItems[0].time}</span>
+          <span className="text-xs text-[var(--ink-faint)] shrink-0 hidden sm:inline">{tickerItems[0].time}</span>
         </div>
       </div>
 
@@ -654,15 +647,15 @@ export default function LandingPage() {
       <section id="chat-with-ai" className="relative py-16 md:py-24 border-t border-[var(--line)] bg-[var(--surface-alt)]">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
-              <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
+              <Sparkles className="h-4 w-4 text-[var(--brand)]" />
               <span>Founder Briefing Interface</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               Ask your AI Employee anything.
             </h2>
-            <p className="mt-3 text-base text-[var(--ink-muted)]">
-              Your AI Employee doesn't just talk to customers—it keeps you briefed. Click any executive question below to see how it synthesizes performance across Calls, WhatsApp, Instagram, and Email into a clear management debrief.
+            <p className="mt-3 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
+              Your AI Employee doesn't just talk to customers—it keeps you briefed. Click any executive question below to see how it summarizes business performance across Calls, WhatsApp, Instagram, and Email into a clear, instant management report.
             </p>
           </div>
 
@@ -676,42 +669,42 @@ export default function LandingPage() {
                   <span className="h-3 w-3 rounded-full bg-[#E5BF72] inline-block" />
                   <span className="h-3 w-3 rounded-full bg-[#82C99B] inline-block" />
                 </div>
-                <span className="text-xs text-[var(--ink)] font-medium flex items-center gap-1.5 ml-2">
+                <span className="text-sm text-[var(--ink)] font-semibold flex items-center gap-2 ml-2">
                   <Bot className="h-4 w-4 text-[var(--brand)]" />
-                  <span className="font-semibold">Executive Briefing Dashboard</span>
-                  <span className="text-[var(--ink-muted)] hidden sm:inline">· Vox AI Employee</span>
+                  <span>Executive Briefing Dashboard</span>
+                  <span className="text-[var(--ink-muted)] font-normal hidden sm:inline">· Vox AI Employee</span>
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs font-mono text-[var(--brand)]">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--brand-soft-text)]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)]" />
-                  4 Channels Synced
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand-soft-text)]">
+                  <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
+                  All 4 Channels Working Together
                 </span>
               </div>
             </div>
 
             {/* Query Chips as Pill Buttons */}
             <div className="p-4 sm:p-6 border-b border-[var(--line)] bg-[var(--surface)]">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {executivePrompts.map((p, idx) => {
                   const isSelected = activePromptIndex === idx
                   return (
                     <button
                       key={p.id}
                       onClick={() => handleSelectPrompt(idx)}
-                      className={`text-left rounded-xl p-3.5 text-xs transition-all border ${
+                      className={`text-left rounded-xl p-4 text-xs sm:text-sm transition-all border ${
                         isSelected
                           ? "border-[var(--brand)] bg-[var(--brand)] text-[#F6F1E7] shadow-sm"
                           : "border-[var(--line)] bg-[var(--surface-alt)] text-[var(--ink)] hover:border-[var(--ink-muted)]"
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-[11px] font-bold ${isSelected ? "text-emerald-200" : "text-[var(--brand)]"}`}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className={`text-xs font-bold ${isSelected ? "text-emerald-200" : "text-[var(--brand)]"}`}>
                           {p.label}
                         </span>
-                        {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />}
+                        {isSelected && <span className="h-2 w-2 rounded-full bg-emerald-300" />}
                       </div>
-                      <p className={`line-clamp-2 text-[11px] ${isSelected ? "text-[#F6F1E7]/80" : "text-[var(--ink-muted)]"}`}>
+                      <p className={`line-clamp-2 text-xs sm:text-[13px] leading-relaxed ${isSelected ? "text-[#F6F1E7]/90" : "text-[var(--ink-muted)]"}`}>
                         “{p.question}”
                       </p>
                     </button>
@@ -724,44 +717,44 @@ export default function LandingPage() {
             <div className="p-6 sm:p-8 space-y-6">
               {/* Founder Query Bubble */}
               <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl bg-[var(--brand)] px-5 py-3.5 text-sm text-[#F6F1E7] shadow-sm">
-                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-200 mb-1">
-                    <Users className="h-3 w-3" /> YOU (FOUNDER / BUSINESS OWNER)
+                <div className="max-w-[85%] rounded-2xl bg-[var(--brand)] px-6 py-4 text-sm sm:text-base text-[#F6F1E7] shadow-sm">
+                  <div className="flex items-center gap-2 text-xs font-mono text-emerald-200 mb-1">
+                    <Users className="h-3.5 w-3.5" /> YOU (FOUNDER / BUSINESS OWNER)
                   </div>
-                  <p className="font-medium">“{executivePrompts[activePromptIndex].question}”</p>
+                  <p className="font-semibold text-base sm:text-lg">“{executivePrompts[activePromptIndex].question}”</p>
                 </div>
               </div>
 
               {/* AI Structured Synthesis Response Card */}
               <div className="flex justify-start">
-                <div className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 sm:p-6 space-y-5">
+                <div className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-6 sm:p-7 space-y-6">
                   {/* Synthesis Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--line)] pb-3 gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand)] text-[#F6F1E7]">
-                        <Bot className="h-4 w-4" />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--line)] pb-4 gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)] text-[#F6F1E7]">
+                        <Bot className="h-5 w-5" />
                       </div>
                       <div>
-                        <span className="text-[11px] font-mono text-[var(--brand)] font-semibold block">AI EXECUTIVE SUMMARY</span>
-                        <span className="text-sm text-[var(--ink)] font-bold">{executivePrompts[activePromptIndex].response.headline}</span>
+                        <span className="text-xs font-mono text-[var(--brand)] font-bold block uppercase tracking-wide">AI Executive Summary</span>
+                        <span className="text-base sm:text-lg text-[var(--ink)] font-bold">{executivePrompts[activePromptIndex].response.headline}</span>
                       </div>
                     </div>
-                    <span className="rounded-md bg-[var(--surface)] border border-[var(--line)] px-2.5 py-1 text-[11px] font-mono text-[var(--ink-muted)]">
+                    <span className="rounded-lg bg-[var(--surface)] border border-[var(--line)] px-3 py-1 text-xs font-mono text-[var(--ink-muted)]">
                       Synthesized in 240ms from 4 live channels
                     </span>
                   </div>
 
                   {/* Bullet points */}
-                  <div className="space-y-3">
+                  <div className="space-y-3.5">
                     {isTypingTerminal ? (
-                      <div className="text-xs text-[var(--ink-muted)] italic flex items-center gap-2 py-4">
+                      <div className="text-sm text-[var(--ink-muted)] italic flex items-center gap-2 py-4">
                         <RefreshCw className="h-4 w-4 animate-spin text-[var(--brand)]" />
-                        <span>Synthesizing today's business activity across channels...</span>
+                        <span>Gathering and summarizing today's business activity across channels...</span>
                       </div>
                     ) : (
                       executivePrompts[activePromptIndex].response.bullets.map((bullet, i) => (
-                        <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-[var(--ink)] leading-relaxed">
-                          <span className="text-[var(--brand)] shrink-0 font-bold mt-0.5">•</span>
+                        <div key={i} className="flex items-start gap-3 text-sm sm:text-base text-[var(--ink)] leading-relaxed">
+                          <span className="text-[var(--brand)] shrink-0 font-bold text-lg mt-0.5">•</span>
                           <span>{bullet}</span>
                         </div>
                       ))
@@ -769,35 +762,35 @@ export default function LandingPage() {
                   </div>
 
                   {/* 4 KPI Tiles in Bento Layout — Clean numbers with zero text overflow */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[var(--line)]">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-[var(--line)]">
                     {executivePrompts[activePromptIndex].response.kpis.map((kpi, idx) => (
-                      <div key={idx} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-center shadow-xs">
-                        <span className="text-[10px] font-mono text-[var(--ink-muted)] block uppercase tracking-wider">{kpi.label}</span>
-                        <span className="font-serif text-lg sm:text-xl font-bold text-[var(--brand)] mt-1 block truncate">{kpi.val}</span>
+                      <div key={idx} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 text-center shadow-xs">
+                        <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase tracking-wider font-semibold">{kpi.label}</span>
+                        <span className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)] mt-1.5 block truncate">{kpi.val}</span>
                       </div>
                     ))}
                   </div>
 
                   {/* Priority Alert Box in refined warm forest-mint callout */}
-                  <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-soft)]/60 p-4 text-xs text-[var(--brand-soft-text)] flex items-start gap-2.5">
-                    <Zap className="h-4 w-4 text-[var(--brand)] shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">{executivePrompts[activePromptIndex].response.alert}</span>
+                  <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-soft)]/60 p-4 text-sm text-[var(--brand-soft-text)] flex items-start gap-3">
+                    <Zap className="h-5 w-5 text-[var(--brand)] shrink-0 mt-0.5" />
+                    <span className="leading-relaxed font-medium">{executivePrompts[activePromptIndex].response.alert}</span>
                   </div>
 
                   {/* Action Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                    <div className="flex gap-2 text-xs font-mono">
-                      <span className="rounded bg-[var(--surface)] px-2.5 py-1 text-[var(--ink-muted)] border border-[var(--line)]">Live Data Verified</span>
-                      <span className="rounded bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-2.5 py-1 font-medium">Ready for Human Handoff</span>
+                    <div className="flex gap-2.5 text-xs font-mono">
+                      <span className="rounded-lg bg-[var(--surface)] px-3 py-1.5 text-[var(--ink-muted)] border border-[var(--line)] font-medium">Live Data Verified</span>
+                      <span className="rounded-lg bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3 py-1.5 font-bold">Ready for Human Handoff</span>
                     </div>
                     <a
                       href={WHATSAPP_CTA}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:text-[var(--accent)] transition-colors"
+                      className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)] hover:text-[var(--accent)] transition-colors"
                     >
                       <span>Deploy This AI Assistant For Your Business</span>
-                      <ArrowUpRight className="h-3.5 w-3.5" />
+                      <ArrowUpRight className="h-4 w-4" />
                     </a>
                   </div>
                 </div>
@@ -805,14 +798,14 @@ export default function LandingPage() {
 
               {/* Simulated Custom Prompt Bar */}
               <div className="relative pt-2">
-                <div className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 shadow-sm">
-                  <Search className="h-4 w-4 text-[var(--ink-muted)] shrink-0" />
+                <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 shadow-sm">
+                  <Search className="h-5 w-5 text-[var(--ink-muted)] shrink-0" />
                   <input
                     type="text"
                     value={customInput}
                     onChange={(e) => setCustomInput(e.target.value)}
                     placeholder="Ask your AI Employee anything (e.g. 'How many leads did Instagram bring last night?')..."
-                    className="w-full bg-transparent text-xs sm:text-sm text-[var(--ink)] placeholder-[var(--ink-faint)] focus:outline-none"
+                    className="w-full bg-transparent text-sm sm:text-base text-[var(--ink)] placeholder-[var(--ink-faint)] focus:outline-none"
                   />
                   <button
                     onClick={() => {
@@ -821,10 +814,10 @@ export default function LandingPage() {
                         setCustomInput("")
                       }
                     }}
-                    className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-semibold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-colors shrink-0 flex items-center gap-1.5"
+                    className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-bold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-colors shrink-0 flex items-center gap-2"
                   >
                     <span>Ask</span>
-                    <Send className="h-3 w-3" />
+                    <Send className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -837,13 +830,13 @@ export default function LandingPage() {
       <section id="channels" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--bg)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-14">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
               <span>Omnichannel Coverage</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               One unified AI brain. Four channels covered.
             </h2>
-            <p className="mt-4 text-base text-[var(--ink-muted)] leading-relaxed">
+            <p className="mt-4 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
               Your AI Employee doesn’t live in an isolated silo. If a customer leaves a comment on an Instagram Reel, messages your WhatsApp business number, and later calls your office landline, your AI remembers their entire history, previous quotes, and preferences.
             </p>
           </div>
@@ -851,13 +844,13 @@ export default function LandingPage() {
           {/* Asymmetric Bento Grid in Unified Warm Palette */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Featured Card 1: AI Voice Employee (Wide Card with simulated call dialog) */}
-            <div className="lg:col-span-7 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-7 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-9 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
-                    <PhoneCall className="h-5 w-5" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
+                    <PhoneCall className="h-6 w-6" />
                   </div>
-                  <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-mono font-medium text-[var(--brand-soft-text)]">
+                  <span className="rounded-full bg-[var(--brand-soft)] px-3.5 py-1 text-xs sm:text-sm font-mono font-bold text-[var(--brand-soft-text)]">
                     Sub-350ms Latency · 99.4% Human Cadence
                   </span>
                 </div>
@@ -865,41 +858,41 @@ export default function LandingPage() {
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
                   AI Voice Employee
                 </h3>
-                <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
+                <p className="text-sm font-mono font-bold text-[var(--brand)] mt-1.5">
                   Ultra-realistic phone reception & proactive outbound lead caller
                 </p>
-                <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
+                <p className="text-base text-[var(--ink-muted)] mt-3 leading-relaxed">
                   Sounds identical to your highest-performing in-house sales closer. Answers inbound phone calls within one ring, calls web leads back within 45 seconds, understands colloquial Indian English and Hindi seamlessly, and warm-transfers hot deals to your human reps with an audio debrief.
                 </p>
 
                 {/* Simulated Call Transcript as Chat Bubbles */}
-                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-4 space-y-2.5 text-xs">
-                  <div className="text-[10px] font-mono text-[var(--ink-muted)] border-b border-[var(--line)] pb-1.5 flex items-center justify-between">
+                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 space-y-3 text-sm">
+                  <div className="text-xs font-mono text-[var(--ink-muted)] border-b border-[var(--line)] pb-2 flex items-center justify-between font-semibold">
                     <span>Live Call Stream Simulation</span>
-                    <span className="text-[var(--brand)] font-semibold">Active Inbound Telephony</span>
+                    <span className="text-[var(--brand)]">Active Inbound Telephony</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <div className="flex justify-start">
-                      <div className="max-w-[85%] rounded-2xl bg-white p-3 text-[var(--ink)] shadow-xs">
-                        <div className="text-[9px] font-mono opacity-70 mb-0.5">CALLER</div>
+                      <div className="max-w-[85%] rounded-2xl bg-white p-3.5 text-[var(--ink)] shadow-xs">
+                        <div className="text-[10px] font-mono opacity-70 mb-1 font-bold">CALLER</div>
                         <p>Hi, I saw your package. Do you do custom ERP integrations for wholesale distributors with multiple warehouses?</p>
                       </div>
                     </div>
                     <div className="flex justify-end">
-                      <div className="max-w-[85%] rounded-2xl bg-[var(--brand-soft)] p-3 text-[var(--brand-soft-text)] font-medium shadow-xs">
-                        <div className="text-[9px] font-mono opacity-70 mb-0.5">VOX AI VOICE</div>
+                      <div className="max-w-[85%] rounded-2xl bg-[var(--brand-soft)] p-3.5 text-[var(--brand-soft-text)] font-semibold shadow-xs">
+                        <div className="text-[10px] font-mono opacity-70 mb-1 font-bold">VOX AI VOICE</div>
                         <p>Yes, absolutely! We connect directly with SAP, Tally, Zoho, and custom PostgreSQL databases. How many SKUs and warehouse locations are you managing?</p>
                       </div>
                     </div>
                     <div className="flex justify-start">
-                      <div className="max-w-[85%] rounded-2xl bg-white p-3 text-[var(--ink)] shadow-xs">
-                        <div className="text-[9px] font-mono opacity-70 mb-0.5">CALLER</div>
+                      <div className="max-w-[85%] rounded-2xl bg-white p-3.5 text-[var(--ink)] shadow-xs">
+                        <div className="text-[10px] font-mono opacity-70 mb-1 font-bold">CALLER</div>
                         <p>Around 12,000 SKUs across four warehouses in North India.</p>
                       </div>
                     </div>
                     <div className="flex justify-end">
-                      <div className="max-w-[85%] rounded-2xl bg-[var(--brand-soft)] p-3 text-[var(--brand-soft-text)] font-medium shadow-xs">
-                        <div className="text-[9px] font-mono opacity-70 mb-0.5">VOX AI VOICE</div>
+                      <div className="max-w-[85%] rounded-2xl bg-[var(--brand-soft)] p-3.5 text-[var(--brand-soft-text)] font-semibold shadow-xs">
+                        <div className="text-[10px] font-mono opacity-70 mb-1 font-bold">VOX AI VOICE</div>
                         <p>Got it. That fits our custom multi-warehouse workflow. Let me connect you directly with our senior solutions architect right now.</p>
                       </div>
                     </div>
@@ -907,12 +900,12 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-[var(--line)] flex items-center justify-between">
+              <div className="mt-6 pt-5 border-t border-[var(--line)] flex items-center justify-between">
                 <a
                   href={CALL_CTA}
-                  className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--brand)] hover:underline"
+                  className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)] hover:underline"
                 >
-                  <PhoneCall className="h-3.5 w-3.5" />
+                  <PhoneCall className="h-4 w-4" />
                   <span>Call Voice AI Demo: {CALL_NUMBER}</span>
                 </a>
                 <span className="text-xs font-mono text-[var(--ink-muted)]">WebRTC + SIP Trunk Ready</span>
@@ -920,13 +913,13 @@ export default function LandingPage() {
             </div>
 
             {/* Card 2: WhatsApp AI Employee */}
-            <div className="lg:col-span-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-5 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-9 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
-                    <MessageSquare className="h-5 w-5" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
+                    <MessageSquare className="h-6 w-6" />
                   </div>
-                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3 py-1 text-xs font-mono font-medium">
+                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3.5 py-1 text-xs sm:text-sm font-mono font-bold">
                     Official Meta Cloud API
                   </span>
                 </div>
@@ -934,63 +927,63 @@ export default function LandingPage() {
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
                   WhatsApp AI Employee
                 </h3>
-                <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
+                <p className="text-sm font-mono font-bold text-[var(--brand)] mt-1.5">
                   Your 24/7 multilingual conversational sales closer
                 </p>
-                <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
+                <p className="text-base text-[var(--ink-muted)] mt-3 leading-relaxed">
                   An autonomous salesperson on WhatsApp that never sleeps. Qualifies buyers, shares product catalogs, calculates customized estimates in Hindi & English, sends PDF brochures, and schedules appointments right into your team's calendar.
                 </p>
 
                 {/* Simulated WhatsApp Interaction */}
-                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 space-y-2 text-xs">
+                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-4 space-y-2.5 text-sm">
                   <div className="flex justify-start">
-                    <div className="rounded-xl bg-white p-2.5 shadow-xs text-[var(--ink)] max-w-[90%]">
+                    <div className="rounded-xl bg-white p-3 shadow-xs text-[var(--ink)] max-w-[90%]">
                       <p>“What is the pricing for clinic onboarding?”</p>
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <div className="rounded-xl bg-[var(--brand-soft)] p-2.5 shadow-xs text-[var(--brand-soft-text)] font-medium max-w-[90%]">
+                    <div className="rounded-xl bg-[var(--brand-soft)] p-3 shadow-xs text-[var(--brand-soft-text)] font-semibold max-w-[90%]">
                       <p>“Setup is ₹20,000 one-time and ₹5,000/mo retainer. Includes 24/7 patient triage and doctor scheduling.”</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-5 space-y-2">
+                <div className="mt-5 space-y-2.5">
                   {[
                     "Instant bilingual reply (English, Hindi, and regional slang)",
                     "Dispatches payment links, PDF brochures, and location maps",
                     "Direct Google Calendar booking with WhatsApp confirmation",
                     "Polite, non-spam drip follow-ups on unresponsive leads",
                   ].map((cap, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[var(--brand)] shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-2.5 text-sm text-[var(--ink)] font-medium">
+                      <CheckCircle2 className="h-4 w-4 text-[var(--brand)] shrink-0 mt-0.5" />
                       <span>{cap}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-[var(--line)]">
+              <div className="mt-6 pt-5 border-t border-[var(--line)]">
                 <a
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:underline"
+                  className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)] hover:underline"
                 >
                   <span>Deploy WhatsApp AI Closer</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-4 w-4" />
                 </a>
               </div>
             </div>
 
             {/* Card 3: Instagram AI Employee */}
-            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-9 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
-                    <Instagram className="h-5 w-5" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
+                    <Instagram className="h-6 w-6" />
                   </div>
-                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3 py-1 text-xs font-mono font-medium">
+                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3.5 py-1 text-xs sm:text-sm font-mono font-bold">
                     &lt; 1.5s Comment-to-DM Trigger
                   </span>
                 </div>
@@ -998,60 +991,60 @@ export default function LandingPage() {
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
                   Instagram AI Employee
                 </h3>
-                <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
+                <p className="text-sm font-mono font-bold text-[var(--brand)] mt-1.5">
                   Turns Reel comments & DMs into paying customers
                 </p>
-                <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
+                <p className="text-base text-[var(--ink-muted)] mt-3 leading-relaxed">
                   Never miss a viral Reel spike. When followers comment keywords on your Reels or reply to Stories, your AI employee replies in milliseconds, opens a DM conversation, extracts their verified phone number, and syncs them to your CRM.
                 </p>
 
                 {/* Simulated Instagram Flow */}
-                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 space-y-2 text-xs">
-                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-1 text-[10px] font-mono text-[var(--ink-muted)]">
+                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-4 space-y-2 text-sm">
+                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-1.5 text-xs font-mono text-[var(--ink-muted)] font-semibold">
                     <span>Reel Comment: "PRICE"</span>
                     <span className="text-[var(--brand)]">Auto-DM in 1.2s</span>
                   </div>
-                  <p className="text-[11px] text-[var(--ink)] italic">
+                  <p className="text-sm text-[var(--ink)] italic leading-relaxed">
                     “Hey Vikram! The 4BHK luxury penthouses start at ₹4.2 Cr. What is your WhatsApp number so I can send the video walk-through?”
                   </p>
                 </div>
 
-                <div className="mt-5 space-y-2">
+                <div className="mt-5 space-y-2.5">
                   {[
                     "Reel Comment trigger: Automatically sends instant DM with pricing",
                     "Story reply and direct message triage 24 hours a day",
                     "Screens out casual scrollers and converts high-intent buyers",
                     "Extracts verified phone numbers into CRM automatically",
                   ].map((cap, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[var(--brand)] shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-2.5 text-sm text-[var(--ink)] font-medium">
+                      <CheckCircle2 className="h-4 w-4 text-[var(--brand)] shrink-0 mt-0.5" />
                       <span>{cap}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-[var(--line)]">
+              <div className="mt-6 pt-5 border-t border-[var(--line)]">
                 <a
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:underline"
+                  className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)] hover:underline"
                 >
                   <span>Connect Instagram Graph API</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-4 w-4" />
                 </a>
               </div>
             </div>
 
             {/* Card 4: Executive Email AI Employee */}
-            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-9 flex flex-col justify-between shadow-xs">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
-                    <Mail className="h-5 w-5" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
+                    <Mail className="h-6 w-6" />
                   </div>
-                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3 py-1 text-xs font-mono font-medium">
+                  <span className="rounded-full bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3.5 py-1 text-xs sm:text-sm font-mono font-bold">
                     Inbox Zero · 1.2s Triage
                   </span>
                 </div>
@@ -1059,48 +1052,48 @@ export default function LandingPage() {
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
                   Executive Email AI Employee
                 </h3>
-                <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
+                <p className="text-sm font-mono font-bold text-[var(--brand)] mt-1.5">
                   Hyper-personalized triage & enterprise proposal drafting
                 </p>
-                <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
+                <p className="text-base text-[var(--ink-muted)] mt-3 leading-relaxed">
                   An executive email partner that reads incoming enterprise inquiries, categorizes high-value opportunities, generates bespoke context-aware replies matching your company voice, and keeps sales pipelines warm.
                 </p>
 
                 {/* Simulated Email Flow */}
-                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-3.5 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-1 text-[10px] font-mono text-[var(--ink-muted)]">
+                <div className="mt-5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-4 space-y-2 text-sm">
+                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-1.5 text-xs font-mono text-[var(--ink-muted)] font-semibold">
                     <span>Subject: Enterprise Franchise Proposal (18 Outlets)</span>
                     <span className="text-[var(--brand)]">Draft Prepared</span>
                   </div>
-                  <p className="text-[11px] text-[var(--ink)] italic line-clamp-2">
-                    “Dear Director Chopra, We have prepared specialized retail routing for your 18 outlets. Attached is the architectural breakdown...”
+                  <p className="text-sm text-[var(--ink)] italic line-clamp-2 leading-relaxed">
+                    “Dear Director Chopra, We have prepared specialized retail routing for your 18 outlets. Attached is the architectural breakdown and pricing...”
                   </p>
                 </div>
 
-                <div className="mt-5 space-y-2">
+                <div className="mt-5 space-y-2.5">
                   {[
                     "Inbox Zero triage: separates critical client deals from junk mail",
                     "Pre-drafts context-aware, hyper-personalized email proposals",
                     "Synchronizes lead touchpoints with Google Sheets and CRM",
                     "Re-engages dormant client opportunities with contextual follow-ups",
                   ].map((cap, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-[var(--brand)] shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-2.5 text-sm text-[var(--ink)] font-medium">
+                      <CheckCircle2 className="h-4 w-4 text-[var(--brand)] shrink-0 mt-0.5" />
                       <span>{cap}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-[var(--line)]">
+              <div className="mt-6 pt-5 border-t border-[var(--line)]">
                 <a
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:underline"
+                  className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)] hover:underline"
                 >
                   <span>Set Up Enterprise Email Triage</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-4 w-4" />
                 </a>
               </div>
             </div>
@@ -1112,14 +1105,14 @@ export default function LandingPage() {
       <section id="voice-audio" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-12">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
-              <Headphones className="h-3.5 w-3.5 text-[var(--brand)]" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
+              <Headphones className="h-4 w-4 text-[var(--brand)]" />
               <span>Sub-350ms Voice Telephony Engine</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               Hear what your AI Employee sounds like.
             </h2>
-            <p className="mt-4 text-base text-[var(--ink-muted)] leading-relaxed">
+            <p className="mt-4 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
               Indistinguishable from an experienced sales representative. Natural breathing, pauses, tone variation, and sub-350ms response latency so there are never awkward robotic delays.
             </p>
           </div>
@@ -1139,13 +1132,13 @@ export default function LandingPage() {
                   {isPlayingAudio ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7 ml-0.5" />}
                 </button>
                 <div>
-                  <div className="text-base font-bold text-[var(--ink)] flex items-center gap-2">
+                  <div className="text-base sm:text-lg font-bold text-[var(--ink)] flex items-center gap-2">
                     <span>Vox Voice Model v4 (Ultra-Low Latency)</span>
-                    <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[10px] font-mono text-[var(--brand-soft-text)] font-semibold">
+                    <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-xs font-mono text-[var(--brand-soft-text)] font-bold">
                       LIVE
                     </span>
                   </div>
-                  <p className="text-xs text-[var(--ink-muted)] mt-1">
+                  <p className="text-xs sm:text-sm text-[var(--ink-muted)] mt-1">
                     {isPlayingAudio ? "Speaking live via Web Audio Synthesis..." : "Click play to listen to spoken speech sample"}
                   </p>
                 </div>
@@ -1154,9 +1147,9 @@ export default function LandingPage() {
               {/* Direct Call Button */}
               <a
                 href={CALL_CTA}
-                className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-alt)] px-4 py-2.5 text-xs font-semibold text-[var(--ink)] hover:bg-[var(--surface)] transition-colors"
+                className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-alt)] px-4.5 py-3 text-xs sm:text-sm font-bold text-[var(--ink)] hover:bg-[var(--surface)] transition-colors"
               >
-                <PhoneCall className="h-3.5 w-3.5 text-[var(--brand)]" />
+                <PhoneCall className="h-4 w-4 text-[var(--brand)]" />
                 <span>Call Phone Demo: {CALL_NUMBER}</span>
               </a>
             </div>
@@ -1181,11 +1174,11 @@ export default function LandingPage() {
             </div>
 
             {/* Spoken Transcript Preview */}
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-4 sm:p-5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--ink-muted)] block mb-1">
-                Transcript Preview
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 sm:p-6">
+              <span className="font-mono text-xs uppercase tracking-wider text-[var(--ink-muted)] block mb-1.5 font-bold">
+                Spoken Transcript Preview
               </span>
-              <p className="text-sm font-medium text-[var(--ink)] italic">
+              <p className="text-base sm:text-lg font-medium text-[var(--ink)] italic leading-relaxed">
                 “{audioSamplePhrases[audioTranscriptIndex % audioSamplePhrases.length]}”
               </p>
             </div>
@@ -1193,16 +1186,16 @@ export default function LandingPage() {
             {/* 3 Simple Stat Tiles */}
             <div className="mt-6 pt-5 border-t border-[var(--line)] grid grid-cols-3 gap-3 text-center">
               <div>
-                <span className="text-[10px] font-mono text-[var(--ink-muted)] block uppercase">Response Cadence</span>
-                <span className="font-serif text-lg font-bold text-[var(--brand)]">340ms Latency</span>
+                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Response Cadence</span>
+                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">340ms Latency</span>
               </div>
               <div>
-                <span className="text-[10px] font-mono text-[var(--ink-muted)] block uppercase">Voice Naturalness</span>
-                <span className="font-serif text-lg font-bold text-[var(--brand)]">99.4% Human Score</span>
+                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Voice Naturalness</span>
+                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">99.4% Human Score</span>
               </div>
               <div>
-                <span className="text-[10px] font-mono text-[var(--ink-muted)] block uppercase">Telephony Type</span>
-                <span className="font-serif text-lg font-bold text-[var(--brand)]">WebRTC + SIP</span>
+                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Telephony Type</span>
+                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">WebRTC + SIP</span>
               </div>
             </div>
           </div>
@@ -1213,20 +1206,20 @@ export default function LandingPage() {
       <section id="how-it-works" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--bg)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-16">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
               <span>Engineering Process</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               How we build your custom AI Employee.
             </h2>
-            <p className="mt-4 text-base text-[var(--ink-muted)] leading-relaxed">
+            <p className="mt-4 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
               Not a generic template. We extract your proprietary business knowledge, calibrate voice and sales demeanor, configure strict safety guardrails, and hook directly into your phone and social channels.
             </p>
           </div>
 
           {/* Stepper with connecting line on desktop */}
           <div className="relative">
-            <div className="hidden lg:block absolute top-7 left-12 right-12 h-[1px] bg-[var(--line)] -z-0" />
+            <div className="hidden lg:block absolute top-8 left-12 right-12 h-[1px] bg-[var(--line)] -z-0" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
               {[
@@ -1261,27 +1254,27 @@ export default function LandingPage() {
               ].map((st, idx) => (
                 <div
                   key={idx}
-                  className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-7 shadow-xs flex flex-col justify-between"
+                  className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-8 shadow-xs flex flex-col justify-between"
                 >
                   <div>
-                    <div className="font-serif text-4xl font-normal text-[var(--brand)] mb-3">
+                    <div className="font-serif text-5xl font-normal text-[var(--brand)] mb-3">
                       {st.step}
                     </div>
-                    <h3 className="text-base font-bold text-[var(--ink)] mb-1">
+                    <h3 className="text-lg sm:text-xl font-bold text-[var(--ink)] mb-1">
                       {st.title}
                     </h3>
-                    <p className="text-xs font-mono text-[var(--brand)] mb-3">
+                    <p className="text-xs sm:text-sm font-mono text-[var(--brand)] mb-3 font-semibold">
                       {st.sub}
                     </p>
-                    <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed mb-4">
+                    <p className="text-sm sm:text-base text-[var(--ink-muted)] leading-relaxed mb-5">
                       {st.desc}
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-[var(--line)] space-y-1.5">
+                  <div className="pt-4 border-t border-[var(--line)] space-y-2">
                     {st.deliverables.map((d, di) => (
-                      <div key={di} className="text-[11px] text-[var(--ink)] flex items-center gap-1.5 font-medium">
-                        <Check className="h-3 w-3 text-[var(--brand)] shrink-0" />
+                      <div key={di} className="text-xs sm:text-sm text-[var(--ink)] flex items-center gap-2 font-medium">
+                        <Check className="h-4 w-4 text-[var(--brand)] shrink-0" />
                         <span>{d}</span>
                       </div>
                     ))}
@@ -1297,40 +1290,40 @@ export default function LandingPage() {
       <section id="pricing" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-14">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
               <span>Transparent Commercials</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
               A clear, two-part investment.
             </h2>
-            <p className="mt-4 text-base text-[var(--ink-muted)] leading-relaxed">
+            <p className="mt-4 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
               One custom implementation fee to build your digital employee from scratch, and a predictable monthly retainer to keep it learning, updating, and running 24/7.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Card 1: Implementation Card in White */}
-            <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-8 sm:p-10 shadow-lg flex flex-col justify-between">
+            <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-8 sm:p-11 shadow-lg flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-mono font-bold text-[var(--brand)] uppercase tracking-wider">
+                  <span className="text-xs sm:text-sm font-mono font-bold text-[var(--brand)] uppercase tracking-wider">
                     One-Time Implementation
                   </span>
-                  <span className="rounded-full bg-[var(--brand-soft)] px-3 py-0.5 text-xs font-mono text-[var(--brand-soft-text)] font-medium">
+                  <span className="rounded-full bg-[var(--brand-soft)] px-3.5 py-1 text-xs sm:text-sm font-mono text-[var(--brand-soft-text)] font-bold">
                     Full Build & Deploy
                   </span>
                 </div>
 
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="font-serif text-5xl font-bold text-[var(--ink)]">₹20,000</span>
-                  <span className="text-[var(--ink-muted)] text-sm font-mono">one-time setup</span>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <span className="font-serif text-5xl sm:text-6xl font-bold text-[var(--ink)]">₹20,000</span>
+                  <span className="text-[var(--ink-muted)] text-base font-mono">one-time setup</span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed mb-6">
+                <p className="text-sm sm:text-base text-[var(--ink-muted)] leading-relaxed mb-6">
                   Complete custom engineering of your business AI Employee across Phone Calls, WhatsApp, Instagram, and Email. Dedicated solutions architect assigned to your account.
                 </p>
 
-                <div className="space-y-3 pt-6 border-t border-[var(--line)]">
+                <div className="space-y-3.5 pt-6 border-t border-[var(--line)]">
                   {[
                     "Complete business discovery & knowledge extraction from your catalogs",
                     "Voice AI configuration with sub-350ms natural cadence & accent tuning",
@@ -1342,8 +1335,8 @@ export default function LandingPage() {
                     "End-to-end edge testing & 72-hour production launch guarantee",
                     "Staff training and founder onboarding walk-through session",
                   ].map((feat, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-[var(--ink)]">
-                      <Check className="h-4 w-4 text-[var(--brand)] shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-3 text-sm sm:text-base text-[var(--ink)]">
+                      <Check className="h-4.5 w-4.5 text-[var(--brand)] shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </div>
                   ))}
@@ -1355,36 +1348,36 @@ export default function LandingPage() {
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--brand)] py-3.5 text-xs font-bold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-all shadow-sm"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--brand)] py-4 text-sm sm:text-base font-bold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-all shadow-sm"
                 >
                   <span>Build Your AI Employee (₹20,000)</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-5 w-5" />
                 </a>
               </div>
             </div>
 
             {/* Card 2: Monthly Retainer in Deep Forest Green */}
-            <div className="rounded-3xl border border-[var(--brand)] bg-[var(--brand)] text-[#F6F1E7] p-8 sm:p-10 shadow-2xl flex flex-col justify-between">
+            <div className="rounded-3xl border border-[var(--brand)] bg-[var(--brand)] text-[#F6F1E7] p-8 sm:p-11 shadow-2xl flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-mono font-bold text-emerald-300 uppercase tracking-wider">
+                  <span className="text-xs sm:text-sm font-mono font-bold text-emerald-300 uppercase tracking-wider">
                     Monthly Support & Retainer
                   </span>
-                  <span className="rounded-full bg-[var(--brand-surface)] border border-emerald-500/30 px-3 py-0.5 text-xs font-mono text-emerald-200">
+                  <span className="rounded-full bg-[var(--brand-surface)] border border-emerald-500/30 px-3.5 py-1 text-xs sm:text-sm font-mono text-emerald-200 font-bold">
                     Continuous Upkeep
                   </span>
                 </div>
 
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="font-serif text-5xl font-bold text-[#F6F1E7]">₹5,000</span>
-                  <span className="text-emerald-200/80 text-sm font-mono">per month · pause anytime</span>
+                <div className="flex items-baseline gap-3 mb-2">
+                  <span className="font-serif text-5xl sm:text-6xl font-bold text-[#F6F1E7]">₹5,000</span>
+                  <span className="text-emerald-200/90 text-base font-mono">per month · pause anytime</span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-[#F6F1E7]/80 leading-relaxed mb-6">
+                <p className="text-sm sm:text-base text-[#F6F1E7]/90 leading-relaxed mb-6">
                   24/7 uptime monitoring, continuous prompt optimization, model retraining, and technical maintenance so your employee never breaks or goes offline.
                 </p>
 
-                <div className="space-y-3 pt-6 border-t border-white/10">
+                <div className="space-y-3.5 pt-6 border-t border-white/10">
                   {[
                     "24/7 autonomous uptime monitoring & automated health checks",
                     "Continuous prompt engineering and response tuning as your business grows",
@@ -1395,8 +1388,8 @@ export default function LandingPage() {
                     "Weekly lead conversion & speed-to-lead audit report",
                     "Priority emergency response hotline for your team",
                   ].map((feat, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#F6F1E7]">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-3 text-sm sm:text-base text-[#F6F1E7]">
+                      <Check className="h-4.5 w-4.5 text-emerald-400 shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </div>
                   ))}
@@ -1408,35 +1401,35 @@ export default function LandingPage() {
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] py-3.5 text-xs font-bold text-white shadow-md transition-all"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] py-4 text-sm sm:text-base font-bold text-white shadow-md transition-all"
                 >
                   <span>Lock In Retainer (₹5,000/mo)</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-5 w-5" />
                 </a>
               </div>
             </div>
           </div>
 
           {/* Detailed Pass-Through Transparency Callout */}
-          <div className="mt-12 max-w-4xl mx-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6 shadow-xs text-xs text-[var(--ink-muted)]">
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheck className="h-4 w-4 text-[var(--brand)]" />
-              <strong className="text-sm font-bold text-[var(--ink)]">100% Direct Pass-Through Transparency: Zero Markup on Platform Usage</strong>
+          <div className="mt-12 max-w-4xl mx-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-7 shadow-xs text-sm text-[var(--ink-muted)]">
+            <div className="flex items-center gap-2.5 mb-2">
+              <ShieldCheck className="h-5 w-5 text-[var(--brand)]" />
+              <strong className="text-base font-bold text-[var(--ink)]">100% Direct Pass-Through Transparency: Zero Markup on Platform Usage</strong>
             </div>
-            <p className="leading-relaxed">
-              Unlike traditional agencies that mark up utility fees by 300%, Vox AI has zero markup on third-party platform costs. You pay actual provider costs directly:
+            <p className="leading-relaxed text-sm sm:text-base">
+              Unlike traditional marketing agencies that add 300% markups on third-party software, Vox AI charges zero markup on platform costs. You pay actual provider fees directly:
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-3 border-t border-[var(--line)] font-mono text-[11px]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-5 pt-4 border-t border-[var(--line)] font-mono text-xs sm:text-sm">
               <div>
-                <span className="font-bold text-[var(--ink)] block">Meta WhatsApp API</span>
+                <span className="font-bold text-[var(--ink)] block text-sm">Meta WhatsApp API</span>
                 <span className="text-[var(--ink-muted)]">~₹0.70 to ₹0.85 per 24-hour service conversation directly to Meta</span>
               </div>
               <div>
-                <span className="font-bold text-[var(--ink)] block">Telephony Minutes</span>
+                <span className="font-bold text-[var(--ink)] block text-sm">Telephony Minutes</span>
                 <span className="text-[var(--ink-muted)]">Actual telecom SIP trunk rates (~₹0.50/min for domestic Indian calls)</span>
               </div>
               <div>
-                <span className="font-bold text-[var(--ink)] block">AI Model Tokens</span>
+                <span className="font-bold text-[var(--ink)] block text-sm">AI Model Tokens</span>
                 <span className="text-[var(--ink-muted)]">Billed directly by OpenAI / Gemini at actual token consumption</span>
               </div>
             </div>
@@ -1447,17 +1440,17 @@ export default function LandingPage() {
       {/* ─── 8. Final CTA (Full-Width Forest-Green Block) ───────────────────── */}
       <section className="relative bg-[var(--brand)] text-[#F6F1E7] py-20 md:py-28 overflow-hidden">
         <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
-          <span className="font-mono text-xs uppercase tracking-widest text-emerald-300 font-semibold">
+          <span className="font-mono text-xs sm:text-sm uppercase tracking-widest text-emerald-300 font-bold">
             Next Step — Initiate Your AI Build
           </span>
           <h2 className="font-serif mt-4 text-3xl sm:text-6xl font-normal text-[#F6F1E7] tracking-tight">
             Ready to hire your first AI Employee?
           </h2>
-          <p className="mt-5 text-base sm:text-lg text-[#F6F1E7]/80 max-w-2xl mx-auto font-normal leading-relaxed">
+          <p className="mt-5 text-lg sm:text-xl text-[#F6F1E7]/90 max-w-2xl mx-auto font-normal leading-relaxed">
             Stop letting after-hours leads go cold. Deploy a dedicated AI employee trained on your products, answering on Instagram, WhatsApp, Email, and Calls in seconds.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-emerald-200">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-xs sm:text-sm font-mono text-emerald-200">
             <span>✓ 72-Hour Deployment Guarantee</span>
             <span>•</span>
             <span>✓ Retain Existing Phone & SIM</span>
@@ -1470,17 +1463,17 @@ export default function LandingPage() {
               href={WHATSAPP_CTA}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-8 py-4 text-sm font-bold text-white shadow-lg hover:bg-[var(--accent-hover)] transition-all hover:scale-105 active:scale-95"
+              className="inline-flex items-center gap-2.5 rounded-xl bg-[var(--accent)] px-8 py-4.5 text-base sm:text-lg font-bold text-white shadow-lg hover:bg-[var(--accent-hover)] transition-all hover:scale-105 active:scale-95"
             >
               <span>Deploy AI Employee on WhatsApp</span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5" />
             </a>
 
             <a
               href={CALL_CTA}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#F6F1E7]/30 bg-white/5 px-6 py-4 text-sm font-semibold text-[#F6F1E7] hover:bg-white/10 transition-colors"
+              className="inline-flex items-center gap-2.5 rounded-xl border border-[#F6F1E7]/30 bg-white/5 px-7 py-4.5 text-base sm:text-lg font-bold text-[#F6F1E7] hover:bg-white/10 transition-colors"
             >
-              <PhoneCall className="h-4 w-4 text-emerald-300" />
+              <PhoneCall className="h-5 w-5 text-emerald-300" />
               <span>Call Voice AI: {CALL_NUMBER}</span>
             </a>
           </div>
@@ -1488,68 +1481,68 @@ export default function LandingPage() {
       </section>
 
       {/* ─── 9. Footer (Organized Columns, Muted Ink on Cream) ──────────────── */}
-      <footer className="border-t border-[var(--line)] bg-[#EFE8DA] pt-16 pb-12 text-xs text-[var(--ink-muted)]">
+      <footer className="border-t border-[var(--line)] bg-[#EFE8DA] pt-16 pb-12 text-sm text-[var(--ink-muted)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Official Contact Columns */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 pb-12 border-b border-[var(--line)]">
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">WEBSITE</span>
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-2 font-bold">WEBSITE</span>
               <a
                 href={`https://${WEBSITE_URL}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+                className="font-semibold text-sm text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
               >
                 {WEBSITE_URL}
               </a>
             </div>
 
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">DIRECT EMAIL</span>
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-2 font-bold">DIRECT EMAIL</span>
               <a
                 href={`mailto:${EMAIL_ADDRESS}`}
-                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+                className="font-semibold text-sm text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
               >
                 {EMAIL_ADDRESS}
               </a>
             </div>
 
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">PHONE CALLS</span>
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-2 font-bold">PHONE CALLS</span>
               <a
                 href={CALL_CTA}
-                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+                className="font-semibold text-sm text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
               >
                 {CALL_NUMBER}
               </a>
             </div>
 
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">WHATSAPP</span>
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-2 font-bold">WHATSAPP</span>
               <a
                 href={WHATSAPP_CTA}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+                className="font-semibold text-sm text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
               >
                 {WHATSAPP_NUMBER}
               </a>
             </div>
 
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">HEADQUARTERS</span>
-              <span className="font-medium text-[var(--ink)] block">
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-2 font-bold">HEADQUARTERS</span>
+              <span className="font-semibold text-sm text-[var(--ink)] block">
                 {LOCATION}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">INSTAGRAM</span>
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-2 font-bold">INSTAGRAM</span>
               <a
                 href={`https://instagram.com/${INSTAGRAM_HANDLE}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+                className="font-semibold text-sm text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
               >
                 @{INSTAGRAM_HANDLE}
               </a>
@@ -1557,7 +1550,7 @@ export default function LandingPage() {
           </div>
 
           {/* Bottom Copyright & Legal Links */}
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm">
             <p>© {new Date().getFullYear()} Vox AI Agents. Custom AI Solutions for Business. All rights reserved.</p>
             <div className="flex items-center gap-6">
               <Link href="/privacy-policy.html" className="hover:text-[var(--ink)] transition-colors">
@@ -1565,12 +1558,12 @@ export default function LandingPage() {
               </Link>
               <Link
                 href={user ? "/dashboard" : "/login"}
-                className="font-semibold text-[var(--brand)] hover:underline flex items-center gap-1.5 transition-colors"
+                className="font-bold text-[var(--brand)] hover:underline flex items-center gap-1.5 transition-colors"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 <span>{user ? "Client Dashboard" : "Client Portal / Login"}</span>
               </Link>
-              <span className="font-mono text-[var(--brand)]">Autonomous Workforce Engine</span>
+              <span className="font-mono text-[var(--brand)] font-semibold">Autonomous Workforce Engine</span>
             </div>
           </div>
         </div>
