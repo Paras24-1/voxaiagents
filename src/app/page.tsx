@@ -2,58 +2,37 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Activity,
   ArrowRight,
   ArrowUpRight,
   Bot,
-  Brain,
-  Building2,
   Calendar,
   Check,
+  CheckCheck,
   CheckCircle2,
   ChevronRight,
-  CircuitBoard,
-  Cpu,
-  Database,
+  Clock,
   ExternalLink,
-  Filter,
-  GraduationCap,
   Headphones,
-  HeartPulse,
-  HelpCircle,
   Instagram,
-  Layers,
   LayoutDashboard,
-  LineChart,
-  Lock,
   Mail,
   Menu,
   MessageSquare,
-  Mic,
-  Network,
   Phone,
   PhoneCall,
   Play,
   Pause,
-  Radio,
   RefreshCw,
-  Rocket,
   Search,
   Send,
-  Server,
   ShieldCheck,
-  Sliders,
   Sparkles,
-  Terminal,
   TrendingUp,
   Users,
-  Volume2,
-  VolumeX,
-  Workflow,
   X,
   Zap,
 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useOrg } from "@/contexts/OrgContext"
 
@@ -65,102 +44,47 @@ const LOCATION = "Model Town, Rohtak, Haryana"
 const INSTAGRAM_HANDLE = "voxai.agents"
 const WEBSITE_URL = "voxaiagents.com"
 
-const WHATSAPP_CTA = `https://wa.me/917015551637?text=${encodeURIComponent("Hello! I want to deploy a custom AI Employee for my business across Calls, WhatsApp, Instagram, and Email.")}`
+const WHATSAPP_CTA = `https://wa.me/917015551637?text=${encodeURIComponent(
+  "Hello! I want to deploy a custom AI Employee for my business across Calls, WhatsApp, Instagram, and Email."
+)}`
 const CALL_CTA = "tel:+918708551637"
-const CALENDLY_CTA = `https://wa.me/917015551637?text=${encodeURIComponent("Hi! I would like to schedule an AI Employee architecture session.")}`
+const CALENDLY_CTA = `https://wa.me/917015551637?text=${encodeURIComponent(
+  "Hi! I would like to schedule an AI Employee architecture session."
+)}`
 
-// ─── Neural Particle Canvas Background ──────────────────────────────────────────
-
-function NeuralSynapseField() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    let raf = 0
-    const dpr = Math.min(2, window.devicePixelRatio || 1)
-    const points = Array.from({ length: 55 }).map(() => ({
-      x: Math.random(),
-      y: Math.random(),
-      vx: (Math.random() - 0.5) * 0.0004,
-      vy: (Math.random() - 0.5) * 0.0004,
-    }))
-
-    const resize = () => {
-      const parent = canvas.parentElement
-      if (!parent) return
-      const { width, height } = parent.getBoundingClientRect()
-      canvas.width = Math.floor(width * dpr)
-      canvas.height = Math.floor(height * dpr)
-      canvas.style.width = `${width}px`
-      canvas.style.height = `${height}px`
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    }
-
-    const draw = () => {
-      const w = canvas.width / dpr
-      const h = canvas.height / dpr
-      ctx.clearRect(0, 0, w, h)
-
-      for (const p of points) {
-        p.x += p.vx
-        p.y += p.vy
-        if (p.x < 0 || p.x > 1) p.vx *= -1
-        if (p.y < 0 || p.y > 1) p.vy *= -1
-      }
-
-      for (let i = 0; i < points.length; i++) {
-        for (let j = i + 1; j < points.length; j++) {
-          const a = points[i]
-          const b = points[j]
-          const dx = (a.x - b.x) * w
-          const dy = (a.y - b.y) * h
-          const dist = Math.hypot(dx, dy)
-          if (dist < 140) {
-            const alpha = (1 - dist / 140) * 0.25
-            ctx.strokeStyle = `rgba(6, 182, 212, ${alpha})`
-            ctx.lineWidth = 1
-            ctx.beginPath()
-            ctx.moveTo(a.x * w, a.y * h)
-            ctx.lineTo(b.x * w, b.y * h)
-            ctx.stroke()
-          }
-        }
-      }
-
-      for (const p of points) {
-        ctx.fillStyle = "rgba(139, 92, 246, 0.6)"
-        ctx.beginPath()
-        ctx.arc(p.x * w, p.y * h, 1.8, 0, Math.PI * 2)
-        ctx.fill()
-      }
-
-      raf = requestAnimationFrame(draw)
-    }
-
-    resize()
-    window.addEventListener("resize", resize)
-    draw()
-
-    return () => {
-      window.removeEventListener("resize", resize)
-      cancelAnimationFrame(raf)
-    }
-  }, [])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="pointer-events-none absolute inset-0 h-full w-full opacity-60"
-      aria-hidden
-    />
-  )
-}
-
-// ─── Main Landing Page ─────────────────────────────────────────────────────────
+// Client Logos for Carousel Showcase
+const clientLogos = [
+  {
+    name: "DAMAC Properties",
+    category: "Luxury Real Estate",
+    logo: "/clients/damac.png",
+  },
+  {
+    name: "Innoveg",
+    category: "Wholesale & Agritech",
+    logo: "/clients/innoveg.jpeg",
+  },
+  {
+    name: "Nelson Business School",
+    category: "Executive Education",
+    logo: "/clients/nelson-business-school.jpeg",
+  },
+  {
+    name: "Osmo RO Care",
+    category: "Water Purification Systems",
+    logo: "/clients/osmo-ro-care.jpg",
+  },
+  {
+    name: "Printevr",
+    category: "Digital Print & Merch",
+    logo: "/clients/printevr.jpeg",
+  },
+  {
+    name: "SME Network",
+    category: "Enterprise Advisory",
+    logo: "/clients/sme.jpeg",
+  },
+]
 
 export default function LandingPage() {
   const { user } = useOrg()
@@ -169,19 +93,19 @@ export default function LandingPage() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const [audioTranscriptIndex, setAudioTranscriptIndex] = useState(0)
 
-  // ─── "Chat with your AI Employee" Executive Queries ─────────────────────────
+  // ─── Executive Briefing Demo Queries ─────────────────────────────────────────
   const executivePrompts = [
     {
       id: "summary",
       label: "Today's Briefing",
       question: "Hey Nova, give me a complete debrief of today's business activity.",
       response: {
-        headline: "Operational Debrief for Today (Unified Cortex)",
+        headline: "Operational Debrief for Today",
         bullets: [
-          "📞 Phone Calls: 42 inbound/outbound calls handled autonomously. 9 booked for direct sales demo, 4 warm-transferred to human closers.",
-          "💬 WhatsApp: 114 prospective conversations active. Generated ₹5,80,000 in customized quotes with zero human manual intervention.",
-          "📸 Instagram: Auto-responded to 68 Reel comments, converted 23 direct DMs into verified phone numbers in CRM.",
-          "✉️ Email: Cleaned incoming inbox, categorized 14 partner inquiries, and pre-drafted 3 enterprise RFP proposals for your 1-click approval.",
+          "Phone Calls: 42 inbound/outbound calls handled autonomously. 9 booked for direct sales demo, 4 warm-transferred to human closers.",
+          "WhatsApp: 114 prospective conversations active. Generated ₹5,80,000 in customized quotes with zero human manual intervention.",
+          "Instagram: Auto-responded to 68 Reel comments, converted 23 direct DMs into verified phone numbers in CRM.",
+          "Email: Cleaned incoming inbox, categorized 14 partner inquiries, and pre-drafted 3 enterprise RFP proposals for your 1-click approval.",
         ],
         kpis: [
           { label: "Leads Captured", val: "179" },
@@ -189,7 +113,7 @@ export default function LandingPage() {
           { label: "Qualified Pipeline", val: "₹18.4L" },
           { label: "Human Hours Saved", val: "7.5 hrs" },
         ],
-        alert: "⚡ 2 high-ticket prospects requested custom ERP API integration. Briefing dossiers prepared on your desk.",
+        alert: "2 high-ticket prospects requested custom ERP API integration. Briefing dossiers prepared on your desk.",
       },
     },
     {
@@ -209,7 +133,7 @@ export default function LandingPage() {
           { label: "Qualification Score", val: "9.8 / 10" },
           { label: "Handoff Status", val: "Context Pushed to CRM" },
         ],
-        alert: "🎯 Full conversation summaries and audio call recordings are pre-loaded in your dashboard.",
+        alert: "Full conversation summaries and audio call recordings are pre-loaded in your dashboard.",
       },
     },
     {
@@ -229,7 +153,7 @@ export default function LandingPage() {
           { label: "Objections Handled", val: "31 / 34" },
           { label: "Transferred Live", val: "4 to Closers" },
         ],
-        alert: "🎙️ Zero robotic tone complaints. 92% of callers believed they were speaking to an in-office executive.",
+        alert: "Zero robotic tone complaints. 92% of callers believed they were speaking to an in-office executive.",
       },
     },
     {
@@ -249,7 +173,7 @@ export default function LandingPage() {
           { label: "Phone Numbers Extracted", val: "54" },
           { label: "Ad CPA Reduction", val: "-38%" },
         ],
-        alert: "🚀 Zero lead leakage: Even night-time leads (11 PM - 4 AM) were fully qualified and booked.",
+        alert: "Zero lead leakage: Even night-time leads (11 PM - 4 AM) were fully qualified and booked.",
       },
     },
   ]
@@ -261,7 +185,7 @@ export default function LandingPage() {
   const handleSelectPrompt = (idx: number) => {
     setActivePromptIndex(idx)
     setIsTypingTerminal(true)
-    setTimeout(() => setIsTypingTerminal(false), 250)
+    setTimeout(() => setIsTypingTerminal(false), 240)
   }
 
   // ─── Real Speech Synthesis Audio Simulation ─────────────────────────────────
@@ -279,7 +203,7 @@ export default function LandingPage() {
       } else {
         window.speechSynthesis.cancel()
         const utterance = new SpeechSynthesisUtterance(audioSamplePhrases[audioTranscriptIndex % audioSamplePhrases.length])
-        utterance.rate = 1.05
+        utterance.rate = 1.02
         utterance.pitch = 1.0
         utterance.onend = () => {
           setIsPlayingAudio(false)
@@ -294,12 +218,12 @@ export default function LandingPage() {
     }
   }
 
-  // ─── Live Telemetry Stream Ticker ──────────────────────────────────────────
+  // ─── Live Activity Feed Ticker ─────────────────────────────────────────────
   const [tickerItems, setTickerItems] = useState([
-    { channel: "INSTAGRAM", text: "Auto-converted Reel comment into qualified WhatsApp lead (+91 98XXX)", time: "Just now", color: "text-pink-400" },
-    { channel: "PHONE CALL", text: "Completed 2m 45s inbound qualification — meeting scheduled on Google Calendar", time: "18s ago", color: "text-cyan-400" },
-    { channel: "WHATSAPP", text: "Sent customized PDF quotation (₹4,20,000 value) to B2B distributor", time: "42s ago", color: "text-emerald-400" },
-    { channel: "EMAIL", text: "Auto-triaged inbound enterprise RFP and generated executive draft for review", time: "1m ago", color: "text-violet-400" },
+    { channel: "WHATSAPP", text: "Sent customized PDF quotation (₹4,20,000 value) to wholesale distributor", time: "42s ago" },
+    { channel: "PHONE CALL", text: "Completed 2m 45s inbound qualification — meeting booked on Google Calendar", time: "18s ago" },
+    { channel: "INSTAGRAM", text: "Auto-converted Reel comment into qualified WhatsApp lead (+91 98XXX)", time: "Just now" },
+    { channel: "EMAIL", text: "Auto-triaged inbound enterprise RFP and generated executive draft for review", time: "1m ago" },
   ])
 
   useEffect(() => {
@@ -314,21 +238,21 @@ export default function LandingPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // ─── 4 Channels Data ───────────────────────────────────────────────────────
+  // ─── Channels Bento Data ───────────────────────────────────────────────────
   const channelData = {
     voice: {
       name: "AI Voice Employee",
-      tagline: "Ultra-Realistic Telephony with Zero Delay",
-      badge: "SUB-350ms LATENCY",
+      tagline: "Ultra-realistic telephony with zero awkward delay",
+      badge: "Sub-350ms Latency",
+      stat: "99.4% human score",
       icon: PhoneCall,
-      color: "from-cyan-500/20 to-blue-500/10 border-cyan-500/30",
       description:
         "Sounds like your highest-performing sales executive. Answers inbound phone calls within one ring, calls new leads within 45 seconds, understands interruptions and colloquial slang, and warm-transfers hot deals to your human team.",
       capabilities: [
         "Inbound receptionist & proactive outbound lead caller",
-        "Sub-350ms response latency with natural breathing and pacing",
+        "Sub-350ms response latency with natural pacing and breath",
         "Multilingual speech: English, Hindi, and regional inflections",
-        "Direct warm-transfer to live human sales reps with audio briefing",
+        "Direct warm-transfer to live human sales reps with full audio briefing",
       ],
       sampleDialog: [
         { sender: "caller", text: "Hi, I saw your automation package. Do you do custom ERP integrations for wholesale distributors?" },
@@ -340,10 +264,10 @@ export default function LandingPage() {
     },
     whatsapp: {
       name: "WhatsApp AI Employee",
-      tagline: "Your 24/7 Multilingual Conversational Closer",
-      badge: "OFFICIAL META CLOUD API",
+      tagline: "Your 24/7 multilingual conversational closer",
+      badge: "Official Meta Cloud API",
+      stat: "100+ msg/sec capacity",
       icon: MessageSquare,
-      color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30",
       description:
         "An autonomous salesperson on WhatsApp that never sleeps. Qualifies buyers, shares product catalogs, calculates customized estimates, sends PDF brochures, and schedules appointments right into your team's calendar.",
       capabilities: [
@@ -362,14 +286,14 @@ export default function LandingPage() {
     },
     instagram: {
       name: "Instagram AI Employee",
-      tagline: "Turns Reel Comments & DMs into Paying Customers",
-      badge: "DIRECT SOCIAL CONVERSION",
+      tagline: "Turns Reel comments and DMs into paying customers",
+      badge: "Direct Social Conversion",
+      stat: "< 1.5s comment to DM",
       icon: Instagram,
-      color: "from-pink-500/20 to-purple-500/10 border-pink-500/30",
       description:
         "Never miss a viral Reel spike. When followers comment on your Reels or reply to your Stories, your AI employee replies in milliseconds, opens a DM conversation, extracts their phone number, and syncs them to your CRM.",
       capabilities: [
-        "Comment 'INFO' trigger: Sends instant DM with pricing and links",
+        "Comment keyword trigger: Sends instant DM with pricing and links",
         "Story reply and direct message triage 24 hours a day",
         "Screens out spam and converts casual scrollers into warm buyers",
         "Captures verified contact details without hiring social media agencies",
@@ -384,10 +308,10 @@ export default function LandingPage() {
     },
     email: {
       name: "Executive Email AI Employee",
-      tagline: "Inbox Zero, Hyper-Personalized Triage & RFP Drafting",
-      badge: "COGNITIVE INBOX ENGINE",
+      tagline: "Inbox Zero, hyper-personalized triage and RFP drafting",
+      badge: "Cognitive Inbox Partner",
+      stat: "1.2s triage speed",
       icon: Mail,
-      color: "from-indigo-500/20 to-blue-500/10 border-indigo-500/30",
       description:
         "An executive email partner that reads incoming enterprise inquiries, categorizes opportunities, generates bespoke context-aware replies matching your company voice, and keeps high-value pipelines warm.",
       capabilities: [
@@ -405,95 +329,66 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#030712] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden font-sans">
-      {/* Background Cyber Glow Grids */}
-      <div className="pointer-events-none fixed inset-0 z-0 opacity-40">
-        <div className="absolute top-0 left-1/4 h-[550px] w-[550px] rounded-full bg-cyan-600/15 blur-[160px]" />
-        <div className="absolute top-1/3 right-1/4 h-[650px] w-[650px] rounded-full bg-violet-600/15 blur-[170px]" />
-        <div className="absolute bottom-10 left-1/3 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-[150px]" />
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)`,
-            backgroundSize: "32px 32px",
-          }}
-        />
-      </div>
-
-      <NeuralSynapseField />
-
-      {/* ─── Global Navbar ─────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#030712]/85 backdrop-blur-xl">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)] paper-grain selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden">
+      {/* ─── 1. Minimal Sticky Header ───────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[#F6F1E7]/90 dark:bg-[#0A1410]/90 backdrop-blur-md transition-colors">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Brand Logo */}
           <Link href="/" className="group flex items-center gap-3">
-            <div className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/40 bg-gradient-to-br from-cyan-500/20 via-violet-600/20 to-blue-600/20 shadow-lg shadow-cyan-500/10 transition-transform group-hover:scale-105">
-              <Cpu className="h-6 w-6 text-cyan-400" />
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-              </span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand)] text-[#F6F1E7] shadow-sm transition-transform group-hover:scale-105">
+              <span className="font-serif text-xl font-bold tracking-tight">V</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-display text-lg font-bold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
-                  VOX AI AGENTS
+                <span className="font-serif text-lg font-bold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
+                  VOX AI
                 </span>
-                <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-mono font-medium tracking-wider text-cyan-300">
-                  AI EMPLOYEE
+                <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-[11px] font-mono font-medium text-[var(--brand-soft-text)]">
+                  AI Employee
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 tracking-wide">
-                Custom Autonomous Business Representatives
+              <p className="text-[11px] text-[var(--ink-muted)]">
+                Custom business representatives for Indian SMBs
               </p>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden items-center gap-7 lg:flex text-sm font-medium text-slate-300">
-            <a href="#chat-with-ai" className="text-cyan-400 font-semibold hover:text-cyan-300 transition-colors flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4" /> Chat With Your AI
+          {/* Desktop Navigation Links — Only 4 links as required */}
+          <nav className="hidden items-center gap-8 lg:flex text-sm font-medium text-[var(--ink-muted)]">
+            <a href="#how-it-works" className="hover:text-[var(--ink)] transition-colors">
+              How it works
             </a>
-            <a href="#channels" className="transition-colors hover:text-cyan-400">
-              Omnichannel (Calls, WA, IG, Email)
+            <a href="#channels" className="hover:text-[var(--ink)] transition-colors">
+              Channels
             </a>
-            <a href="#voice-audio" className="transition-colors hover:text-cyan-400">
-              Voice Audio Demo
-            </a>
-            <a href="#how-it-works" className="transition-colors hover:text-cyan-400">
-              How We Build It
-            </a>
-            <a href="#pricing" className="transition-colors hover:text-cyan-400">
+            <a href="#pricing" className="hover:text-[var(--ink)] transition-colors">
               Pricing
             </a>
-          </nav>
-
-          {/* Header Action Buttons */}
-          <div className="hidden items-center gap-3 sm:flex">
             <Link
               href={user ? "/dashboard" : "/login"}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3.5 py-2 text-xs font-medium text-slate-200 transition-all hover:bg-white/10 hover:border-white/25"
+              className="hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
             >
-              <LayoutDashboard className="h-3.5 w-3.5 text-cyan-400" />
               <span>{user ? "Dashboard" : "Login"}</span>
             </Link>
+          </nav>
 
+          {/* Primary CTA Button */}
+          <div className="hidden items-center gap-3 sm:flex">
             <a
               href={WHATSAPP_CTA}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-lg bg-gradient-to-r from-cyan-500 via-violet-600 to-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:scale-[1.02] hover:shadow-cyan-500/30"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0"
             >
-              <Zap className="h-3.5 w-3.5 text-yellow-300" />
               <span>Deploy AI Employee</span>
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </a>
           </div>
 
           {/* Mobile Menu Trigger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 lg:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] lg:hidden"
             aria-label="Toggle Menu"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -507,58 +402,53 @@ export default function LandingPage() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="border-b border-white/10 bg-[#030712]/95 px-4 pt-2 pb-6 backdrop-blur-2xl lg:hidden"
+              className="border-b border-[var(--line)] bg-[var(--surface)] px-4 pt-3 pb-6 shadow-xl lg:hidden"
             >
-              <div className="flex flex-col space-y-3 font-medium text-slate-300">
+              <div className="flex flex-col space-y-3 text-sm font-medium text-[var(--ink)]">
                 <a
-                  href="#chat-with-ai"
+                  href="#how-it-works"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 text-cyan-400 font-semibold hover:bg-white/5"
+                  className="rounded-lg px-3 py-2 hover:bg-[var(--surface-alt)]"
                 >
-                  ⚡ Chat With Your AI Employee
+                  How it works
                 </a>
                 <a
                   href="#channels"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-white/5 hover:text-cyan-400"
+                  className="rounded-lg px-3 py-2 hover:bg-[var(--surface-alt)]"
                 >
-                  Omnichannel: Calls · WhatsApp · IG · Email
-                </a>
-                <a
-                  href="#voice-audio"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-white/5 hover:text-cyan-400"
-                >
-                  Listen to Voice AI Audio Demo
-                </a>
-                <a
-                  href="#how-it-works"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-white/5 hover:text-cyan-400"
-                >
-                  How We Engineer Your AI
+                  Channels (Calls, WhatsApp, Instagram, Email)
                 </a>
                 <a
                   href="#pricing"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-white/5 hover:text-cyan-400"
+                  className="rounded-lg px-3 py-2 hover:bg-[var(--surface-alt)]"
                 >
-                  Commercials & Pricing (₹20,000 Setup)
+                  Pricing (₹20,000 setup)
                 </a>
+                <Link
+                  href={user ? "/dashboard" : "/login"}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg px-3 py-2 hover:bg-[var(--surface-alt)]"
+                >
+                  {user ? "Dashboard" : "Login"}
+                </Link>
                 <div className="pt-2 flex flex-col gap-2">
                   <a
                     href={WHATSAPP_CTA}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-violet-600 py-2.5 text-xs font-semibold text-white"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3 text-xs font-semibold text-white shadow-sm"
                   >
-                    <Zap className="h-4 w-4" /> Deploy AI Employee
+                    <span>Deploy AI Employee</span>
+                    <ArrowRight className="h-4 w-4" />
                   </a>
                   <a
                     href={CALL_CTA}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-cyan-500/10 py-2.5 text-xs font-semibold text-cyan-300"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-alt)] py-2.5 text-xs font-semibold text-[var(--ink)]"
                   >
-                    <PhoneCall className="h-4 w-4" /> Call Voice AI ({CALL_NUMBER})
+                    <PhoneCall className="h-4 w-4 text-[var(--brand)]" />
+                    <span>Call Live Voice AI ({CALL_NUMBER})</span>
                   </a>
                 </div>
               </div>
@@ -567,614 +457,873 @@ export default function LandingPage() {
         </AnimatePresence>
       </header>
 
-      {/* ─── Hero Section ──────────────────────────────────────────────────── */}
-      <section className="relative pt-12 pb-16 md:pt-20 md:pb-28 overflow-hidden">
+      {/* ─── 2. Hero Section ────────────────────────────────────────────────── */}
+      <section className="relative pt-10 pb-16 md:pt-16 md:pb-24 overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center text-center">
-            {/* Live Operational Status Pill */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-950/40 px-4 py-1.5 text-xs text-cyan-300 backdrop-blur-md shadow-sm shadow-cyan-500/20"
-            >
-              <Radio className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
-              <span className="font-mono font-semibold">CUSTOM-BUILT AI EMPLOYEES</span>
-              <span className="h-1 w-1 rounded-full bg-cyan-400" />
-              <span className="text-slate-300">CALLS · WHATSAPP · INSTAGRAM · EMAIL</span>
-            </motion.div>
-
-            {/* Giant Futuristic Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="font-display mt-6 max-w-5xl text-balance text-4xl font-extrabold tracking-tight sm:text-6xl md:text-7xl lg:leading-[1.1]"
-            >
-              Your Business, Cloned into an{" "}
-              <span className="bg-gradient-to-r from-cyan-400 via-violet-400 to-indigo-300 bg-clip-text text-transparent">
-                Autonomous AI Employee.
-              </span>
-            </motion.h1>
-
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mt-6 max-w-3xl text-balance text-base text-slate-300 sm:text-xl font-light leading-relaxed"
-            >
-              We engineer custom AI employees that represent your brand across <span className="text-white font-medium">Instagram, WhatsApp, Email, and Phone Calls 24/7</span>.
-              It qualifies leads, books revenue deals, and you can chat with it in plain English to ask what’s happening in your business at any second.
-            </motion.p>
-
-            {/* Primary Action Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-8 flex flex-wrap items-center justify-center gap-4"
-            >
-              <a
-                href={WHATSAPP_CTA}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-violet-600 px-7 py-4 text-sm font-semibold text-white shadow-xl shadow-cyan-500/25 transition-all hover:scale-105 hover:shadow-cyan-500/40"
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            {/* Left Column: Editorial Headline & Actions */}
+            <div className="lg:col-span-7 flex flex-col items-start text-left">
+              {/* Category pill */}
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-1 text-xs text-[var(--ink-muted)] shadow-sm mb-6"
               >
-                <Zap className="h-4 w-4 text-yellow-300" />
-                <span>Deploy Your AI Employee</span>
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </a>
+                <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
+                <span className="font-medium text-[var(--ink)]">Custom AI Employees for Indian Businesses</span>
+              </motion.div>
 
-              <a
-                href="#voice-audio"
-                className="inline-flex items-center gap-2.5 rounded-xl border border-white/20 bg-white/5 px-6 py-4 text-sm font-medium text-slate-200 backdrop-blur-md transition-all hover:bg-white/10 hover:border-cyan-500/40"
+              {/* Oversized Serif Headline */}
+              <motion.h1
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.08 }}
+                className="font-serif text-[42px] sm:text-6xl lg:text-[74px] leading-[1.05] tracking-[-0.02em] font-normal text-[var(--ink)] text-balance"
               >
-                <Headphones className="h-4 w-4 text-cyan-400" />
-                <span>Hear Voice AI Audio</span>
-              </a>
+                Your business, <em className="italic font-normal text-[var(--brand)]">cloned</em> into an autonomous AI employee.
+              </motion.h1>
 
-              <a
-                href={CALL_CTA}
-                className="inline-flex items-center gap-2.5 rounded-xl border border-slate-700/60 bg-slate-900/60 px-5 py-4 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              {/* Subcopy */}
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.16 }}
+                className="mt-6 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed max-w-xl font-normal"
               >
-                <PhoneCall className="h-4 w-4 text-emerald-400 animate-pulse" />
-                <span>Call Live: {CALL_NUMBER}</span>
-              </a>
-            </motion.div>
-          </div>
+                We build dedicated AI employees that answer calls, WhatsApp, Instagram DMs, and email 24/7 for Indian wholesale, clinics, real estate, and services. It qualifies leads, sends customized quotes, and books revenue deals while you sleep.
+              </motion.p>
 
-          {/* ─── LIVE REAL-TIME TELEMETRY TICKER ────────────────────────────── */}
-          <div className="mt-12 mx-auto max-w-4xl rounded-xl border border-white/10 bg-slate-950/80 p-3 shadow-lg backdrop-blur-md font-mono text-xs overflow-hidden">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold">LIVE CORTEX FEED</span>
+              {/* Primary Actions & Voice Audio Link */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.24 }}
+                className="mt-8 flex flex-wrap items-center gap-4 sm:gap-6"
+              >
+                <a
+                  href={WHATSAPP_CTA}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-2.5 rounded-xl bg-[var(--accent)] px-7 py-4 text-sm font-semibold text-white shadow-md hover:bg-[var(--accent-hover)] hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
+                >
+                  <span>Deploy Your AI Employee</span>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </a>
+
+                <a
+                  href="#voice-audio"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)] hover:text-[var(--brand)] transition-colors py-2"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-alt)] border border-[var(--line)]">
+                    <Headphones className="h-4 w-4 text-[var(--brand)]" />
+                  </div>
+                  <span>Hear the voice</span>
+                </a>
+
+                <a
+                  href={CALL_CTA}
+                  className="text-xs sm:text-sm text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors inline-flex items-center gap-1.5"
+                >
+                  <PhoneCall className="h-3.5 w-3.5 text-[var(--brand)]" />
+                  <span>or call <strong className="font-semibold text-[var(--ink)]">{CALL_NUMBER}</strong></span>
+                </a>
+              </motion.div>
+
+              {/* Thin Row of Trust Stats */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.32 }}
+                className="mt-12 pt-6 border-t border-[var(--line)] w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-4 text-left"
+              >
+                <div>
+                  <div className="font-mono text-lg font-bold text-[var(--brand)]">1.2s</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Avg response time</div>
+                </div>
+                <div>
+                  <div className="font-mono text-lg font-bold text-[var(--brand)]">24/7</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Always answering</div>
+                </div>
+                <div>
+                  <div className="font-mono text-lg font-bold text-[var(--brand)]">72 hours</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Live launch</div>
+                </div>
+                <div>
+                  <div className="font-mono text-lg font-bold text-[var(--brand)]">4 channels</div>
+                  <div className="text-xs text-[var(--ink-muted)]">Calls, WA, IG, Email</div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Right Column: Realistic Phone Mockup (Above the fold product preview) */}
+            <div className="lg:col-span-5 relative flex justify-center">
+              {/* Soft background aura */}
+              <div className="absolute -inset-4 rounded-full bg-[var(--brand-soft)]/40 blur-3xl -z-10" />
+
+              {/* Phone Frame */}
+              <div className="relative w-full max-w-[340px] rounded-[38px] border-[7px] border-[#16211C] bg-[#ECE5DD] shadow-2xl overflow-hidden text-[var(--ink)]">
+                {/* Speaker pill */}
+                <div className="h-5 bg-[#16211C] flex items-center justify-center">
+                  <div className="w-14 h-3 bg-[#0C120F] rounded-full" />
+                </div>
+
+                {/* WhatsApp Chat App Bar */}
+                <div className="bg-[var(--brand)] text-[#F6F1E7] px-4 py-3 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)] font-bold text-xs">
+                      VA
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-[var(--brand)]" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold leading-tight text-[#F6F1E7]">Vox AI Employee</div>
+                      <div className="text-[10px] text-emerald-200">Online · Instant Reply</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-emerald-100">
+                    <Phone className="h-4 w-4" />
+                  </div>
+                </div>
+
+                {/* Chat Messages Canvas */}
+                <div className="p-3.5 space-y-3 text-xs min-h-[380px] flex flex-col justify-end bg-[#ECE5DD] dark:bg-[#111C17]">
+                  {/* Date badge */}
+                  <div className="flex justify-center mb-1">
+                    <span className="rounded-md bg-white/70 dark:bg-black/40 px-2 py-0.5 text-[10px] font-mono text-[var(--ink-muted)] shadow-xs">
+                      Today
+                    </span>
+                  </div>
+
+                  {/* Customer Question */}
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-xs bg-[var(--surface)] p-3 text-[12px] leading-relaxed shadow-sm text-[var(--ink)]">
+                      <p>Hi, we run a clinic with 4 doctors in Rohtak. Can your AI answer WhatsApp patient queries and book appointment slots?</p>
+                      <div className="text-[10px] text-[var(--ink-faint)] text-right mt-1 font-mono">10:14 AM</div>
+                    </div>
+                  </div>
+
+                  {/* AI Response in Mint Bubble */}
+                  <div className="flex justify-end">
+                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3 text-[12px] leading-relaxed shadow-sm text-[var(--brand-soft-text)]">
+                      <p>Namaste! Yes, absolutely. We sync with your appointment calendar, triage patient inquiries in English and Hindi, and confirm doctor slots with instant WhatsApp reminders.</p>
+                      <div className="flex items-center justify-end gap-1 text-[10px] text-[var(--brand)] mt-1 font-mono">
+                        <span>10:14 AM</span>
+                        <CheckCheck className="h-3.5 w-3.5 text-sky-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Customer Followup */}
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-xs bg-[var(--surface)] p-3 text-[12px] leading-relaxed shadow-sm text-[var(--ink)]">
+                      <p>That sounds ideal. What is the onboarding cost and turnaround time?</p>
+                      <div className="text-[10px] text-[var(--ink-faint)] text-right mt-1 font-mono">10:15 AM</div>
+                    </div>
+                  </div>
+
+                  {/* AI Pricing Quote in Mint Bubble */}
+                  <div className="flex justify-end">
+                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3 text-[12px] leading-relaxed shadow-sm text-[var(--brand-soft-text)]">
+                      <p>Setup is ₹20,000 one-time and ₹5,000/month retainer. We deploy your clinic employee in 72 hours. Shall I connect you to our setup team?</p>
+                      <div className="flex items-center justify-end gap-1 text-[10px] text-[var(--brand)] mt-1 font-mono">
+                        <span>10:15 AM</span>
+                        <CheckCheck className="h-3.5 w-3.5 text-sky-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Typing Indicator */}
+                  <div className="flex items-center gap-1.5 bg-[var(--surface)] w-fit px-3 py-2 rounded-2xl rounded-tl-xs shadow-xs text-[var(--ink-muted)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <span className="text-[10px] font-mono ml-1 text-[var(--ink-muted)]">AI typing...</span>
+                  </div>
+                </div>
+
+                {/* Bottom home indicator */}
+                <div className="h-4 bg-[#16211C] flex items-center justify-center">
+                  <div className="w-24 h-1 bg-white/30 rounded-full" />
+                </div>
               </div>
-              <div className="truncate text-slate-300">
-                <span className={`font-semibold mr-2 ${tickerItems[0].color}`}>[{tickerItems[0].channel}]</span>
-                <span>{tickerItems[0].text}</span>
-              </div>
-              <span className="text-[10px] text-slate-500 shrink-0">{tickerItems[0].time}</span>
+
+              {/* Floating Social Proof Card */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="absolute -bottom-5 -left-4 sm:-left-8 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 shadow-xl z-20 max-w-[210px]"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-800">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-[11px] font-medium text-[var(--ink-muted)]">Live Metrics</span>
+                </div>
+                <div className="font-serif text-lg font-bold text-[var(--ink)]">₹5,80,000</div>
+                <p className="text-[11px] text-[var(--ink-muted)]">Quotes generated today autonomously</p>
+              </motion.div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* ─── HERO CENTERPIECE: "CHAT WITH YOUR AI EMPLOYEE" ─────────────── */}
-          <div id="chat-with-ai" className="mt-14 relative mx-auto max-w-5xl">
-            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-cyan-500/20 via-violet-600/30 to-blue-500/20 blur-xl opacity-80" />
-            
-            <div className="relative rounded-3xl border border-cyan-500/40 bg-slate-950/95 shadow-2xl backdrop-blur-2xl overflow-hidden">
-              {/* Terminal Title Bar */}
-              <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/90 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-1.5">
-                    <span className="h-3 w-3 rounded-full bg-rose-500 inline-block" />
-                    <span className="h-3 w-3 rounded-full bg-amber-500 inline-block" />
-                    <span className="h-3 w-3 rounded-full bg-emerald-500 inline-block" />
+      {/* ─── Client Logo Carousel Section ───────────────────────────────────── */}
+      <section className="relative py-12 border-y border-[var(--line)] bg-[var(--surface)] overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-6 text-center">
+          <p className="text-[11px] font-mono tracking-widest uppercase text-[var(--ink-muted)]">
+            Trusted by fast-growing Indian businesses & enterprises
+          </p>
+        </div>
+
+        {/* Continuous Marquee Track */}
+        <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
+          <div className="animate-marquee flex items-center gap-6 py-2">
+            {[...clientLogos, ...clientLogos].map((client, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-3.5 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] hover:bg-white hover:border-[var(--brand)]/30 px-5 py-3 transition-all duration-200 shadow-xs shrink-0 group"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white border border-[var(--line)] p-1.5 shrink-0 overflow-hidden shadow-xs">
+                  <img
+                    src={client.logo}
+                    alt={`${client.name} logo`}
+                    className="max-h-full max-w-full object-contain filter group-hover:scale-105 transition-transform"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="text-left">
+                  <div className="text-xs font-bold text-[var(--ink)] tracking-tight whitespace-nowrap">
+                    {client.name}
                   </div>
-                  <span className="font-mono text-xs text-slate-300 flex items-center gap-1.5 ml-2">
-                    <Bot className="h-4 w-4 text-cyan-400" />
-                    <span className="font-bold text-white">YOUR AI EMPLOYEE</span> // Executive Management Terminal
-                  </span>
+                  <div className="text-[10px] font-mono text-[var(--ink-muted)] whitespace-nowrap">
+                    {client.category}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 font-mono text-xs text-cyan-300">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-emerald-300 text-[11px]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    LIVE EXECUTIVE BRIEFING ONLINE
-                  </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Live Telemetry Strip ───────────────────────────────────────────── */}
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 my-14">
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3 sm:py-3 sm:px-5 shadow-xs flex items-center justify-between gap-4 text-xs font-mono">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold text-[var(--brand)] text-[11px] tracking-wide uppercase">Live Activity</span>
+          </div>
+          <div className="truncate text-[var(--ink)]">
+            <span className="font-bold text-[var(--brand)] mr-2">[{tickerItems[0].channel}]</span>
+            <span className="text-[var(--ink-muted)]">{tickerItems[0].text}</span>
+          </div>
+          <span className="text-[10px] text-[var(--ink-faint)] shrink-0 hidden sm:inline">{tickerItems[0].time}</span>
+        </div>
+      </div>
+
+      {/* ─── 3. "Ask your AI Employee" Briefing Demo ────────────────────────── */}
+      <section id="chat-with-ai" className="relative py-16 md:py-24 border-t border-[var(--line)] bg-[var(--surface-alt)]">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+              <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
+              <span>Founder Briefing Interface</span>
+            </div>
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+              Ask your AI Employee anything.
+            </h2>
+            <p className="mt-3 text-base text-[var(--ink-muted)]">
+              Click any executive question below to see how your AI Employee synthesizes real-time business telemetry across Calls, WhatsApp, Instagram, and Email.
+            </p>
+          </div>
+
+          {/* Clean Chat-App Window */}
+          <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] shadow-xl overflow-hidden">
+            {/* Window Title Bar */}
+            <div className="flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface-alt)] px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-[#E58072] inline-block" />
+                  <span className="h-3 w-3 rounded-full bg-[#E5BF72] inline-block" />
+                  <span className="h-3 w-3 rounded-full bg-[#82C99B] inline-block" />
+                </div>
+                <span className="text-xs text-[var(--ink)] font-medium flex items-center gap-1.5 ml-2">
+                  <Bot className="h-4 w-4 text-[var(--brand)]" />
+                  <span className="font-semibold">Executive Briefing Dashboard</span>
+                  <span className="text-[var(--ink-muted)] hidden sm:inline">· Vox AI Employee</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-mono text-[var(--brand)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--brand-soft-text)]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)]" />
+                  4 Channels Synced
+                </span>
+              </div>
+            </div>
+
+            {/* Query Chips as Pill Buttons */}
+            <div className="p-4 sm:p-6 border-b border-[var(--line)] bg-[var(--surface)]">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                {executivePrompts.map((p, idx) => {
+                  const isSelected = activePromptIndex === idx
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => handleSelectPrompt(idx)}
+                      className={`text-left rounded-xl p-3 text-xs transition-all border ${
+                        isSelected
+                          ? "border-[var(--brand)] bg-[var(--brand)] text-[#F6F1E7] shadow-sm"
+                          : "border-[var(--line)] bg-[var(--surface-alt)] text-[var(--ink)] hover:border-[var(--ink-muted)]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[11px] font-bold ${isSelected ? "text-emerald-200" : "text-[var(--brand)]"}`}>
+                          {p.label}
+                        </span>
+                        {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />}
+                      </div>
+                      <p className={`line-clamp-2 text-[11px] ${isSelected ? "text-[#F6F1E7]/80" : "text-[var(--ink-muted)]"}`}>
+                        “{p.question}”
+                      </p>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Chat Thread Dialogue Display */}
+            <div className="p-6 sm:p-8 space-y-6">
+              {/* Founder Query Bubble */}
+              <div className="flex justify-end">
+                <div className="max-w-[85%] rounded-2xl bg-[var(--brand)] px-5 py-3 text-sm text-[#F6F1E7] shadow-sm">
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-200 mb-1">
+                    <Users className="h-3 w-3" /> YOU (BUSINESS OWNER)
+                  </div>
+                  <p className="font-medium">“{executivePrompts[activePromptIndex].question}”</p>
                 </div>
               </div>
 
-              {/* Sub-header instruction */}
-              <div className="border-b border-white/10 bg-slate-900/50 px-6 py-3 text-xs text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span>💬 <strong>Ask your AI Employee anything:</strong> Click an executive query below to watch it synthesize real-time business telemetry.</span>
-                <span className="font-mono text-cyan-400 text-[11px]">SYNAPSE: 4 CHANNELS CONNECTED</span>
-              </div>
+              {/* AI Structured Synthesis Response Card */}
+              <div className="flex justify-start">
+                <div className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 sm:p-6 space-y-5">
+                  {/* Synthesis Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--line)] pb-3 gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand)] text-[#F6F1E7]">
+                        <Bot className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-mono text-[var(--brand)] font-semibold block">AI EXECUTIVE SUMMARY</span>
+                        <span className="text-sm text-[var(--ink)] font-bold">{executivePrompts[activePromptIndex].response.headline}</span>
+                      </div>
+                    </div>
+                    <span className="rounded-md bg-[var(--surface)] border border-[var(--line)] px-2.5 py-1 text-[11px] font-mono text-[var(--ink-muted)]">
+                      Synthesized in 240ms
+                    </span>
+                  </div>
 
-              {/* Preset Query Chips */}
-              <div className="p-4 sm:p-6 bg-slate-950/60 border-b border-white/10">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                  {executivePrompts.map((p, idx) => {
-                    const isSelected = activePromptIndex === idx
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => handleSelectPrompt(idx)}
-                        className={`text-left rounded-xl p-3 text-xs transition-all border ${
-                          isSelected
-                            ? "border-cyan-400 bg-cyan-950/50 text-white shadow-lg shadow-cyan-500/10"
-                            : "border-white/10 bg-white/[0.02] text-slate-300 hover:bg-white/5 hover:border-white/20"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-mono text-[10px] text-cyan-300 font-bold uppercase">{p.label}</span>
-                          {isSelected && <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />}
+                  {/* Bullet points */}
+                  <div className="space-y-2.5">
+                    {isTypingTerminal ? (
+                      <div className="text-xs text-[var(--ink-muted)] italic flex items-center gap-2 py-4">
+                        <RefreshCw className="h-4 w-4 animate-spin text-[var(--brand)]" />
+                        <span>Synthesizing today's business activity across channels...</span>
+                      </div>
+                    ) : (
+                      executivePrompts[activePromptIndex].response.bullets.map((bullet, i) => (
+                        <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-[var(--ink)] leading-relaxed">
+                          <span className="text-[var(--brand)] shrink-0 font-bold mt-0.5">•</span>
+                          <span>{bullet}</span>
                         </div>
-                        <p className="line-clamp-2 text-[11px] text-slate-300 italic">“{p.question}”</p>
-                      </button>
+                      ))
+                    )}
+                  </div>
+
+                  {/* 4 KPI Tiles in Bento Layout */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-[var(--line)]">
+                    {executivePrompts[activePromptIndex].response.kpis.map((kpi, idx) => (
+                      <div key={idx} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-3 text-center shadow-xs">
+                        <span className="text-[10px] font-mono text-[var(--ink-muted)] block">{kpi.label}</span>
+                        <span className="font-serif text-xl font-bold text-[var(--brand)] mt-1 block">{kpi.val}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Priority Alert Box */}
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50 p-3.5 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+                    <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <span>{executivePrompts[activePromptIndex].response.alert}</span>
+                  </div>
+
+                  {/* Action Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div className="flex gap-2 text-xs font-mono">
+                      <span className="rounded bg-[var(--surface)] px-2.5 py-1 text-[var(--ink-muted)] border border-[var(--line)]">Verified Data</span>
+                      <span className="rounded bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-2.5 py-1 font-medium">Ready for Handoff</span>
+                    </div>
+                    <a
+                      href={WHATSAPP_CTA}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--brand)] hover:text-[var(--accent)] transition-colors"
+                    >
+                      <span>Deploy This AI Assistant For Your Business</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Simulated Custom Prompt Bar */}
+              <div className="relative pt-2">
+                <div className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 shadow-sm">
+                  <Search className="h-4 w-4 text-[var(--ink-muted)] shrink-0" />
+                  <input
+                    type="text"
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    placeholder="Ask your AI Employee anything (e.g. 'How many leads did Instagram bring last night?')..."
+                    className="w-full bg-transparent text-xs sm:text-sm text-[var(--ink)] placeholder-[var(--ink-faint)] focus:outline-none"
+                  />
+                  <button
+                    onClick={() => {
+                      if (customInput.trim()) {
+                        handleSelectPrompt((activePromptIndex + 1) % executivePrompts.length)
+                        setCustomInput("")
+                      }
+                    }}
+                    className="rounded-xl bg-[var(--brand)] px-4 py-2 text-xs font-semibold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-colors shrink-0 flex items-center gap-1.5"
+                  >
+                    <span>Ask</span>
+                    <Send className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 4. Omnichannel Bento Grid Section ──────────────────────────────── */}
+      <section id="channels" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+              <span>Omnichannel Coverage</span>
+            </div>
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+              One unified AI brain. Four channels covered.
+            </h2>
+            <p className="mt-4 text-base text-[var(--ink-muted)]">
+              Your AI Employee doesn’t live in an isolated silo. If a customer leaves a comment on Instagram, messages on WhatsApp, and calls on the phone, your AI remembers their entire history.
+            </p>
+          </div>
+
+          {/* Asymmetric Bento Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Featured Card 1: AI Voice Employee (Wide Card with simulated call dialog) */}
+            <div className="lg:col-span-7 rounded-3xl border border-[var(--line)] bg-[#EBF5EE] dark:bg-[#10221A] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand)] text-[#F6F1E7]">
+                    <PhoneCall className="h-5 w-5" />
+                  </div>
+                  <span className="rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-mono font-medium text-[var(--brand-soft-text)]">
+                    Sub-350ms Latency · 99.4% Human Cadence
+                  </span>
+                </div>
+
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
+                  AI Voice Employee
+                </h3>
+                <p className="text-xs font-mono font-semibold text-[var(--brand)] mt-1">
+                  Ultra-realistic telephony with zero delay
+                </p>
+                <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
+                  Sounds like your highest-performing sales executive. Answers inbound phone calls within one ring, calls new leads within 45 seconds, understands Hindi & English seamlessly, and warm-transfers hot deals to your human team.
+                </p>
+
+                {/* Simulated Call Transcript as Chat Bubbles */}
+                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 space-y-2.5 text-xs">
+                  <div className="text-[10px] font-mono text-[var(--ink-muted)] border-b border-[var(--line)] pb-1.5 flex items-center justify-between">
+                    <span>Live Call Stream Simulation</span>
+                    <span className="text-emerald-600 font-semibold">Active Inbound</span>
+                  </div>
+                  {channelData.voice.sampleDialog.map((msg, i) => {
+                    const isAI = msg.sender === "ai"
+                    return (
+                      <div key={i} className={`flex ${isAI ? "justify-start" : "justify-end"}`}>
+                        <div
+                          className={`max-w-[85%] rounded-2xl px-3.5 py-2 leading-relaxed ${
+                            isAI
+                              ? "bg-[var(--brand-soft)] text-[var(--brand-soft-text)] font-medium"
+                              : "bg-[var(--surface-alt)] text-[var(--ink)]"
+                          }`}
+                        >
+                          <div className="text-[9px] font-mono opacity-70 mb-0.5">
+                            {isAI ? "VOX AI VOICE" : "CALLER"}
+                          </div>
+                          <p>{msg.text}</p>
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
               </div>
 
-              {/* Chat Thread Simulation Display */}
-              <div className="p-6 sm:p-8 space-y-6">
-                {/* User / Founder Question */}
-                <div className="flex justify-end">
-                  <div className="max-w-[85%] rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 px-5 py-3 text-sm text-white shadow-md">
-                    <div className="flex items-center gap-1.5 text-[10px] font-mono text-cyan-200 mb-1">
-                      <Users className="h-3 w-3" /> YOU (FOUNDER / BUSINESS OWNER)
-                    </div>
-                    <p className="font-medium">“{executivePrompts[activePromptIndex].question}”</p>
-                  </div>
-                </div>
-
-                {/* AI Employee Structured Answer Card */}
-                <div className="flex justify-start">
-                  <div className="w-full max-w-full rounded-2xl border border-cyan-500/30 bg-slate-900/90 p-5 sm:p-6 shadow-xl space-y-5">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-3 gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                          <Bot className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <span className="text-xs font-mono font-bold text-cyan-300 block">VOX AI EMPLOYEE // CORTEX SYNTHESIS</span>
-                          <span className="text-xs text-white font-medium">{executivePrompts[activePromptIndex].response.headline}</span>
-                        </div>
-                      </div>
-                      <span className="rounded bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-slate-400">
-                        Synthesized in 240ms
-                      </span>
-                    </div>
-
-                    {/* Content Bullets */}
-                    <div className="space-y-2.5">
-                      {isTypingTerminal ? (
-                        <div className="text-xs text-slate-400 italic flex items-center gap-2">
-                          <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-400" />
-                          <span>Querying unified multi-channel vector database...</span>
-                        </div>
-                      ) : (
-                        executivePrompts[activePromptIndex].response.bullets.map((bullet, i) => (
-                          <div key={i} className="flex items-start gap-2.5 text-xs text-slate-200 leading-relaxed">
-                            <span className="text-cyan-400 shrink-0 font-bold">▸</span>
-                            <span>{bullet}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {/* Dynamic KPI Badges */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-white/10">
-                      {executivePrompts[activePromptIndex].response.kpis.map((kpi, idx) => (
-                        <div key={idx} className="rounded-xl border border-white/10 bg-black/40 p-3 text-center">
-                          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">{kpi.label}</span>
-                          <span className="text-base font-bold text-cyan-300 mt-0.5 block">{kpi.val}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Priority Alert Box */}
-                    <div className="rounded-xl border border-yellow-500/30 bg-yellow-950/20 p-3.5 text-xs text-yellow-200 flex items-start gap-2.5">
-                      <Zap className="h-4 w-4 text-yellow-400 shrink-0 mt-0.5" />
-                      <span>{executivePrompts[activePromptIndex].response.alert}</span>
-                    </div>
-
-                    {/* Action Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                      <div className="flex gap-2 text-xs font-mono">
-                        <span className="rounded bg-white/5 px-2.5 py-1 text-slate-300 border border-white/10">Memory Key: #48192</span>
-                        <span className="rounded bg-emerald-500/10 text-emerald-400 px-2.5 py-1 border border-emerald-500/30">Action Ready</span>
-                      </div>
-                      <a
-                        href={WHATSAPP_CTA}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300"
-                      >
-                        <span>Deploy This AI Assistant For Your Business</span>
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Simulated Custom Input Prompt Bar */}
-                <div className="relative pt-2">
-                  <div className="flex items-center gap-2 rounded-2xl border border-white/15 bg-slate-900/90 px-4 py-3 shadow-inner">
-                    <Search className="h-4 w-4 text-slate-500 shrink-0" />
-                    <input
-                      type="text"
-                      value={customInput}
-                      onChange={(e) => setCustomInput(e.target.value)}
-                      placeholder="Ask your AI Employee anything (e.g. 'How many leads did Instagram bring last night?')..."
-                      className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none"
-                    />
-                    <button
-                      onClick={() => {
-                        if (customInput.trim()) {
-                          handleSelectPrompt((activePromptIndex + 1) % executivePrompts.length)
-                          setCustomInput("")
-                        }
-                      }}
-                      className="rounded-lg bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-cyan-400 transition-colors shrink-0 flex items-center gap-1"
-                    >
-                      <span>Ask</span>
-                      <Send className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
+              <div className="mt-6 pt-4 border-t border-[var(--line)] flex items-center justify-between">
+                <a
+                  href={CALL_CTA}
+                  className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--brand)] hover:underline"
+                >
+                  <PhoneCall className="h-3.5 w-3.5" />
+                  <span>Call Voice AI: {CALL_NUMBER}</span>
+                </a>
+                <span className="text-xs font-mono text-[var(--ink-muted)]">WebRTC + SIP Ready</span>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ─── The 4 Omnichannel Representative Hubs ──────────────────────────── */}
-      <section id="channels" className="relative py-24 border-t border-white/10 bg-slate-950/80">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-950/40 px-3 py-1 text-xs text-cyan-300 font-mono">
-              <Network className="h-3.5 w-3.5 text-cyan-400" />
-              <span>THE OMNICHANNEL QUAD-ENGINE</span>
-            </div>
-            <h2 className="font-display mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              One Unified AI Brain. Four Channels Covered.
-            </h2>
-            <p className="mt-4 text-base text-slate-300 sm:text-lg">
-              Your AI Employee doesn’t live in an isolated silo. If a customer leaves a comment on Instagram, messages on WhatsApp, and calls on the phone, your AI remembers their entire history.
-            </p>
-          </div>
-
-          {/* Interactive Channel Selector Switchboard */}
-          <div className="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl mx-auto">
-            {(['voice', 'whatsapp', 'instagram', 'email'] as const).map((ch) => {
-              const data = channelData[ch]
-              const Icon = data.icon
-              const isSelected = activeChannel === ch
-              return (
-                <button
-                  key={ch}
-                  onClick={() => setActiveChannel(ch)}
-                  className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all ${
-                    isSelected
-                      ? "border-cyan-400 bg-cyan-950/50 shadow-xl shadow-cyan-500/20 text-white"
-                      : "border-white/10 bg-slate-900/50 text-slate-400 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <Icon className={`h-6 w-6 mb-2 ${isSelected ? "text-cyan-400" : "text-slate-500"}`} />
-                  <span className="font-bold text-sm text-center">{data.name}</span>
-                  <span className="text-[10px] font-mono mt-1 text-slate-400">{data.badge}</span>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Active Channel Display Showcase */}
-          <div className="mt-8 rounded-3xl border border-white/15 bg-slate-950/90 p-6 md:p-10 max-w-5xl mx-auto backdrop-blur-2xl shadow-2xl">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              {/* Channel Capabilities List */}
-              <div className="lg:col-span-5 space-y-4">
-                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-950/40 px-3 py-1 text-xs font-mono text-cyan-300">
-                  <span>{channelData[activeChannel].badge}</span>
+            {/* Card 2: WhatsApp AI Employee */}
+            <div className="lg:col-span-5 rounded-3xl border border-[var(--line)] bg-[#E8F5EB] dark:bg-[#0E2018] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-700 text-white">
+                    <MessageSquare className="h-5 w-5" />
+                  </div>
+                  <span className="rounded-full bg-emerald-100 text-emerald-900 px-3 py-1 text-xs font-mono font-medium">
+                    Official Meta Cloud API
+                  </span>
                 </div>
 
-                <h3 className="font-display text-3xl font-extrabold text-white">
-                  {channelData[activeChannel].name}
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
+                  WhatsApp AI Employee
                 </h3>
-                <p className="text-xs font-mono text-cyan-400 font-semibold">
-                  {channelData[activeChannel].tagline}
+                <p className="text-xs font-mono font-semibold text-emerald-800 dark:text-emerald-300 mt-1">
+                  Your 24/7 multilingual conversational closer
+                </p>
+                <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
+                  An autonomous salesperson on WhatsApp that never sleeps. Qualifies buyers, shares product catalogs, calculates customized estimates, sends PDF brochures, and schedules appointments right into your team's calendar.
                 </p>
 
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  {channelData[activeChannel].description}
-                </p>
-
-                <div className="space-y-2.5 pt-2">
-                  {channelData[activeChannel].capabilities.map((cap, i) => (
-                    <div key={i} className="flex items-start gap-2.5 text-xs text-slate-200">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="mt-5 space-y-2">
+                  {channelData.whatsapp.capabilities.map((cap, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
                       <span>{cap}</span>
                     </div>
                   ))}
                 </div>
+              </div>
 
-                <div className="pt-4 flex items-center gap-3">
-                  <a
-                    href={WHATSAPP_CTA}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow-md hover:scale-105 transition-transform"
-                  >
-                    <span>Deploy This Channel</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </a>
+              <div className="mt-6 pt-4 border-t border-[var(--line)]">
+                <a
+                  href={WHATSAPP_CTA}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:underline"
+                >
+                  <span>Deploy WhatsApp AI Closer</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Card 3: Instagram AI Employee */}
+            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[#FDF2F0] dark:bg-[#201416] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white">
+                    <Instagram className="h-5 w-5" />
+                  </div>
+                  <span className="rounded-full bg-rose-100 text-rose-900 px-3 py-1 text-xs font-mono font-medium">
+                    &lt; 1.5s Comment-to-DM
+                  </span>
+                </div>
+
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
+                  Instagram AI Employee
+                </h3>
+                <p className="text-xs font-mono font-semibold text-rose-800 dark:text-rose-300 mt-1">
+                  Turns Reel comments & DMs into paying customers
+                </p>
+                <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
+                  Never miss a viral Reel spike. When followers comment on your Reels or reply to Stories, your AI employee replies in milliseconds, opens a DM conversation, extracts their phone number, and syncs them to your CRM.
+                </p>
+
+                <div className="mt-5 space-y-2">
+                  {channelData.instagram.capabilities.map((cap, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-rose-600 shrink-0 mt-0.5" />
+                      <span>{cap}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Channel Live Mockup Terminal */}
-              <div className="lg:col-span-7">
-                <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-5 shadow-2xl">
-                  {/* Mockup Header */}
-                  <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4 text-xs font-mono">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                      <span className="text-slate-300 font-bold">Simulated Stream: {channelData[activeChannel].name}</span>
-                    </div>
-                    <span className="text-cyan-400">Status: Active 24/7</span>
-                  </div>
+              <div className="mt-6 pt-4 border-t border-[var(--line)]">
+                <a
+                  href={WHATSAPP_CTA}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-800 dark:text-rose-300 hover:underline"
+                >
+                  <span>Connect Instagram Graph API</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            </div>
 
-                  {/* Thread Dialog */}
-                  <div className="space-y-3 font-sans">
-                    {channelData[activeChannel].sampleDialog.map((msg, i) => {
-                      const isAI = msg.sender === "ai"
-                      return (
-                        <div key={i} className={`flex ${isAI ? "justify-start" : "justify-end"}`}>
-                          <div
-                            className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
-                              isAI
-                                ? "bg-slate-800 text-slate-100 border border-cyan-500/20 shadow-md"
-                                : "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md"
-                            }`}
-                          >
-                            {isAI && (
-                              <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-cyan-400 mb-1">
-                                <Bot className="h-3 w-3" /> VOX AI REPRESENTATIVE
-                              </div>
-                            )}
-                            <p className="whitespace-pre-line">{msg.text}</p>
-                          </div>
-                        </div>
-                      )
-                    })}
+            {/* Card 4: Executive Email AI Employee */}
+            <div className="lg:col-span-6 rounded-3xl border border-[var(--line)] bg-[#F0F4F8] dark:bg-[#121A22] p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-700 text-white">
+                    <Mail className="h-5 w-5" />
                   </div>
-
-                  {/* Telemetry Footer */}
-                  <div className="mt-5 pt-3 border-t border-white/10 grid grid-cols-3 gap-2 text-[10px] font-mono text-slate-400">
-                    {Object.entries(channelData[activeChannel].telemetry).map(([k, v], idx) => (
-                      <div key={idx} className="rounded bg-black/40 p-2 text-center border border-white/5">
-                        <span className="block text-slate-500">{k}</span>
-                        <span className="block font-bold text-cyan-300 mt-0.5">{v}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <span className="rounded-full bg-blue-100 text-blue-900 px-3 py-1 text-xs font-mono font-medium">
+                    Inbox Zero · 1.2s Triage
+                  </span>
                 </div>
+
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--ink)]">
+                  Executive Email AI Employee
+                </h3>
+                <p className="text-xs font-mono font-semibold text-blue-800 dark:text-blue-300 mt-1">
+                  Hyper-personalized triage & proposal drafting
+                </p>
+                <p className="text-sm text-[var(--ink-muted)] mt-3 leading-relaxed">
+                  An executive email partner that reads incoming enterprise inquiries, categorizes opportunities, generates bespoke context-aware replies matching your company voice, and keeps high-value pipelines warm.
+                </p>
+
+                <div className="mt-5 space-y-2">
+                  {channelData.email.capabilities.map((cap, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-[var(--ink)]">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-blue-600 shrink-0 mt-0.5" />
+                      <span>{cap}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-[var(--line)]">
+                <a
+                  href={WHATSAPP_CTA}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-800 dark:text-blue-300 hover:underline"
+                >
+                  <span>Set Up Enterprise Email Triage</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Star Audio Feature: Interactive Voice AI Spectrogram ──────────── */}
-      <section id="voice-audio" className="relative py-24 border-t border-white/10 bg-[#030712]">
+      {/* ─── 5. Refined Audio Voice Demo Section ────────────────────────────── */}
+      <section id="voice-audio" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-950/40 px-3 py-1 text-xs text-cyan-300 font-mono">
-              <Headphones className="h-3.5 w-3.5 text-cyan-400" />
-              <span>SUB-350MS SYNTHETIC VOICE ENGINE</span>
+          <div className="mx-auto max-w-3xl text-center mb-12">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+              <Headphones className="h-3.5 w-3.5 text-[var(--brand)]" />
+              <span>Sub-350ms Voice Telephony Engine</span>
             </div>
-            <h2 className="font-display mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              Hear What Your AI Employee Sounds Like.
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+              Hear what your AI Employee sounds like.
             </h2>
-            <p className="mt-4 text-base text-slate-300 sm:text-lg">
-              Indistinguishable from a human sales representative. Natural breathing, pauses, tone variation, and sub-350ms response latency so there are never awkward delays.
+            <p className="mt-4 text-base text-[var(--ink-muted)]">
+              Indistinguishable from an experienced sales representative. Natural breathing, pauses, tone variation, and sub-350ms response latency so there are never awkward delays.
             </p>
           </div>
 
-          {/* Interactive Audio Player Console */}
-          <div className="mt-12 max-w-3xl mx-auto rounded-3xl border border-cyan-500/40 bg-slate-950/90 p-8 shadow-2xl backdrop-blur-2xl">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-6 border-b border-white/10">
+          {/* Refined Audio Player Card */}
+          <div className="max-w-3xl mx-auto rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-10 shadow-lg">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-6 border-b border-[var(--line)]">
               <div className="flex items-center gap-4">
+                {/* Large Round Coral Play Button */}
                 <button
                   onClick={toggleVoicePlayback}
-                  className={`flex h-16 w-16 items-center justify-center rounded-2xl transition-all shadow-xl ${
-                    isPlayingAudio
-                      ? "bg-rose-500 text-white shadow-rose-500/30 animate-pulse"
-                      : "bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 shadow-cyan-500/30 hover:scale-105"
+                  className={`flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 ${
+                    isPlayingAudio ? "ring-4 ring-[var(--accent)]/30 animate-pulse" : ""
                   }`}
-                  aria-label="Play audio sample"
+                  aria-label="Play spoken audio sample"
                 >
-                  {isPlayingAudio ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8 ml-1" />}
+                  {isPlayingAudio ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7 ml-0.5" />}
                 </button>
                 <div>
-                  <div className="text-base font-bold text-white flex items-center gap-2">
+                  <div className="text-base font-bold text-[var(--ink)] flex items-center gap-2">
                     <span>Vox Voice Model v4 (Ultra-Low Latency)</span>
-                    <span className="rounded bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-mono text-cyan-300">
+                    <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-[10px] font-mono text-[var(--brand-soft-text)] font-semibold">
                       LIVE
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1 font-mono">
+                  <p className="text-xs text-[var(--ink-muted)] mt-1">
                     {isPlayingAudio ? "Speaking via Web Audio Synthesis..." : "Click play to listen to spoken speech sample"}
                   </p>
                 </div>
               </div>
 
-              {/* Call Demo Direct Action */}
+              {/* Direct Call Button */}
               <a
                 href={CALL_CTA}
-                className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-cyan-500/40 bg-cyan-950/40 px-4 py-2.5 text-xs font-mono font-semibold text-cyan-300 hover:bg-cyan-900/40 transition-colors"
+                className="shrink-0 inline-flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-alt)] px-4 py-2.5 text-xs font-semibold text-[var(--ink)] hover:bg-[var(--surface)] transition-colors"
               >
-                <PhoneCall className="h-4 w-4 text-cyan-400" />
+                <PhoneCall className="h-3.5 w-3.5 text-[var(--brand)]" />
                 <span>Call Phone Demo: {CALL_NUMBER}</span>
               </a>
             </div>
 
-            {/* Live Audio Frequency Oscilloscope Visualizer */}
-            <div className="py-6">
-              <div className="flex items-end justify-between h-20 gap-1.5 px-2">
+            {/* Animated Waveform in Forest Green */}
+            <div className="py-8">
+              <div className="flex items-end justify-between h-20 gap-1 sm:gap-1.5 px-2">
                 {[
-                  30, 65, 80, 45, 95, 30, 85, 60, 100, 75, 40, 90, 50, 85, 35, 70, 95, 40, 60, 80, 45, 90, 65, 35, 75, 50, 85, 40,
+                  32, 65, 80, 45, 95, 30, 85, 60, 100, 75, 40, 90, 50, 85, 35, 70, 95, 40, 60, 80, 45, 90, 65, 35, 75, 50, 85, 40,
                 ].map((val, idx) => (
                   <span
                     key={idx}
                     className={`w-full rounded-full transition-all duration-150 ${
-                      isPlayingAudio
-                        ? "bg-gradient-to-t from-cyan-500 to-violet-400 shadow-sm shadow-cyan-400"
-                        : "bg-white/10"
+                      isPlayingAudio ? "bg-[var(--brand)]" : "bg-[var(--ink-faint)]/25"
                     }`}
                     style={{
-                      height: isPlayingAudio ? `${Math.max(15, (val * (idx % 2 === 0 ? 1 : 0.8)))}%` : "18%",
+                      height: isPlayingAudio ? `${Math.max(16, val * (idx % 2 === 0 ? 1 : 0.82))}%` : "16%",
                     }}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Live Spoken Transcript Box */}
-            <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400 block mb-1">
-                TRANSCRIPT PREVIEW
+            {/* Spoken Transcript Preview */}
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-4 sm:p-5">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--ink-muted)] block mb-1">
+                Transcript Preview
               </span>
-              <p className="text-sm font-medium text-slate-200 italic">
+              <p className="text-sm font-medium text-[var(--ink)] italic">
                 “{audioSamplePhrases[audioTranscriptIndex % audioSamplePhrases.length]}”
               </p>
             </div>
 
-            {/* Telemetry Stats Strip */}
-            <div className="mt-6 pt-4 border-t border-white/10 grid grid-cols-3 gap-3 text-center font-mono text-xs">
+            {/* 3 Simple Stat Tiles */}
+            <div className="mt-6 pt-5 border-t border-[var(--line)] grid grid-cols-3 gap-3 text-center">
               <div>
-                <span className="text-[10px] text-slate-500 block uppercase">Response Cadence</span>
-                <span className="font-bold text-cyan-300">340ms Latency</span>
+                <span className="text-[10px] font-mono text-[var(--ink-muted)] block uppercase">Response Cadence</span>
+                <span className="font-serif text-lg font-bold text-[var(--brand)]">340ms Latency</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-500 block uppercase">Voice Naturalness</span>
-                <span className="font-bold text-emerald-300">99.4% Human Score</span>
+                <span className="text-[10px] font-mono text-[var(--ink-muted)] block uppercase">Voice Naturalness</span>
+                <span className="font-serif text-lg font-bold text-[var(--brand)]">99.4% Human Score</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-500 block uppercase">Telephony Type</span>
-                <span className="font-bold text-violet-300">WebRTC + SIP Trunk</span>
+                <span className="text-[10px] font-mono text-[var(--ink-muted)] block uppercase">Telephony Type</span>
+                <span className="font-serif text-lg font-bold text-[var(--brand)]">WebRTC + SIP</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── How We Build Your AI Employee (Digital DNA) ────────────────────── */}
-      <section id="how-it-works" className="relative py-24 border-t border-white/10 bg-slate-950">
+      {/* ─── 6. How We Build It (Stepper) ───────────────────────────────────── */}
+      <section id="how-it-works" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--bg)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-950/40 px-3 py-1 text-xs text-violet-300 font-mono">
-              <CircuitBoard className="h-3.5 w-3.5 text-violet-400" />
-              <span>THE ENGINEERING PROCESS</span>
+          <div className="mx-auto max-w-3xl text-center mb-16">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+              <span>Engineering Process</span>
             </div>
-            <h2 className="font-display mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              How We Build Your Custom AI Employee.
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+              How we build your custom AI Employee.
             </h2>
-            <p className="mt-4 text-base text-slate-300 sm:text-lg">
+            <p className="mt-4 text-base text-[var(--ink-muted)]">
               Not a generic template. We extract your business DNA, train custom memory models, configure safety guardrails, and hook directly into your phone and social channels.
             </p>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                step: "01",
-                title: "Knowledge Ingestion",
-                desc: "We ingest your product catalogs, past email threads, call recordings, website data, PDFs, and sales objection guides.",
-                icon: Database,
-                color: "text-cyan-400",
-              },
-              {
-                step: "02",
-                title: "Voice & Persona Tuning",
-                desc: "We calibrate the exact tone, speaking cadence, vocabulary, and humor of your highest-performing in-house closer.",
-                icon: Sparkles,
-                color: "text-violet-400",
-              },
-              {
-                step: "03",
-                title: "Safety & Logic Guardrails",
-                desc: "Strict enterprise boundaries: your AI never hallucinates, never makes up pricing, and strictly routes sensitive cases to humans.",
-                icon: ShieldCheck,
-                color: "text-emerald-400",
-              },
-              {
-                step: "04",
-                title: "Omnichannel Deployment",
-                desc: "Hooked into Meta Cloud WhatsApp, Instagram Graph API, SIP Telephony, and your CRM (Google Sheets, HubSpot, Supabase) in 72 hours.",
-                icon: Rocket,
-                color: "text-yellow-400",
-              },
-            ].map((st, idx) => {
-              const Icon = st.icon
-              return (
+          {/* Stepper with connecting line on desktop */}
+          <div className="relative">
+            <div className="hidden lg:block absolute top-7 left-12 right-12 h-[1px] bg-[var(--line)] -z-0" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+              {[
+                {
+                  step: "01",
+                  title: "Knowledge Ingestion",
+                  desc: "We ingest your product catalogs, past email threads, call recordings, website data, PDFs, and sales objection guides.",
+                },
+                {
+                  step: "02",
+                  title: "Voice & Persona Tuning",
+                  desc: "We calibrate the exact tone, speaking cadence, vocabulary, and humor of your highest-performing in-house closer.",
+                },
+                {
+                  step: "03",
+                  title: "Safety & Logic Guardrails",
+                  desc: "Strict enterprise boundaries: your AI never hallucinates, never makes up pricing, and strictly routes sensitive cases to humans.",
+                },
+                {
+                  step: "04",
+                  title: "Omnichannel Deployment",
+                  desc: "Hooked into Meta Cloud WhatsApp, Instagram Graph API, SIP Telephony, and your CRM (Google Sheets, HubSpot, Supabase) in 72 hours.",
+                },
+              ].map((st, idx) => (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 hover:border-cyan-500/40 hover:bg-slate-900/80 transition-all"
+                  className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-7 shadow-xs flex flex-col justify-between"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="font-mono text-xs font-bold text-slate-500">STAGE {st.step}</span>
-                    <Icon className={`h-5 w-5 ${st.color}`} />
+                  <div>
+                    <div className="font-serif text-4xl font-normal text-[var(--brand)] mb-4">
+                      {st.step}
+                    </div>
+                    <h3 className="text-base font-bold text-[var(--ink)] mb-2">
+                      {st.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed">
+                      {st.desc}
+                    </p>
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">{st.title}</h3>
-                  <p className="text-xs text-slate-300 leading-relaxed">{st.desc}</p>
                 </div>
-              )
-            })}
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Clear Commercials & Pricing Section ───────────────────────────── */}
-      <section id="pricing" className="relative py-24 border-t border-white/10 bg-gradient-to-b from-slate-950 via-[#030712] to-slate-950">
+      {/* ─── 7. Clear Commercials & Pricing Section ─────────────────────────── */}
+      <section id="pricing" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-3.5 py-1 text-xs text-emerald-300 font-mono">
-              <Zap className="h-3.5 w-3.5 text-emerald-400" />
-              <span>TRANSPARENT COMMERCIALS</span>
+          <div className="mx-auto max-w-3xl text-center mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-1 text-xs text-[var(--ink-muted)] font-medium mb-3">
+              <span>Transparent Commercials</span>
             </div>
-            <h2 className="font-display mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-              A Clear, Two-Part Investment.
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+              A clear, two-part investment.
             </h2>
-            <p className="mt-4 text-base text-slate-300 sm:text-lg">
+            <p className="mt-4 text-base text-[var(--ink-muted)]">
               One custom implementation fee to build your digital employee, and a predictable monthly retainer to keep it learning and running 24/7.
             </p>
           </div>
 
-          <div className="mt-14 grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {/* One-Time Setup */}
-            <div className="relative rounded-3xl border border-cyan-500/40 bg-slate-900/80 p-8 shadow-2xl backdrop-blur-xl flex flex-col justify-between">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Card 1: Implementation Card in White */}
+            <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-8 sm:p-10 shadow-lg flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-cyan-400">
-                    ONE-TIME IMPLEMENTATION
+                  <span className="text-xs font-mono font-bold text-[var(--brand)] uppercase tracking-wider">
+                    One-Time Implementation
                   </span>
-                  <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-3 py-0.5 text-xs font-mono text-cyan-300">
-                    FULL BUILD & DEPLOY
+                  <span className="rounded-full bg-[var(--brand-soft)] px-3 py-0.5 text-xs font-mono text-[var(--brand-soft-text)] font-medium">
+                    Full Build & Deploy
                   </span>
                 </div>
 
                 <div className="flex items-baseline gap-2 mb-2">
-                  <span className="font-display text-5xl font-extrabold text-white">₹20,000</span>
-                  <span className="text-slate-400 text-sm font-mono">one-time</span>
+                  <span className="font-serif text-5xl font-bold text-[var(--ink)]">₹20,000</span>
+                  <span className="text-[var(--ink-muted)] text-sm font-mono">one-time</span>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed mb-6">
+                <p className="text-xs sm:text-sm text-[var(--ink-muted)] leading-relaxed mb-6">
                   Complete custom engineering of your business AI Employee across Phone Calls, WhatsApp, Instagram, and Email.
                 </p>
 
-                <div className="space-y-3 pt-4 border-t border-white/10">
+                <div className="space-y-3 pt-6 border-t border-[var(--line)]">
                   {[
                     "Complete business discovery & knowledge extraction",
                     "Voice AI configuration with sub-350ms natural cadence",
@@ -1184,20 +1333,20 @@ export default function LandingPage() {
                     "Executive debrief portal to chat with your AI in natural language",
                     "End-to-end edge testing & 72-hour production launch",
                   ].map((feat, i) => (
-                    <div key={i} className="flex items-start gap-3 text-xs text-slate-200">
-                      <Check className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-[var(--ink)]">
+                      <Check className="h-4 w-4 text-[var(--brand)] shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-white/10">
+              <div className="mt-8 pt-6 border-t border-[var(--line)]">
                 <a
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 text-xs font-bold text-white shadow-lg shadow-cyan-500/20 hover:scale-[1.02] transition-transform"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--brand)] py-3.5 text-xs font-bold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-all shadow-sm"
                 >
                   <span>Build Your AI Employee (₹20,000)</span>
                   <ArrowRight className="h-4 w-4" />
@@ -1205,28 +1354,28 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Monthly Retainer */}
-            <div className="relative rounded-3xl border border-violet-500/40 bg-slate-900/80 p-8 shadow-2xl backdrop-blur-xl flex flex-col justify-between">
+            {/* Card 2: Monthly Retainer in Deep Forest Green */}
+            <div className="rounded-3xl border border-[var(--brand)] bg-[var(--brand)] text-[#F6F1E7] p-8 sm:p-10 shadow-2xl flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-violet-400">
-                    MONTHLY SUPPORT & EVOLUTION
+                  <span className="text-xs font-mono font-bold text-emerald-300 uppercase tracking-wider">
+                    Monthly Support & Retainer
                   </span>
-                  <span className="rounded-full bg-violet-500/10 border border-violet-500/30 px-3 py-0.5 text-xs font-mono text-violet-300">
-                    CONTINUOUS UPKEEP
+                  <span className="rounded-full bg-[var(--brand-surface)] border border-emerald-500/30 px-3 py-0.5 text-xs font-mono text-emerald-200">
+                    Continuous Upkeep
                   </span>
                 </div>
 
                 <div className="flex items-baseline gap-2 mb-2">
-                  <span className="font-display text-5xl font-extrabold text-white">₹5,000</span>
-                  <span className="text-slate-400 text-sm font-mono">per month</span>
+                  <span className="font-serif text-5xl font-bold text-[#F6F1E7]">₹5,000</span>
+                  <span className="text-emerald-200/80 text-sm font-mono">per month</span>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed mb-6">
+                <p className="text-xs sm:text-sm text-[#F6F1E7]/80 leading-relaxed mb-6">
                   24/7 uptime monitoring, continuous prompt optimization, and technical maintenance so your employee never breaks.
                 </p>
 
-                <div className="space-y-3 pt-4 border-t border-white/10">
+                <div className="space-y-3 pt-6 border-t border-white/10">
                   {[
                     "24/7 autonomous uptime monitoring & health checks",
                     "Continuous prompt engineering and response tuning",
@@ -1235,8 +1384,8 @@ export default function LandingPage() {
                     "Minor workflow adjustments as your sales process evolves",
                     "Direct technical assistance & bug resolution",
                   ].map((feat, i) => (
-                    <div key={i} className="flex items-start gap-3 text-xs text-slate-200">
-                      <Check className="h-4 w-4 text-violet-400 shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#F6F1E7]">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </div>
                   ))}
@@ -1248,7 +1397,7 @@ export default function LandingPage() {
                   href={WHATSAPP_CTA}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3.5 text-xs font-bold text-white shadow-lg shadow-violet-500/20 hover:scale-[1.02] transition-transform"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] py-3.5 text-xs font-bold text-white shadow-md transition-all"
                 >
                   <span>Lock In Retainer (₹5,000/mo)</span>
                   <ArrowRight className="h-4 w-4" />
@@ -1257,105 +1406,129 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Third-Party Costs Notice */}
-          <div className="mt-10 max-w-4xl mx-auto rounded-2xl border border-white/10 bg-black/40 p-5 text-center text-xs text-slate-400 font-mono">
-            <span className="text-cyan-400 font-bold mr-1">Direct Pass-Through Transparency:</span>
-            External charges (Meta WhatsApp conversation fees, Telephony SIP minute costs, and OpenAI / Gemini token API usage) are paid directly at actual platform rates with zero markup from Vox AI.
+          {/* Pass-Through Transparency Callout */}
+          <div className="mt-10 max-w-4xl mx-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 text-center text-xs text-[var(--ink-muted)]">
+            <strong className="text-[var(--brand)] mr-1">Direct Pass-Through Transparency:</strong>
+            External charges (Meta WhatsApp conversation fees, Telephony SIP minute costs, and AI token API usage) are paid directly at actual platform rates with zero markup from Vox AI.
           </div>
         </div>
       </section>
 
-      {/* ─── Master Final CTA & Official Contact Footer ──────────────────────── */}
-      <footer className="relative border-t border-white/10 bg-[#02050c] pt-20 pb-12 overflow-hidden">
-        <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 h-[450px] w-[850px] rounded-full bg-cyan-600/10 blur-[180px]" />
+      {/* ─── 8. Final CTA (Full-Width Forest-Green Block) ───────────────────── */}
+      <section className="relative bg-[var(--brand)] text-[#F6F1E7] py-20 md:py-28 overflow-hidden">
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 text-center">
+          <span className="font-mono text-xs uppercase tracking-widest text-emerald-300 font-semibold">
+            Next Step — Initiate Your AI Build
+          </span>
+          <h2 className="font-serif mt-4 text-3xl sm:text-6xl font-normal text-[#F6F1E7] tracking-tight">
+            Ready to hire your first AI Employee?
+          </h2>
+          <p className="mt-5 text-base sm:text-lg text-[#F6F1E7]/80 max-w-2xl mx-auto font-normal">
+            Stop letting after-hours leads go cold. Deploy a dedicated AI employee trained on your products, answering on Instagram, WhatsApp, Email, and Calls in seconds.
+          </p>
 
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Big CTA Banner */}
-          <div className="rounded-3xl border border-cyan-500/30 bg-gradient-to-b from-slate-900/90 to-slate-950/90 p-8 sm:p-14 text-center max-w-5xl mx-auto shadow-2xl backdrop-blur-xl">
-            <span className="font-mono text-xs uppercase tracking-widest text-cyan-400 font-semibold">
-              NEXT STEP — INITIATE YOUR AI BUILD
-            </span>
-            <h2 className="font-display mt-3 text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-              Ready to hire your first AI Employee?
-            </h2>
-            <p className="mt-4 text-base text-slate-300 max-w-2xl mx-auto">
-              Stop letting after-hours leads go cold. Deploy a dedicated AI employee trained on your products, answering on Instagram, WhatsApp, Email, and Calls in seconds.
-            </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <a
+              href={WHATSAPP_CTA}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-8 py-4 text-sm font-bold text-white shadow-lg hover:bg-[var(--accent-hover)] transition-all hover:scale-105 active:scale-95"
+            >
+              <span>Deploy AI Employee on WhatsApp</span>
+              <ArrowRight className="h-4 w-4" />
+            </a>
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <a
+              href={CALL_CTA}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#F6F1E7]/30 bg-white/5 px-6 py-4 text-sm font-semibold text-[#F6F1E7] hover:bg-white/10 transition-colors"
+            >
+              <PhoneCall className="h-4 w-4 text-emerald-300" />
+              <span>Call Voice AI: {CALL_NUMBER}</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 9. Footer (Organized Columns, Muted Ink on Cream) ──────────────── */}
+      <footer className="border-t border-[var(--line)] bg-[#EFE8DA] dark:bg-[#0A1410] pt-16 pb-12 text-xs text-[var(--ink-muted)]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Official Contact Columns */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 pb-12 border-b border-[var(--line)]">
+            <div>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">WEBSITE</span>
               <a
-                href={WHATSAPP_CTA}
+                href={`https://${WEBSITE_URL}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-violet-600 px-8 py-4 text-sm font-bold text-white shadow-xl shadow-cyan-500/25 hover:scale-105 transition-transform"
+                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
               >
-                <Zap className="h-4 w-4 text-yellow-300" />
-                <span>Deploy AI Employee on WhatsApp</span>
-                <ArrowRight className="h-4 w-4" />
-              </a>
-
-              <a
-                href={CALL_CTA}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-4 text-sm font-semibold text-slate-200 hover:bg-white/10 transition-colors"
-              >
-                <PhoneCall className="h-4 w-4 text-cyan-400" />
-                <span>Call Voice AI: {CALL_NUMBER}</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Official Contact Grid */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 pt-12 border-t border-white/10 text-xs">
-            <div>
-              <span className="text-slate-500 uppercase tracking-wider block font-mono text-[10px]">WEBSITE</span>
-              <a href={`https://${WEBSITE_URL}`} target="_blank" rel="noopener noreferrer" className="text-slate-200 hover:text-cyan-400 font-semibold mt-1 block">
                 {WEBSITE_URL}
               </a>
             </div>
 
             <div>
-              <span className="text-slate-500 uppercase tracking-wider block font-mono text-[10px]">DIRECT EMAIL</span>
-              <a href={`mailto:${EMAIL_ADDRESS}`} className="text-slate-200 hover:text-cyan-400 font-semibold mt-1 block">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">DIRECT EMAIL</span>
+              <a
+                href={`mailto:${EMAIL_ADDRESS}`}
+                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+              >
                 {EMAIL_ADDRESS}
               </a>
             </div>
 
             <div>
-              <span className="text-slate-500 uppercase tracking-wider block font-mono text-[10px]">PHONE CALLS</span>
-              <a href={`tel:${CALL_NUMBER.replace(/\s+/g, '')}`} className="text-slate-200 hover:text-cyan-400 font-semibold mt-1 block">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">PHONE CALLS</span>
+              <a
+                href={CALL_CTA}
+                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+              >
                 {CALL_NUMBER}
               </a>
             </div>
 
             <div>
-              <span className="text-slate-500 uppercase tracking-wider block font-mono text-[10px]">WHATSAPP</span>
-              <a href={WHATSAPP_CTA} target="_blank" rel="noopener noreferrer" className="text-slate-200 hover:text-cyan-400 font-semibold mt-1 block">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">WHATSAPP</span>
+              <a
+                href={WHATSAPP_CTA}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+              >
                 {WHATSAPP_NUMBER}
               </a>
             </div>
 
             <div>
-              <span className="text-slate-500 uppercase tracking-wider block font-mono text-[10px]">HEADQUARTERS</span>
-              <span className="text-slate-200 font-semibold mt-1 block">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">HEADQUARTERS</span>
+              <span className="font-medium text-[var(--ink)] block">
                 {LOCATION}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-500 uppercase tracking-wider block font-mono text-[10px]">INSTAGRAM</span>
-              <a href={`https://instagram.com/${INSTAGRAM_HANDLE}`} target="_blank" rel="noopener noreferrer" className="text-slate-200 hover:text-cyan-400 font-semibold mt-1 block">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--ink-faint)] block mb-1.5">INSTAGRAM</span>
+              <a
+                href={`https://instagram.com/${INSTAGRAM_HANDLE}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-[var(--ink)] hover:text-[var(--brand)] transition-colors"
+              >
                 @{INSTAGRAM_HANDLE}
               </a>
             </div>
           </div>
 
-          {/* Bottom Copyright */}
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 border-t border-white/5 pt-6 gap-4">
+          {/* Bottom Copyright & Legal Links */}
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px]">
             <p>© {new Date().getFullYear()} Vox AI Agents. Custom AI Solutions for Business. All rights reserved.</p>
             <div className="flex items-center gap-6">
-              <Link href="/privacy-policy.html" className="hover:text-slate-400 transition-colors">Privacy Policy</Link>
-              <Link href="/dashboard" className="hover:text-slate-400 transition-colors">Dashboard</Link>
-              <span className="font-mono text-cyan-400">AUTONOMOUS WORKFORCE ENGINE</span>
+              <Link href="/privacy-policy.html" className="hover:text-[var(--ink)] transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href={user ? "/dashboard" : "/login"} className="hover:text-[var(--ink)] transition-colors">
+                {user ? "Dashboard" : "Login"}
+              </Link>
+              <span className="font-mono text-[var(--brand)]">Autonomous Workforce Engine</span>
             </div>
           </div>
         </div>
