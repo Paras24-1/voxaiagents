@@ -263,7 +263,7 @@ export default function LandingPage() {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links — Strictly 4 links as required */}
+          {/* Desktop Navigation Links */}
           <nav className="hidden items-center gap-8 lg:flex text-sm font-medium text-[var(--ink-muted)]">
             <a href="#how-it-works" className="hover:text-[var(--ink)] transition-colors">
               How it works
@@ -274,16 +274,22 @@ export default function LandingPage() {
             <a href="#pricing" className="hover:text-[var(--ink)] transition-colors">
               Pricing
             </a>
-            <Link
-              href={user ? "/dashboard" : "/login"}
-              className="hover:text-[var(--ink)] transition-colors flex items-center gap-1.5"
-            >
-              <span>{user ? "Dashboard" : "Login"}</span>
-            </Link>
           </nav>
 
-          {/* Primary CTA Button */}
+          {/* Action Buttons — Highlighted Appealing Login + Primary Coral CTA */}
           <div className="hidden items-center gap-3 sm:flex">
+            <Link
+              href={user ? "/dashboard" : "/login"}
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--brand)]/30 bg-[var(--surface)] px-4 py-2.5 text-xs font-semibold text-[var(--brand)] shadow-xs transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 group"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <LayoutDashboard className="h-3.5 w-3.5 text-[var(--brand)] group-hover:text-white transition-colors" />
+              <span>{user ? "Dashboard" : "Client Login"}</span>
+            </Link>
+
             <a
               href={WHATSAPP_CTA}
               target="_blank"
@@ -336,14 +342,16 @@ export default function LandingPage() {
                 >
                   Pricing (₹20,000 setup)
                 </a>
-                <Link
-                  href={user ? "/dashboard" : "/login"}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-lg px-3 py-2 hover:bg-[var(--surface-alt)]"
-                >
-                  {user ? "Dashboard" : "Login"}
-                </Link>
                 <div className="pt-2 flex flex-col gap-2">
+                  <Link
+                    href={user ? "/dashboard" : "/login"}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-[var(--brand)]/30 bg-[var(--surface-alt)] py-3 text-xs font-semibold text-[var(--brand)] shadow-xs hover:bg-[var(--brand)] hover:text-white transition-all"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>{user ? "Open Dashboard" : "Client Portal / Login"}</span>
+                  </Link>
                   <a
                     href={WHATSAPP_CTA}
                     target="_blank"
@@ -1555,8 +1563,12 @@ export default function LandingPage() {
               <Link href="/privacy-policy.html" className="hover:text-[var(--ink)] transition-colors">
                 Privacy Policy
               </Link>
-              <Link href={user ? "/dashboard" : "/login"} className="hover:text-[var(--ink)] transition-colors">
-                {user ? "Dashboard" : "Login"}
+              <Link
+                href={user ? "/dashboard" : "/login"}
+                className="font-semibold text-[var(--brand)] hover:underline flex items-center gap-1.5 transition-colors"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span>{user ? "Client Dashboard" : "Client Portal / Login"}</span>
               </Link>
               <span className="font-mono text-[var(--brand)]">Autonomous Workforce Engine</span>
             </div>
