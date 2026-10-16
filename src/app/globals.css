@@ -165,7 +165,7 @@ body {
   }
 
   .vox-container {
-    @apply mx-auto w-full max-w-[1200px] px-4 sm:px-6;
+    @apply mx-auto w-full max-w-[1380px] px-6 sm:px-10 lg:px-12;
   }
 
   .vox-glass {
@@ -237,22 +237,22 @@ body {
 
   /* Sarvam AI Signature Elements */
   .sarvam-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 text-white font-medium px-5 py-2.5 text-sm transition-all duration-200 hover:bg-black hover:shadow-md active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2.5 rounded-full bg-slate-900 text-white font-semibold px-7 py-3.5 text-base sm:text-lg transition-all duration-200 hover:bg-black hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98];
   }
 
   .sarvam-btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white text-slate-800 font-medium px-5 py-2.5 text-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2.5 rounded-full border border-slate-300 bg-white text-slate-800 font-semibold px-7 py-3.5 text-base sm:text-lg transition-all duration-200 hover:bg-slate-50 hover:border-slate-400 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98];
   }
 
   .sarvam-btn-accent {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 text-white font-semibold px-5 py-2.5 text-sm transition-all duration-200 hover:bg-emerald-700 hover:shadow-md active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2.5 rounded-full bg-emerald-600 text-white font-bold px-7 py-3.5 text-base sm:text-lg transition-all duration-200 hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98];
   }
 
   .sarvam-pill {
-    @apply inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 backdrop-blur-md px-3.5 py-1 text-xs font-medium text-slate-700 shadow-sm;
+    @apply inline-flex items-center gap-2.5 rounded-full border border-slate-200 bg-white/95 backdrop-blur-md px-4 py-2 text-sm sm:text-base font-semibold text-slate-800 shadow-sm;
   }
 
   .sarvam-card {
-    @apply rounded-2xl border border-slate-200/80 bg-white transition-all duration-200 hover:border-slate-300 hover:shadow-sm;
+    @apply rounded-3xl border border-slate-200/90 bg-white transition-all duration-200 hover:border-slate-300 hover:shadow-md;
   }
 }
