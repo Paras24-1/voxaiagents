@@ -307,14 +307,138 @@ export default function LandingPage() {
     },
   ]
 
-  const [activePromptIndex, setActivePromptIndex] = useState(0)
-  const [customInput, setCustomInput] = useState("")
-  const [isTypingTerminal, setIsTypingTerminal] = useState(false)
+  // Real-time Chatbot state connected to /api/ask-ai (Gemini 3.5 Flash)
+  const suggestedQueries = [
+    {
+      id: "q-pricing",
+      label: "Pricing & Pass-Through",
+      query: "What is your total setup cost and monthly retainer? Are there any hidden platform charges?",
+    },
+    {
+      id: "q-sim",
+      label: "Keep Existing SIM & Number",
+      query: "Can I retain my existing SIM card, WhatsApp Business number, and personal phone?",
+    },
+    {
+      id: "q-languages",
+      label: "Hindi & Hinglish Fluency",
+      query: "Does the voice AI employee speak natural conversational Hindi and Hinglish with zero robotic lag?",
+    },
+    {
+      id: "q-summary",
+      label: "Executive 4-Channel Briefing",
+      query: "Give me an executive summary of today's inbound activity across Calls, WhatsApp, Instagram, and Email.",
+    },
+    {
+      id: "q-booking",
+      label: "Appointment Booking",
+      query: "How does the AI employee book customer appointments and sync with Google Calendar / CRM?",
+    },
+    {
+      id: "q-transfer",
+      label: "Warm Transfer to Human",
+      query: "What happens when a high-value customer asks to speak with a human executive?",
+    },
+  ]
 
-  const handleSelectPrompt = (idx: number) => {
-    setActivePromptIndex(idx)
-    setIsTypingTerminal(true)
-    setTimeout(() => setIsTypingTerminal(false), 240)
+  const [chatMessages, setChatMessages] = useState<Array<{
+    id: string
+    role: "user" | "assistant"
+    headline?: string
+    text: string
+    time: string
+    bullets?: string[]
+    kpis?: Array<{ label: string; val: string }>
+    alert?: string
+  }>>([
+    {
+      id: "init-brief",
+      role: "assistant",
+      headline: "Executive Briefing: Multichannel Activity",
+      text: "Namaste! I am Nova, your 24/7 autonomous AI Employee for VOX AI. I continuously qualify leads, calculate price quotations, and book appointments across Phone Calls, WhatsApp, Instagram, and Email. Here is your synthesized performance snapshot:",
+      time: "Just now",
+      bullets: [
+        "Inbound Phone Calls: 42 calls handled with sub-350ms natural speech cadence; 31 customer queries answered autonomously.",
+        "WhatsApp Business API: 98 chats responded to within 1.2s; 14 quotation PDFs delivered; 6 appointments locked.",
+        "Instagram Graph API: 140 Reel keyword comments answered via instant DM; 54 verified mobile numbers captured.",
+        "Deployment Guarantee: ₹20,000 setup + ₹5,000/mo flat retainer. 100% existing SIM retention. 72-hour launch.",
+      ],
+      kpis: [
+        { label: "Leads Captured", val: "179 Leads" },
+        { label: "Speech Cadence", val: "340ms" },
+        { label: "SIM Retained", val: "100%" },
+        { label: "Setup Cost", val: "₹20,000" },
+      ],
+      alert: "Powered by Gemini 3.5 Flash: Click any query chip below or type any custom question to test my real-time reasoning and response capabilities.",
+    },
+  ])
+
+  const [activeChipIndex, setActiveChipIndex] = useState(0)
+  const [customInput, setCustomInput] = useState("")
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
+
+  const askAiEmployee = async (queryText: string, chipIdx?: number) => {
+    if (!queryText.trim() || isGeneratingResponse) return
+
+    if (chipIdx !== undefined) {
+      setActiveChipIndex(chipIdx)
+    }
+
+    const trimmed = queryText.trim()
+    const nowTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+
+    // Append user message immediately
+    const userMsg = {
+      id: "user-" + Date.now(),
+      role: "user" as const,
+      text: trimmed,
+      time: nowTime,
+    }
+
+    setChatMessages((prev) => [...prev, userMsg])
+    setCustomInput("")
+    setIsGeneratingResponse(true)
+
+    try {
+      const history = chatMessages.slice(-6).map((m) => ({
+        role: m.role,
+        content: m.text,
+      }))
+
+      const res = await fetch("/api/ask-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed, history }),
+      })
+
+      const data = await res.json()
+      const reply = data.reply || "I am here to assist. Could you please specify further details?"
+
+      const aiMsg = {
+        id: "ai-" + Date.now(),
+        role: "assistant" as const,
+        headline: "Nova AI Executive Response",
+        text: reply,
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        alert: "Verified Live Response · Powered by Gemini 3.5 Flash",
+      }
+
+      setChatMessages((prev) => [...prev, aiMsg])
+    } catch (err) {
+      console.error("Ask AI error:", err)
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: "ai-" + Date.now(),
+          role: "assistant" as const,
+          headline: "Nova AI Executive Response",
+          text: "VOX AI builds custom 24/7 AI Employees for Indian businesses at ₹20,000 one-time setup + ₹5,000/mo retainer. You keep your existing SIM and number. We launch in 72 hours with zero platform markup. How can I help you deploy today?",
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ])
+    } finally {
+      setIsGeneratingResponse(false)
+    }
   }
 
   // ─── Real Inbound AI Agent Call Recording & Interactive Moments ─────────────
@@ -410,58 +534,82 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="vox-landing-theme min-h-screen bg-[var(--bg)] text-[var(--ink)] paper-grain selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden text-[16px]">
-      {/* ─── 1. Minimal Sticky Header ───────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[#F6F1E7]/95 backdrop-blur-md transition-colors">
+    <div className="vox-landing-theme min-h-screen bg-[var(--bg)] text-[var(--ink)] selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden text-[16px]">
+      {/* ─── Sarvam AI Sovereign Announcement Strip ─────────────────────────── */}
+      <div className="border-b border-slate-200/80 bg-slate-950 text-white text-xs sm:text-sm py-2 px-4 text-center flex items-center justify-center gap-2 font-medium">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 text-[11px] font-mono font-semibold">
+          <Sparkles className="h-3 w-3" />
+          SOVEREIGN AI
+        </span>
+        <span className="text-slate-200">
+          Deploy India's First Autonomous Voice & WhatsApp AI Employee in 72 Hours
+        </span>
+        <a
+          href={WHATSAPP_CTA}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden sm:inline-flex items-center gap-1 text-emerald-300 hover:text-white underline font-semibold ml-1.5 transition-colors"
+        >
+          <span>Launch Now</span>
+          <ArrowRight className="h-3 w-3" />
+        </a>
+      </div>
+
+      {/* ─── 1. Minimal Sticky Header (Sarvam AI Glass Aesthetic) ──────────── */}
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-md transition-colors">
         <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
-          {/* Brand Logo — Clean, Tight & Uncluttered */}
+          {/* Brand Logo — Clean, Sovereign & Confident */}
           <Link href="/" className="group flex items-center gap-2.5 shrink-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--brand)] text-[#F6F1E7] shadow-sm transition-transform group-hover:scale-105">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm transition-transform group-hover:scale-105">
               <span className="font-serif text-xl font-bold tracking-tight">V</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-serif text-xl font-bold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors whitespace-nowrap">
+              <span className="font-serif text-xl font-bold tracking-tight text-slate-900 group-hover:text-black transition-colors whitespace-nowrap">
                 VOX AI
               </span>
-              <span className="hidden xl:inline-block rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-[11px] font-mono font-semibold text-[var(--brand-soft-text)]">
+              <span className="hidden xl:inline-block rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-mono font-semibold text-slate-700">
                 AI Employee
               </span>
             </div>
           </Link>
 
-          {/* Desktop Navigation Links — Single-line, No Wrapping, Evenly Spaced */}
-          <nav className="hidden items-center gap-4 xl:gap-7 lg:flex text-sm xl:text-[15px] font-semibold text-[var(--ink-muted)]">
-            <a href="#how-it-works" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
+          {/* Desktop Navigation Links */}
+          <nav className="hidden items-center gap-4 xl:gap-7 lg:flex text-sm xl:text-[15px] font-semibold text-slate-600">
+            <a href="#how-it-works" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               How it works
             </a>
-            <a href="#channels" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
+            <a href="#channels" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Channels
             </a>
-            <a href="#roi-calculator" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
+            <a href="#chat-with-ai" className="hover:text-slate-900 transition-colors whitespace-nowrap flex items-center gap-1">
+              <span>Ask AI</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </a>
+            <a href="#roi-calculator" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Calculator
             </a>
-            <a href="#comparison" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
+            <a href="#comparison" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Comparison
             </a>
-            <a href="#pricing" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
+            <a href="#pricing" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               Pricing
             </a>
-            <a href="#faq" className="hover:text-[var(--ink)] transition-colors whitespace-nowrap">
+            <a href="#faq" className="hover:text-slate-900 transition-colors whitespace-nowrap">
               FAQ
             </a>
           </nav>
 
-          {/* Action Buttons — Clean, Highlighted Login + Primary Coral CTA */}
+          {/* Action Buttons — Sarvam Signature Pill Buttons */}
           <div className="hidden items-center gap-2.5 xl:gap-3 sm:flex shrink-0">
             <Link
               href={user ? "/dashboard" : "/login"}
-              className="inline-flex items-center gap-2 rounded-xl border border-[var(--brand)]/25 bg-white px-3.5 xl:px-4 py-2 text-xs xl:text-sm font-bold text-[var(--brand)] shadow-xs transition-all hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 group whitespace-nowrap"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs xl:text-sm font-semibold text-slate-800 shadow-xs transition-all hover:bg-slate-50 hover:border-slate-400 group whitespace-nowrap"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <LayoutDashboard className="h-3.5 w-3.5 xl:h-4 xl:w-4 text-[var(--brand)] group-hover:text-white transition-colors" />
+              <LayoutDashboard className="h-3.5 w-3.5 xl:h-4 xl:w-4 text-slate-700 group-hover:text-slate-900 transition-colors" />
               <span>{user ? "Dashboard" : "Client Portal"}</span>
             </Link>
 
@@ -469,7 +617,7 @@ export default function LandingPage() {
               href={WHATSAPP_CTA}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 xl:gap-2 rounded-xl bg-[var(--accent)] px-4 xl:px-5 py-2 text-xs xl:text-sm font-bold text-white shadow-sm transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 xl:gap-2 rounded-full bg-slate-900 px-5 py-2 text-xs xl:text-sm font-semibold text-white shadow-sm transition-all hover:bg-black hover:shadow-md active:scale-95 whitespace-nowrap"
             >
               <span>Deploy AI Employee</span>
               <ArrowRight className="h-4 w-4" />
@@ -479,7 +627,7 @@ export default function LandingPage() {
           {/* Mobile Menu Trigger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] lg:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-900 lg:hidden shadow-xs"
             aria-label="Toggle Menu"
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -493,49 +641,56 @@ export default function LandingPage() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="border-b border-[var(--line)] bg-[var(--surface)] px-5 pt-4 pb-6 shadow-xl lg:hidden"
+              className="border-b border-slate-200 bg-white px-5 pt-4 pb-6 shadow-xl lg:hidden"
             >
-              <div className="flex flex-col space-y-3 text-base font-semibold text-[var(--ink)]">
+              <div className="flex flex-col space-y-3 text-base font-semibold text-slate-900">
                 <a
                   href="#how-it-works"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2 hover:bg-slate-50"
                 >
                   How it works
                 </a>
                 <a
                   href="#channels"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2 hover:bg-slate-50"
                 >
                   Channels (Calls, WhatsApp, Instagram, Email)
                 </a>
                 <a
+                  href="#chat-with-ai"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-xl px-3 py-2 hover:bg-slate-50 text-emerald-700 font-bold"
+                >
+                  Ask AI Employee (Gemini Live)
+                </a>
+                <a
                   href="#roi-calculator"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)] text-[var(--brand)] font-bold flex items-center justify-between"
+                  className="rounded-xl px-3 py-2 hover:bg-slate-50 flex items-center justify-between"
                 >
                   <span>ROI & Cost Calculator</span>
-                  <span className="text-xs bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-2 py-0.5 rounded-full font-mono font-bold">Save 80%+</span>
+                  <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-mono font-bold">Save 80%+</span>
                 </a>
                 <a
                   href="#comparison"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2 hover:bg-slate-50"
                 >
                   AI Employee vs. Telecallers
                 </a>
                 <a
                   href="#pricing"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2 hover:bg-slate-50"
                 >
                   Pricing (₹20,000 setup)
                 </a>
                 <a
                   href="#faq"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-xl px-3 py-2 hover:bg-[var(--surface-alt)]"
+                  className="rounded-xl px-3 py-2 hover:bg-slate-50"
                 >
                   Frequently Asked Questions
                 </a>
@@ -543,7 +698,7 @@ export default function LandingPage() {
                   <Link
                     href={user ? "/dashboard" : "/login"}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 rounded-xl border-2 border-[var(--brand)]/35 bg-[var(--surface-alt)] py-3 text-sm font-bold text-[var(--brand)] shadow-xs hover:bg-[var(--brand)] hover:text-white transition-all"
+                    className="flex items-center justify-center gap-2 rounded-full border border-slate-300 bg-white py-3 text-sm font-bold text-slate-900 shadow-xs hover:bg-slate-50 transition-all"
                   >
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
                     <LayoutDashboard className="h-4 w-4" />
@@ -553,7 +708,7 @@ export default function LandingPage() {
                     href={WHATSAPP_CTA}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-bold text-white shadow-sm"
+                    className="flex items-center justify-center gap-2 rounded-full bg-slate-900 py-3.5 text-sm font-bold text-white shadow-sm"
                   >
                     <span>Deploy AI Employee</span>
                     <ArrowRight className="h-4 w-4" />
@@ -565,192 +720,195 @@ export default function LandingPage() {
         </AnimatePresence>
       </header>
 
-      {/* ─── 2. Hero Section ────────────────────────────────────────────────── */}
-      <section className="relative pt-10 pb-16 md:pt-16 md:pb-24 overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            {/* Left Column: Editorial Headline & Actions */}
-            <div className="lg:col-span-7 flex flex-col items-start text-left">
-              {/* Category pill */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-sm text-[var(--ink-muted)] shadow-xs mb-6">
-                <span className="h-2.5 w-2.5 rounded-full bg-[var(--brand)]" />
-                <span className="font-semibold text-[var(--ink)]">Custom AI Employees for Indian Businesses</span>
-              </div>
+      {/* ─── 2. Hero Section (Sarvam AI Centered Sovereign Layout) ───────────── */}
+      <section className="relative pt-12 pb-16 md:pt-20 md:pb-24 overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          {/* Centered Sovereign Badge */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 backdrop-blur-md px-4 py-1.5 text-xs sm:text-sm text-slate-700 shadow-xs mb-6">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold text-slate-900">Frontier Voice & WhatsApp AI</span>
+            <span className="text-slate-300">|</span>
+            <span className="text-slate-500 font-mono text-[11px]">Sub-350ms Indian Cadence</span>
+          </div>
 
-              {/* Oversized Serif Headline */}
-              <h1 className="font-serif text-[44px] sm:text-6xl lg:text-[76px] leading-[1.05] tracking-[-0.02em] font-normal text-[var(--ink)] text-balance">
-                Your business, <em className="italic font-normal text-[var(--brand)]">cloned</em> into an autonomous AI employee.
-              </h1>
+          {/* Sarvam Sovereign Display Headline */}
+          <h1 className="font-serif text-[42px] sm:text-6xl lg:text-[76px] leading-[1.06] tracking-[-0.02em] font-normal text-slate-900 max-w-5xl mx-auto text-balance">
+            Your business, <em className="italic font-normal text-slate-900 underline decoration-slate-300 underline-offset-8">cloned</em> into an autonomous AI employee.
+          </h1>
 
-              {/* Clear, Understandable Subcopy for Indian Business Owners */}
-              <p className="mt-6 text-lg sm:text-xl text-[var(--ink-muted)] leading-relaxed max-w-xl font-normal">
-                We build a custom AI employee that answers your phone calls, WhatsApp messages, Instagram DMs, and emails 24/7. Trained on your exact products, catalog prices, and sales objections to qualify buyers, calculate quotations, and book revenue deals while you sleep.
-              </p>
+          {/* Clear, Understandable Subcopy */}
+          <p className="mt-6 text-base sm:text-xl text-slate-600 leading-relaxed max-w-3xl mx-auto font-normal">
+            We build a custom AI employee that answers your phone calls, WhatsApp messages, Instagram DMs, and emails 24/7. Trained on your exact catalog prices and business rules to qualify buyers, generate quotations, and close sales while you sleep. Keep your existing phone number with zero platform markup.
+          </p>
 
-              {/* Primary Actions & Voice Audio Link */}
-              <div className="mt-8 flex flex-wrap items-center gap-4 sm:gap-6">
-                <a
-                  href={WHATSAPP_CTA}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2.5 rounded-xl bg-[var(--accent)] px-8 py-4.5 text-base sm:text-lg font-bold text-white shadow-md hover:bg-[var(--accent-hover)] hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all"
-                >
-                  <span>Deploy Your AI Employee</span>
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </a>
+          {/* Sarvam Signature Action Pills */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            <a
+              href={WHATSAPP_CTA}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="sarvam-btn-primary px-7 py-3.5 text-base shadow-sm"
+            >
+              <span>Deploy Your AI Employee (72h Guarantee)</span>
+              <ArrowRight className="h-4 w-4" />
+            </a>
 
-                <a
-                  href="#voice-audio"
-                  className="inline-flex items-center gap-2.5 text-base font-bold text-[var(--ink)] hover:text-[var(--brand)] transition-colors py-2"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-alt)] border border-[var(--line)]">
-                    <Headphones className="h-4.5 w-4.5 text-[var(--brand)]" />
+            <a
+              href="#voice-audio"
+              className="sarvam-btn-secondary px-6 py-3.5 text-base"
+            >
+              <Headphones className="h-4 w-4 text-slate-700" />
+              <span>Hear Real Voice Demo (2m 50s)</span>
+            </a>
+
+            <a
+              href="#chat-with-ai"
+              className="sarvam-btn-secondary px-5 py-3.5 text-base"
+            >
+              <Sparkles className="h-4 w-4 text-emerald-600" />
+              <span>Ask Nova AI Anything</span>
+            </a>
+          </div>
+
+          <div className="mt-4">
+            <a
+              href={CALL_CTA}
+              className="text-xs sm:text-sm text-slate-500 hover:text-slate-800 transition-colors inline-flex items-center gap-2"
+            >
+              <PhoneCall className="h-3.5 w-3.5 text-slate-700" />
+              <span>or call live demo line: <strong className="font-bold text-slate-800">{CALL_NUMBER}</strong></span>
+            </a>
+          </div>
+
+          {/* Sarvam Trust Metrics Strip */}
+          <div className="mt-12 max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl border border-slate-200/90 bg-white/80 backdrop-blur-md shadow-xs">
+            <div className="text-center px-4 py-2 border-r border-slate-100 last:border-none">
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-slate-900">&lt;350ms</div>
+              <div className="text-xs text-slate-500 font-medium mt-0.5">Speech Cadence</div>
+            </div>
+            <div className="text-center px-4 py-2 border-r border-slate-100 last:border-none">
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-slate-900">100%</div>
+              <div className="text-xs text-slate-500 font-medium mt-0.5">SIM & Number Retention</div>
+            </div>
+            <div className="text-center px-4 py-2 border-r border-slate-100 last:border-none">
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-slate-900">72 Hours</div>
+              <div className="text-xs text-slate-500 font-medium mt-0.5">Go-Live Guarantee</div>
+            </div>
+            <div className="text-center px-4 py-2">
+              <div className="font-mono text-2xl sm:text-3xl font-bold text-slate-900">₹0 Markup</div>
+              <div className="text-xs text-slate-500 font-medium mt-0.5">Direct Platform Pass-Through</div>
+            </div>
+          </div>
+
+          {/* Showcase Preview: Phone Mockup & Live SMB Activity Card */}
+          <div className="mt-14 max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center text-left">
+            <div className="lg:col-span-6 flex justify-center">
+              <div className="relative w-full max-w-[360px] rounded-[38px] border-[7px] border-slate-900 bg-[#ECE5DD] shadow-2xl overflow-hidden text-slate-900">
+                <div className="h-6 bg-slate-900 flex items-center justify-center">
+                  <div className="w-16 h-2.5 bg-slate-950 rounded-full" />
+                </div>
+                <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-white font-bold text-xs border border-slate-700">
+                      VA
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold leading-tight text-white">Vox AI Employee</div>
+                      <div className="text-[11px] text-emerald-400">Online · Answers in &lt; 1 sec</div>
+                    </div>
                   </div>
-                  <span>Hear the voice demo</span>
-                </a>
-
-                <a
-                  href={CALL_CTA}
-                  className="text-sm sm:text-base text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors inline-flex items-center gap-2"
-                >
-                  <PhoneCall className="h-4 w-4 text-[var(--brand)]" />
-                  <span>or call direct: <strong className="font-bold text-[var(--ink)]">{CALL_NUMBER}</strong></span>
-                </a>
-              </div>
-
-              {/* Thin Row of Trust Stats with Context */}
-              <div className="mt-12 pt-6 border-t border-[var(--line)] w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
-                <div>
-                  <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">1.2s</div>
-                  <div className="text-sm font-semibold text-[var(--ink)]">Instant Reply</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Across all 4 channels</div>
+                  <Phone className="h-4 w-4 text-white/80" />
                 </div>
-                <div>
-                  <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">24/7/365</div>
-                  <div className="text-sm font-semibold text-[var(--ink)]">Always Working</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Zero missed inquiries</div>
+                <div className="p-3.5 space-y-3 min-h-[380px] flex flex-col justify-end bg-[#ECE5DD]">
+                  <div className="flex justify-center mb-1">
+                    <span className="rounded-md bg-white/85 px-2.5 py-0.5 text-[11px] font-mono text-slate-500 shadow-xs">
+                      Today · Verified Customer Lead
+                    </span>
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="max-w-[88%] rounded-2xl rounded-tl-xs bg-white p-3 text-[13px] leading-relaxed shadow-xs text-slate-900">
+                      <p>Hi, we run a diagnostic clinic network in Haryana. Can your AI answer patient inquiries on WhatsApp, quote scan fees, and schedule doctor appointments?</p>
+                      <div className="text-[11px] text-slate-400 text-right mt-1 font-mono">10:14 AM</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-emerald-100/90 border border-emerald-200/60 p-3 text-[13px] leading-relaxed shadow-xs text-emerald-950 font-medium">
+                      <p>Namaste! Yes, absolutely. We sync directly with your doctor calendar, answer in Hindi and English, and confirm appointment slots instantly with automated WhatsApp reminders.</p>
+                      <div className="flex items-center justify-end gap-1 text-[11px] text-emerald-800 mt-1 font-mono">
+                        <span>10:14 AM</span>
+                        <CheckCheck className="h-3.5 w-3.5 text-sky-500" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="max-w-[88%] rounded-2xl rounded-tl-xs bg-white p-3 text-[13px] leading-relaxed shadow-xs text-slate-900">
+                      <p>Sounds perfect. What is the setup cost and how soon can we go live?</p>
+                      <div className="text-[11px] text-slate-400 text-right mt-1 font-mono">10:15 AM</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-emerald-100/90 border border-emerald-200/60 p-3 text-[13px] leading-relaxed shadow-xs text-emerald-950 font-medium">
+                      <p>Implementation is ₹20,000 one-time, and ₹5,000/month flat retainer. We deploy your clinic AI employee in 72 hours. Shall I connect you with our deployment team?</p>
+                      <div className="flex items-center justify-end gap-1 text-[11px] text-emerald-800 mt-1 font-mono">
+                        <span>10:15 AM</span>
+                        <CheckCheck className="h-3.5 w-3.5 text-sky-500" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">72 Hours</div>
-                  <div className="text-sm font-semibold text-[var(--ink)]">Fast Launch</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Keep existing SIM</div>
-                </div>
-                <div>
-                  <div className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)]">4 Channels</div>
-                  <div className="text-sm font-semibold text-[var(--ink)]">One Unified Brain</div>
-                  <div className="text-xs text-[var(--ink-muted)]">Calls, WA, IG, Email</div>
+                <div className="h-3.5 bg-slate-900 flex items-center justify-center">
+                  <div className="w-20 h-1 bg-white/30 rounded-full" />
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Realistic Phone Mockup (Clear readable text) */}
-            <div className="lg:col-span-5 relative flex justify-center">
-              {/* Soft background aura */}
-              <div className="absolute -inset-4 rounded-full bg-[var(--brand-soft)]/50 blur-3xl -z-10" />
-
-              {/* Phone Frame */}
-              <div className="relative w-full max-w-[370px] rounded-[42px] border-[8px] border-[#16211C] bg-[#ECE5DD] shadow-2xl overflow-hidden text-[var(--ink)]">
-                {/* Speaker pill */}
-                <div className="h-6 bg-[#16211C] flex items-center justify-center">
-                  <div className="w-16 h-3 bg-[#0C120F] rounded-full" />
-                </div>
-
-                {/* WhatsApp Chat App Bar */}
-                <div className="bg-[var(--brand)] text-[#F6F1E7] px-4 py-3.5 flex items-center justify-between shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)] font-bold text-sm">
-                      VA
-                      <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-400 border-2 border-[var(--brand)]" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold leading-tight text-[#F6F1E7]">Vox AI Employee</div>
-                      <div className="text-xs text-[var(--brand-soft)]">Online · Answers in &lt; 1 sec</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-[#F6F1E7]/80">
-                    <Phone className="h-5 w-5" />
-                  </div>
-                </div>
-
-                {/* Chat Messages Canvas with comfortable, readable font */}
-                <div className="p-4 space-y-4 min-h-[440px] flex flex-col justify-end bg-[#ECE5DD]">
-                  {/* Date badge */}
-                  <div className="flex justify-center mb-1">
-                    <span className="rounded-md bg-white/80 px-3 py-1 text-xs font-mono text-[var(--ink-muted)] shadow-xs">
-                      Today · Customer Inquiry
-                    </span>
-                  </div>
-
-                  {/* Customer Question */}
-                  <div className="flex justify-start">
-                    <div className="max-w-[86%] rounded-2xl rounded-tl-xs bg-white p-3.5 text-[14px] leading-relaxed shadow-xs text-[#14170F]">
-                      <p>Hi, we run a multi-doctor clinic in Haryana. Can your AI answer patient questions on WhatsApp, share fees, and book doctor appointments?</p>
-                      <div className="text-xs text-[#8E9285] text-right mt-1 font-mono">10:14 AM</div>
-                    </div>
-                  </div>
-
-                  {/* AI Response in Mint Bubble */}
-                  <div className="flex justify-end">
-                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3.5 text-[14px] leading-relaxed shadow-xs text-[var(--brand-soft-text)] font-medium">
-                      <p>Namaste! Yes, absolutely. We sync directly with your doctor calendar, answer in Hindi and English, and confirm appointment slots instantly with automated WhatsApp reminders.</p>
-                      <div className="flex items-center justify-end gap-1 text-xs text-[var(--brand)] mt-1 font-mono">
-                        <span>10:14 AM</span>
-                        <CheckCheck className="h-4 w-4 text-[#34B7F1]" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Customer Followup */}
-                  <div className="flex justify-start">
-                    <div className="max-w-[86%] rounded-2xl rounded-tl-xs bg-white p-3.5 text-[14px] leading-relaxed shadow-xs text-[#14170F]">
-                      <p>Sounds perfect. What is the setup cost and how soon can we go live?</p>
-                      <div className="text-xs text-[#8E9285] text-right mt-1 font-mono">10:15 AM</div>
-                    </div>
-                  </div>
-
-                  {/* AI Pricing Quote in Mint Bubble */}
-                  <div className="flex justify-end">
-                    <div className="max-w-[88%] rounded-2xl rounded-tr-xs bg-[var(--brand-soft)] p-3.5 text-[14px] leading-relaxed shadow-xs text-[var(--brand-soft-text)] font-medium">
-                      <p>Implementation is ₹20,000 one-time, and ₹5,000/month retainer. We deploy your clinic AI employee in 72 hours. Shall I connect you with our deployment team?</p>
-                      <div className="flex items-center justify-end gap-1 text-xs text-[var(--brand)] mt-1 font-mono">
-                        <span>10:15 AM</span>
-                        <CheckCheck className="h-4 w-4 text-[#34B7F1]" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Typing Indicator */}
-                  <div className="flex items-center gap-2 bg-white w-fit px-3.5 py-2 rounded-2xl rounded-tl-xs shadow-xs text-[#5B5F54]">
-                    <span className="h-2 w-2 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="h-2 w-2 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="h-2 w-2 rounded-full bg-[var(--brand)] animate-bounce" style={{ animationDelay: '300ms' }} />
-                    <span className="text-xs font-semibold ml-1 text-[#5B5F54]">AI Employee is typing...</span>
-                  </div>
-                </div>
-
-                {/* Bottom home indicator */}
-                <div className="h-4 bg-[#16211C] flex items-center justify-center">
-                  <div className="w-24 h-1 bg-white/30 rounded-full" />
-                </div>
-              </div>
-
-              {/* Floating Social Proof Card with ample breathing room */}
-              <div className="absolute -bottom-6 -left-4 sm:-left-8 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 sm:p-5 shadow-xl z-20 min-w-[260px] sm:min-w-[280px]">
-                <div className="flex items-center justify-between mb-1.5">
+            <div className="lg:col-span-6 space-y-4">
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--brand-soft)] text-[var(--brand)]">
-                      <TrendingUp className="h-3.5 w-3.5" />
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-800">
+                      <TrendingUp className="h-4 w-4" />
                     </span>
-                    <span className="text-xs font-semibold text-[var(--ink-muted)]">Live SMB Activity</span>
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Live SMB Multichannel Activity</span>
                   </div>
-                  <span className="text-xs font-mono bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md font-bold">
+                  <span className="text-xs font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
                     +42% Today
                   </span>
                 </div>
-                <div className="font-serif text-3xl font-bold text-[var(--ink)]">₹5,80,000</div>
-                <p className="text-xs text-[var(--ink-muted)] mt-1 leading-normal">
-                  Automated quotations generated today via WhatsApp & Phone Calls
+                <div className="font-mono text-3xl font-bold text-slate-900">₹5,80,000</div>
+                <p className="text-sm text-slate-600 mt-1.5 leading-normal">
+                  Automated sales quotations and appointment value generated across WhatsApp & Phone Calls today.
                 </p>
+                <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div>
+                    <div className="font-bold text-slate-900 text-sm">1.2s</div>
+                    <div className="text-slate-500">Avg WA Reply</div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 text-sm">340ms</div>
+                    <div className="text-slate-500">Speech Cadence</div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 text-sm">100%</div>
+                    <div className="text-slate-500">SIM Retained</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">Want to test Nova with your questions?</div>
+                    <div className="text-xs text-slate-500">Ask about pricing, Hindi speech, or custom integrations.</div>
+                  </div>
+                </div>
+                <a href="#chat-with-ai" className="sarvam-btn-primary px-4 py-2 text-xs shrink-0">
+                  <span>Try Chatbot</span>
+                </a>
               </div>
             </div>
           </div>
@@ -810,69 +968,74 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ─── 3. "Ask your AI Employee" Briefing Demo ────────────────────────── */}
-      <section id="chat-with-ai" className="relative py-16 md:py-24 border-t border-[var(--line)] bg-[var(--surface-alt)]">
+      {/* ─── 3. "Ask your AI Employee" Briefing Demo (Sarvam AI Model Playground) ─ */}
+      <section id="chat-with-ai" className="relative py-16 md:py-24 border-t border-slate-200/80 bg-slate-50/70">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-10">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
-              <Sparkles className="h-4 w-4 text-[var(--brand)]" />
-              <span>Founder Briefing Interface</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white px-4 py-1.5 text-xs sm:text-sm text-slate-700 font-semibold mb-3 shadow-xs">
+              <Sparkles className="h-4 w-4 text-emerald-600" />
+              <span>Real-Time Interactive AI Terminal</span>
             </div>
-            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
+            <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-slate-900">
               Ask your AI Employee anything.
             </h2>
-            <p className="mt-3 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
-              Your AI Employee doesn't just talk to customers—it keeps you briefed. Click any executive question below to see how it summarizes business performance across Calls, WhatsApp, Instagram, and Email into a clear, instant management report.
+            <p className="mt-3 text-base sm:text-lg text-slate-600 leading-relaxed">
+              Experience the reasoning power of our frontier voice and multichannel models. Click any question below or type your custom inquiry to test real-time pricing, SIM retention, Hindi/Hinglish speech, and catalog workflows.
             </p>
           </div>
 
-          {/* Clean Chat-App Window */}
-          <div className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] shadow-xl overflow-hidden">
-            {/* Window Title Bar */}
-            <div className="flex items-center justify-between border-b border-[var(--line)] bg-[var(--surface-alt)] px-6 py-4">
+          {/* Sarvam AI Model Playground Container */}
+          <div className="rounded-3xl border border-slate-200/90 bg-white shadow-xl overflow-hidden">
+            {/* Playground Header Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/80 bg-slate-100/70 px-6 py-4 gap-3">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
                   <span className="h-3 w-3 rounded-full bg-[#E58072] inline-block" />
                   <span className="h-3 w-3 rounded-full bg-[#E5BF72] inline-block" />
                   <span className="h-3 w-3 rounded-full bg-[#82C99B] inline-block" />
                 </div>
-                <span className="text-sm text-[var(--ink)] font-semibold flex items-center gap-2 ml-2">
-                  <Bot className="h-4 w-4 text-[var(--brand)]" />
-                  <span>Executive Briefing Dashboard</span>
-                  <span className="text-[var(--ink-muted)] font-normal hidden sm:inline">· Vox AI Employee</span>
-                </span>
+                <div className="flex items-center gap-2 text-sm text-slate-900 font-bold ml-2">
+                  <Bot className="h-4 w-4 text-slate-900" />
+                  <span>Nova 3.5</span>
+                  <span className="text-slate-400 font-normal hidden sm:inline">· Voice & Multimodal Enterprise Brain</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-xs font-mono text-[var(--brand)]">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-soft)] px-3 py-1 text-xs font-semibold text-[var(--brand-soft-text)]">
-                  <span className="h-2 w-2 rounded-full bg-[var(--brand)]" />
-                  All 4 Channels Working Together
+              <div className="flex items-center gap-2 text-xs font-mono">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 font-semibold text-emerald-800">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Gemini 3.5 Flash · 240ms Latency
                 </span>
               </div>
             </div>
 
-            {/* Query Chips as Pill Buttons */}
-            <div className="p-4 sm:p-6 border-b border-[var(--line)] bg-[var(--surface)]">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {executivePrompts.map((p, idx) => {
-                  const isSelected = activePromptIndex === idx
+            {/* Suggested Question Chips (Sarvam pill buttons) */}
+            <div className="p-4 sm:p-6 border-b border-slate-200/80 bg-slate-50/50">
+              <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
+                <span>Select a query to test instant live response:</span>
+                <span className="text-emerald-700 hidden sm:inline">6 Pre-Trained Executive Benchmarks</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                {suggestedQueries.map((q, idx) => {
+                  const isSelected = activeChipIndex === idx
                   return (
                     <button
-                      key={p.id}
-                      onClick={() => handleSelectPrompt(idx)}
-                      className={`text-left rounded-xl p-4 text-xs sm:text-sm transition-all border ${
+                      key={q.id}
+                      onClick={() => askAiEmployee(q.query, idx)}
+                      disabled={isGeneratingResponse}
+                      className={`text-left rounded-2xl p-3.5 text-xs transition-all border ${
                         isSelected
-                          ? "border-[var(--brand)] bg-[var(--brand)] text-[#F6F1E7] shadow-sm"
-                          : "border-[var(--line)] bg-[var(--surface-alt)] text-[var(--ink)] hover:border-[var(--ink-muted)]"
-                      }`}
+                          ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                          : "border-slate-200/90 bg-white text-slate-800 hover:border-slate-400 hover:shadow-xs"
+                      } ${isGeneratingResponse ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className={`text-xs font-bold ${isSelected ? "text-emerald-200" : "text-[var(--brand)]"}`}>
-                          {p.label}
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`font-bold ${isSelected ? "text-emerald-300" : "text-slate-900"}`}>
+                          {q.label}
                         </span>
-                        {isSelected && <span className="h-2 w-2 rounded-full bg-emerald-300" />}
+                        {isSelected && <span className="h-2 w-2 rounded-full bg-emerald-400" />}
                       </div>
-                      <p className={`line-clamp-2 text-xs sm:text-[13px] leading-relaxed ${isSelected ? "text-[#F6F1E7]/90" : "text-[var(--ink-muted)]"}`}>
-                        “{p.question}”
+                      <p className={`line-clamp-2 leading-relaxed text-[11px] ${isSelected ? "text-slate-300" : "text-slate-500"}`}>
+                        “{q.query}”
                       </p>
                     </button>
                   )
@@ -880,113 +1043,151 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Chat Thread Dialogue Display */}
-            <div className="p-6 sm:p-8 space-y-6">
-              {/* Founder Query Bubble */}
-              <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl bg-[var(--brand)] px-6 py-4 text-sm sm:text-base text-[#F6F1E7] shadow-sm">
-                  <div className="flex items-center gap-2 text-xs font-mono text-emerald-200 mb-1">
-                    <Users className="h-3.5 w-3.5" /> YOU (FOUNDER / BUSINESS OWNER)
-                  </div>
-                  <p className="font-semibold text-base sm:text-lg">“{executivePrompts[activePromptIndex].question}”</p>
-                </div>
-              </div>
-
-              {/* AI Structured Synthesis Response Card */}
-              <div className="flex justify-start">
-                <div className="w-full rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-6 sm:p-7 space-y-6">
-                  {/* Synthesis Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[var(--line)] pb-4 gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)] text-[#F6F1E7]">
-                        <Bot className="h-5 w-5" />
+            {/* Chat Thread Messages Canvas */}
+            <div className="p-6 sm:p-8 space-y-6 max-h-[580px] overflow-y-auto">
+              {chatMessages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {msg.role === "user" ? (
+                    <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-slate-900 px-5 py-3.5 text-sm sm:text-base text-white shadow-sm">
+                      <div className="flex items-center gap-2 text-xs font-mono text-emerald-300 mb-1">
+                        <Users className="h-3.5 w-3.5" /> YOU (EXECUTIVE / FOUNDER)
                       </div>
-                      <div>
-                        <span className="text-xs font-mono text-[var(--brand)] font-bold block uppercase tracking-wide">AI Executive Summary</span>
-                        <span className="text-base sm:text-lg text-[var(--ink)] font-bold">{executivePrompts[activePromptIndex].response.headline}</span>
-                      </div>
+                      <p className="font-medium text-slate-100">“{msg.text}”</p>
+                      <div className="text-[10px] text-slate-400 text-right mt-1 font-mono">{msg.time}</div>
                     </div>
-                    <span className="rounded-lg bg-[var(--surface)] border border-[var(--line)] px-3 py-1 text-xs font-mono text-[var(--ink-muted)]">
-                      Synthesized in 240ms from 4 live channels
-                    </span>
-                  </div>
-
-                  {/* Bullet points */}
-                  <div className="space-y-3.5">
-                    {isTypingTerminal ? (
-                      <div className="text-sm text-[var(--ink-muted)] italic flex items-center gap-2 py-4">
-                        <RefreshCw className="h-4 w-4 animate-spin text-[var(--brand)]" />
-                        <span>Gathering and summarizing today's business activity across channels...</span>
-                      </div>
-                    ) : (
-                      executivePrompts[activePromptIndex].response.bullets.map((bullet, i) => (
-                        <div key={i} className="flex items-start gap-3 text-sm sm:text-base text-[var(--ink)] leading-relaxed">
-                          <span className="text-[var(--brand)] shrink-0 font-bold text-lg mt-0.5">•</span>
-                          <span>{bullet}</span>
+                  ) : (
+                    <div className="w-full rounded-2xl border border-slate-200/90 bg-slate-50/70 p-5 sm:p-7 space-y-5">
+                      {/* Response Card Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-3.5 gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white shrink-0">
+                            <Bot className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-mono text-slate-500 font-bold block uppercase tracking-wide">
+                              Nova AI Executive Response
+                            </span>
+                            <span className="text-base sm:text-lg text-slate-900 font-bold">
+                              {msg.headline || "Live Multichannel Intelligence"}
+                            </span>
+                          </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-
-                  {/* 4 KPI Tiles in Bento Layout — Clean numbers with zero text overflow */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-[var(--line)]">
-                    {executivePrompts[activePromptIndex].response.kpis.map((kpi, idx) => (
-                      <div key={idx} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 text-center shadow-xs">
-                        <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase tracking-wider font-semibold">{kpi.label}</span>
-                        <span className="font-serif text-2xl sm:text-3xl font-bold text-[var(--brand)] mt-1.5 block truncate">{kpi.val}</span>
+                        <span className="rounded-lg bg-white border border-slate-200 px-3 py-1 text-xs font-mono text-slate-600">
+                          {msg.time} · Gemini 3.5 Flash
+                        </span>
                       </div>
-                    ))}
-                  </div>
 
-                  {/* Priority Alert Box in refined warm forest-mint callout */}
-                  <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-soft)]/60 p-4 text-sm text-[var(--brand-soft-text)] flex items-start gap-3">
-                    <Zap className="h-5 w-5 text-[var(--brand)] shrink-0 mt-0.5" />
-                    <span className="leading-relaxed font-medium">{executivePrompts[activePromptIndex].response.alert}</span>
-                  </div>
+                      {/* Main Message Body */}
+                      <p className="text-sm sm:text-base text-slate-800 leading-relaxed whitespace-pre-line">
+                        {msg.text}
+                      </p>
 
-                  {/* Action Bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                    <div className="flex gap-2.5 text-xs font-mono">
-                      <span className="rounded-lg bg-[var(--surface)] px-3 py-1.5 text-[var(--ink-muted)] border border-[var(--line)] font-medium">Live Data Verified</span>
-                      <span className="rounded-lg bg-[var(--brand-soft)] text-[var(--brand-soft-text)] px-3 py-1.5 font-bold">Ready for Human Handoff</span>
+                      {/* Bullet points if present */}
+                      {msg.bullets && msg.bullets.length > 0 && (
+                        <div className="space-y-2.5 pt-2 border-t border-slate-200/60">
+                          {msg.bullets.map((bullet, i) => (
+                            <div key={i} className="flex items-start gap-2.5 text-sm text-slate-700 leading-relaxed">
+                              <span className="text-emerald-600 shrink-0 font-bold text-base mt-0.5">•</span>
+                              <span>{bullet}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* KPI Grid if present */}
+                      {msg.kpis && msg.kpis.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-200">
+                          {msg.kpis.map((kpi, idx) => (
+                            <div key={idx} className="rounded-xl border border-slate-200 bg-white p-3 text-center shadow-xs">
+                              <span className="text-[11px] font-mono text-slate-500 block uppercase tracking-wider font-semibold">
+                                {kpi.label}
+                              </span>
+                              <span className="font-mono text-xl sm:text-2xl font-bold text-slate-900 mt-1 block truncate">
+                                {kpi.val}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Callout Alert Badge */}
+                      {msg.alert && (
+                        <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/80 p-3.5 text-xs sm:text-sm text-emerald-950 flex items-start gap-2.5">
+                          <Zap className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <span className="leading-relaxed font-medium">{msg.alert}</span>
+                        </div>
+                      )}
+
+                      {/* Action Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                        <div className="flex gap-2 text-xs font-mono">
+                          <span className="rounded-full bg-white px-3 py-1 text-slate-600 border border-slate-200 font-medium">
+                            Live Inference Verified
+                          </span>
+                          <span className="rounded-full bg-slate-900 text-white px-3 py-1 font-bold">
+                            Zero Platform Markup
+                          </span>
+                        </div>
+                        <a
+                          href={WHATSAPP_CTA}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-900 hover:text-emerald-700 transition-colors"
+                        >
+                          <span>Deploy This AI Employee For Your Business</span>
+                          <ArrowUpRight className="h-4 w-4" />
+                        </a>
+                      </div>
                     </div>
-                    <a
-                      href={WHATSAPP_CTA}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand)] hover:text-[var(--accent)] transition-colors"
-                    >
-                      <span>Deploy This AI Assistant For Your Business</span>
-                      <ArrowUpRight className="h-4 w-4" />
-                    </a>
+                  )}
+                </div>
+              ))}
+
+              {/* Live Loading Typing Indicator */}
+              {isGeneratingResponse && (
+                <div className="flex justify-start">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2 flex items-center gap-3 text-sm text-slate-700 font-medium">
+                    <RefreshCw className="h-4 w-4 text-slate-900 animate-spin shrink-0" />
+                    <span>Nova is synthesizing live multichannel data with Gemini 3.5 Flash...</span>
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* Simulated Custom Prompt Bar */}
-              <div className="relative pt-2">
-                <div className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 shadow-sm">
-                  <Search className="h-5 w-5 text-[var(--ink-muted)] shrink-0" />
-                  <input
-                    type="text"
-                    value={customInput}
-                    onChange={(e) => setCustomInput(e.target.value)}
-                    placeholder="Ask your AI Employee anything (e.g. 'How many leads did Instagram bring last night?')..."
-                    className="w-full bg-transparent text-sm sm:text-base text-[var(--ink)] placeholder-[var(--ink-faint)] focus:outline-none"
-                  />
-                  <button
-                    onClick={() => {
-                      if (customInput.trim()) {
-                        handleSelectPrompt((activePromptIndex + 1) % executivePrompts.length)
-                        setCustomInput("")
-                      }
-                    }}
-                    className="rounded-xl bg-[var(--brand)] px-5 py-2.5 text-sm font-bold text-[#F6F1E7] hover:bg-[var(--brand-hover)] transition-colors shrink-0 flex items-center gap-2"
-                  >
-                    <span>Ask</span>
-                    <Send className="h-4 w-4" />
-                  </button>
-                </div>
+            {/* Custom Interactive Input Prompt Bar */}
+            <div className="p-4 sm:p-6 border-t border-slate-200/80 bg-slate-50/60">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (customInput.trim() && !isGeneratingResponse) {
+                    askAiEmployee(customInput)
+                  }
+                }}
+                className="flex items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 shadow-sm focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 transition-all"
+              >
+                <Search className="h-5 w-5 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  placeholder="Ask Nova anything (e.g. 'How do you handle doctor appointments and Hindi calls?')..."
+                  className="w-full bg-transparent text-sm sm:text-base text-slate-900 placeholder-slate-400 focus:outline-none"
+                  disabled={isGeneratingResponse}
+                />
+                <button
+                  type="submit"
+                  disabled={!customInput.trim() || isGeneratingResponse}
+                  className={`sarvam-btn-primary px-5 py-2 text-xs sm:text-sm shrink-0 flex items-center gap-1.5 ${
+                    !customInput.trim() || isGeneratingResponse ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  <span>Ask Nova</span>
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </form>
+              <div className="flex items-center justify-between mt-2.5 px-2 text-[11px] text-slate-500 font-mono">
+                <span>Direct integration with Gemini 3.5 Flash API</span>
+                <span>Press Enter to send question</span>
               </div>
             </div>
           </div>

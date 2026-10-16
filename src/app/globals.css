@@ -6,24 +6,24 @@
 
 @layer base {
   :root {
-    /* VOX AI Warm Premium Human-Tech Design Tokens */
-    --bg: #F6F1E7;
+    /* Sarvam AI Inspired Sovereign Modern Design Tokens */
+    --bg: #F8F9FC;
     --surface: #FFFFFF;
-    --surface-alt: #EFE8DA;
-    --surface-muted: #E8E0D0;
-    --ink: #14170F;
-    --ink-muted: #5B5F54;
-    --ink-faint: #8E9285;
-    --brand: #0E3B2E;
-    --brand-hover: #08261D;
-    --brand-surface: #144A3B;
-    --brand-soft: #D7EBDD;
-    --brand-soft-text: #0E3B2E;
+    --surface-alt: #F1F4F9;
+    --surface-muted: #E6EBF2;
+    --ink: #0B0F19;
+    --ink-muted: #4B5565;
+    --ink-faint: #94A3B8;
+    --brand: #0F172A;
+    --brand-hover: #1E293B;
+    --brand-surface: #1E293B;
+    --brand-soft: #EEF2F6;
+    --brand-soft-text: #0F172A;
     --accent: #FF5A2C;
     --accent-hover: #E5491C;
-    --accent-soft: #FFEAE4;
-    --line: rgba(20, 23, 15, 0.10);
-    --line-strong: rgba(20, 23, 15, 0.18);
+    --accent-soft: #FFF0EB;
+    --line: rgba(15, 23, 42, 0.08);
+    --line-strong: rgba(15, 23, 42, 0.16);
 
     --font-serif: "Fraunces", "Instrument Serif", Georgia, serif;
     --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -95,23 +95,23 @@
   }
 
   .vox-landing-theme {
-    --bg: #F6F1E7;
+    --bg: #F8F9FC;
     --surface: #FFFFFF;
-    --surface-alt: #EFE8DA;
-    --surface-muted: #E8E0D0;
-    --ink: #14170F;
-    --ink-muted: #5B5F54;
-    --ink-faint: #8E9285;
-    --brand: #0E3B2E;
-    --brand-hover: #08261D;
-    --brand-surface: #144A3B;
-    --brand-soft: #D7EBDD;
-    --brand-soft-text: #0E3B2E;
+    --surface-alt: #F1F4F9;
+    --surface-muted: #E6EBF2;
+    --ink: #0B0F19;
+    --ink-muted: #4B5565;
+    --ink-faint: #94A3B8;
+    --brand: #0F172A;
+    --brand-hover: #1E293B;
+    --brand-surface: #1E293B;
+    --brand-soft: #EEF2F6;
+    --brand-soft-text: #0F172A;
     --accent: #FF5A2C;
     --accent-hover: #E5491C;
-    --accent-soft: #FFEAE4;
-    --line: rgba(20, 23, 15, 0.10);
-    --line-strong: rgba(20, 23, 15, 0.18);
+    --accent-soft: #FFF0EB;
+    --line: rgba(15, 23, 42, 0.08);
+    --line-strong: rgba(15, 23, 42, 0.16);
     background-color: var(--bg);
     color: var(--ink);
   }
@@ -235,5 +235,26 @@ body {
 
   .animate-marquee:hover {
     animation-play-state: paused;
+  }
+
+  /* Sarvam AI Signature Elements */
+  .sarvam-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 text-white font-medium px-5 py-2.5 text-sm transition-all duration-200 hover:bg-black hover:shadow-md active:scale-[0.98];
+  }
+
+  .sarvam-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white text-slate-800 font-medium px-5 py-2.5 text-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm active:scale-[0.98];
+  }
+
+  .sarvam-btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 text-white font-semibold px-5 py-2.5 text-sm transition-all duration-200 hover:bg-emerald-700 hover:shadow-md active:scale-[0.98];
+  }
+
+  .sarvam-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 backdrop-blur-md px-3.5 py-1 text-xs font-medium text-slate-700 shadow-sm;
+  }
+
+  .sarvam-card {
+    @apply rounded-2xl border border-slate-200/80 bg-white transition-all duration-200 hover:border-slate-300 hover:shadow-sm;
   }
 }
