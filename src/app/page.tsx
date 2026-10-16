@@ -1233,8 +1233,18 @@ export default function LandingPage() {
                   Sounds identical to your highest-performing in-house sales closer. Answers inbound phone calls within one ring, calls web leads back within 45 seconds, understands colloquial Indian English and Hindi seamlessly, and warm-transfers hot deals to your human reps with an audio debrief.
                 </p>
 
+                {/* 3D Realistic Phone Telephony UI Mockup */}
+                <div className="mt-7 rounded-2xl overflow-hidden border border-[var(--line)] bg-[#F1F4F9] shadow-sm">
+                  <img
+                    src="/images/voice-call-mockup.png"
+                    alt="VOX AI Inbound Phone Telephony Mockup with Sub-350ms Indian Voice Cadence"
+                    className="w-full h-auto object-cover hover:scale-[1.01] transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+
                 {/* Simulated Call Transcript as Chat Bubbles */}
-                <div className="mt-7 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-6 space-y-3.5 text-base">
+                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-6 space-y-3.5 text-base">
                   <div className="text-xs sm:text-sm font-mono text-[var(--ink-muted)] border-b border-[var(--line)] pb-2.5 flex items-center justify-between font-bold">
                     <span>Live Call Stream Simulation</span>
                     <span className="text-[var(--brand)]">Active Inbound Telephony</span>
@@ -1250,18 +1260,6 @@ export default function LandingPage() {
                       <div className="max-w-[85%] rounded-2xl bg-[var(--brand-soft)] p-4 text-[var(--brand-soft-text)] font-semibold shadow-xs">
                         <div className="text-xs font-mono opacity-70 mb-1 font-bold">VOX AI VOICE</div>
                         <p className="text-sm sm:text-base leading-relaxed">Yes, absolutely! We connect directly with SAP, Tally, Zoho, and custom PostgreSQL databases. How many SKUs and warehouse locations are you managing?</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-start">
-                      <div className="max-w-[85%] rounded-2xl bg-white p-4 text-[var(--ink)] shadow-xs">
-                        <div className="text-xs font-mono opacity-70 mb-1 font-bold">CALLER</div>
-                        <p className="text-sm sm:text-base leading-relaxed">Around 12,000 SKUs across four warehouses in North India.</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <div className="max-w-[85%] rounded-2xl bg-[var(--brand-soft)] p-4 text-[var(--brand-soft-text)] font-semibold shadow-xs">
-                        <div className="text-xs font-mono opacity-70 mb-1 font-bold">VOX AI VOICE</div>
-                        <p className="text-sm sm:text-base leading-relaxed">Got it. That fits our custom multi-warehouse workflow. Let me connect you directly with our senior solutions architect right now.</p>
                       </div>
                     </div>
                   </div>
@@ -1366,15 +1364,14 @@ export default function LandingPage() {
                   Never miss a viral Reel spike. When followers comment keywords on your Reels or reply to Stories, your AI employee replies in milliseconds, opens a DM conversation, extracts their verified phone number, and syncs them to your CRM.
                 </p>
 
-                {/* Simulated Instagram Flow */}
-                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 space-y-2.5 text-sm sm:text-base">
-                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-2 text-xs sm:text-sm font-mono text-[var(--ink-muted)] font-semibold">
-                    <span>Reel Comment: "PRICE"</span>
-                    <span className="text-[var(--brand)]">Auto-DM in 1.2s</span>
-                  </div>
-                  <p className="text-sm sm:text-base text-[var(--ink)] italic leading-relaxed">
-                    “Hey Vikram! The 4BHK luxury penthouses start at ₹4.2 Cr. What is your WhatsApp number so I can send the video walk-through?”
-                  </p>
+                {/* 3D Realistic Instagram Reel & Auto-DM Mockup */}
+                <div className="mt-6 rounded-2xl overflow-hidden border border-[var(--line)] bg-[#F1F4F9] shadow-sm">
+                  <img
+                    src="/images/instagram-dm-mockup.png"
+                    alt="Instagram Reel Comment to Automated DM Conversion Mockup"
+                    className="w-full h-auto object-cover hover:scale-[1.01] transition-transform duration-300"
+                    loading="lazy"
+                  />
                 </div>
 
                 <div className="mt-6 space-y-3">
@@ -2000,6 +1997,7 @@ export default function LandingPage() {
                   step: "01",
                   title: "Knowledge Ingestion",
                   sub: "We extract your business DNA",
+                  image: "/images/knowledge-ingestion-cube.jpg",
                   desc: "Our engineers ingest your product catalogs, SKU pricing tables, past WhatsApp conversations, sales call recordings, website FAQs, and PDFs. We map every objection your buyers throw at you so the AI never stumbles.",
                   deliverables: ["Product catalogs & price tiers", "Historical call transcripts", "Objection handling playbook"],
                 },
@@ -2030,6 +2028,16 @@ export default function LandingPage() {
                   className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-8 sm:p-10 shadow-xs flex flex-col justify-between"
                 >
                   <div>
+                    {'image' in st && st.image && (
+                      <div className="mb-6 rounded-2xl overflow-hidden border border-[var(--line)] bg-white shadow-xs">
+                        <img
+                          src={st.image}
+                          alt={st.title}
+                          className="w-full h-44 object-contain p-2 hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
                     <div className="font-serif text-6xl font-normal text-[var(--brand)] mb-4">
                       {st.step}
                     </div>
