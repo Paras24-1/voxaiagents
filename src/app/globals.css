@@ -1,8 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Inter:wght@300..800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.vox-landing-theme {
+  --bg: #F8F9FC;
+  --surface: #FFFFFF;
+  --surface-alt: #F1F4F9;
+  --surface-muted: #E6EBF2;
+  --ink: #0B0F19;
+  --ink-muted: #4B5565;
+  --ink-faint: #94A3B8;
+  --brand: #0F172A;
+  --brand-hover: #1E293B;
+  --brand-surface: #1E293B;
+  --brand-soft: #EEF2F6;
+  --brand-soft-text: #0F172A;
+  --accent: #FF5A2C;
+  --accent-hover: #E5491C;
+  --accent-soft: #FFF0EB;
+  --line: rgba(15, 23, 42, 0.08);
+  --line-strong: rgba(15, 23, 42, 0.16);
+  background-color: var(--bg);
+  color: var(--ink);
+}
 
 @layer base {
   :root {
@@ -92,28 +112,6 @@
     --input: 220 30% 18%;
     --ring: 258 92% 66%;
     --shadow: 0 18px 60px hsl(258 92% 66% / 0.10);
-  }
-
-  .vox-landing-theme {
-    --bg: #F8F9FC;
-    --surface: #FFFFFF;
-    --surface-alt: #F1F4F9;
-    --surface-muted: #E6EBF2;
-    --ink: #0B0F19;
-    --ink-muted: #4B5565;
-    --ink-faint: #94A3B8;
-    --brand: #0F172A;
-    --brand-hover: #1E293B;
-    --brand-surface: #1E293B;
-    --brand-soft: #EEF2F6;
-    --brand-soft-text: #0F172A;
-    --accent: #FF5A2C;
-    --accent-hover: #E5491C;
-    --accent-soft: #FFF0EB;
-    --line: rgba(15, 23, 42, 0.08);
-    --line-strong: rgba(15, 23, 42, 0.16);
-    background-color: var(--bg);
-    color: var(--ink);
   }
   * {
     box-sizing: border-box;

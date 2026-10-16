@@ -534,7 +534,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="vox-landing-theme min-h-screen bg-[var(--bg)] text-[var(--ink)] selection:bg-[var(--brand-soft)] selection:text-[var(--brand)] font-sans antialiased relative overflow-x-hidden text-[16px]">
+    <div className="vox-landing-theme min-h-screen bg-[#F8F9FC] text-slate-900 selection:bg-slate-200 selection:text-slate-900 font-sans antialiased relative overflow-x-hidden text-[16px]">
       {/* ─── Sarvam AI Sovereign Announcement Strip ─────────────────────────── */}
       <div className="border-b border-slate-200/80 bg-slate-950 text-white text-xs sm:text-sm py-2 px-4 text-center flex items-center justify-center gap-2 font-medium">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 text-[11px] font-mono font-semibold">
