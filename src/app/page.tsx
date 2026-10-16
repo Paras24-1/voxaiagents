@@ -41,7 +41,7 @@ import {
   X,
   Zap,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useOrg } from "@/contexts/OrgContext"
 
@@ -198,8 +198,12 @@ const faqItems = [
 export default function LandingPage() {
   const { user } = useOrg()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Real Inbound Call Audio Player State
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
-  const [audioTranscriptIndex, setAudioTranscriptIndex] = useState(0)
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0)
+  const [audioDuration, setAudioDuration] = useState(170) // ~2m 50s total call duration
 
   // Interactive ROI Calculator State
   const [inquiriesPerDay, setInquiriesPerDay] = useState(50)
@@ -313,34 +317,76 @@ export default function LandingPage() {
     setTimeout(() => setIsTypingTerminal(false), 240)
   }
 
-  // ─── Real Speech Synthesis Audio Simulation ─────────────────────────────────
-  const audioSamplePhrases = [
-    "Hello! I am your company's custom AI Employee. I answer customer phone calls in under 350 milliseconds.",
-    "I handle inquiries across WhatsApp and Instagram simultaneously, qualifying budgets, sharing catalogs, and calculating quotes.",
-    "When a high-intent prospect is ready to buy, I transfer them straight to your human closers with full audio briefings.",
+  // ─── Real Inbound AI Agent Call Recording & Interactive Moments ─────────────
+  const callHighlights = [
+    {
+      time: 0,
+      label: "0:00 - Greeting & Intent",
+      stage: "Bilingual Welcome & Discovery",
+      quote: "“Namaste, RERA Filing Karnataka mein aapka swagat hai, main Riya bol rahi hoon. Kaise madad kar sakti hoon aapki? ... Achha, agent registration! Pehle yeh bataiye aap individual capacity mein karenge ya company ke naam par?”",
+    },
+    {
+      time: 38,
+      label: "0:38 - Fee & Docs Breakdown",
+      stage: "₹2 Lakh Govt Fee & Timelines",
+      quote: "“Puneet Kumar ji, company ke naam ke liye har partner ya director ka Aadhaar, PAN, registration certificate, GST... Government fee ₹2,00,000 (5 saal valid), professional fee ₹10,000 + GST. Timeline 6 se 10 working days.”",
+    },
+    {
+      time: 85,
+      label: "1:25 - WhatsApp & Email Sync",
+      stage: "Objection Handling & CRM Sync",
+      quote: "“Individual mein govt fee ₹25,000 hai, company mein ₹2 Lakh. Kya aap comparison note karna chahte hain ya main WhatsApp par bhej doon? ... Ek baar email ID confirm kar lijiye: puneetkumar@gmail.com. Perfect!”",
+    },
+    {
+      time: 130,
+      label: "2:10 - Live Warm Transfer",
+      stage: "Patch to Human Consultant",
+      quote: "“Kya aap chahenge main abhi hamare consultant se connect kar doon? ... Ji bilkul ho sakta hai, ek second rukiye main aapko connect kar rahi hoon. (Please hold while I connect you to a human agent...)”",
+    },
   ]
 
   const toggleVoicePlayback = () => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      if (isPlayingAudio) {
-        window.speechSynthesis.cancel()
-        setIsPlayingAudio(false)
-      } else {
-        window.speechSynthesis.cancel()
-        const utterance = new SpeechSynthesisUtterance(audioSamplePhrases[audioTranscriptIndex % audioSamplePhrases.length])
-        utterance.rate = 1.02
-        utterance.pitch = 1.0
-        utterance.onend = () => {
-          setIsPlayingAudio(false)
-          setAudioTranscriptIndex((prev) => (prev + 1) % audioSamplePhrases.length)
-        }
-        utterance.onerror = () => setIsPlayingAudio(false)
-        window.speechSynthesis.speak(utterance)
-        setIsPlayingAudio(true)
-      }
+    if (!audioRef.current) return
+    if (isPlayingAudio) {
+      audioRef.current.pause()
+      setIsPlayingAudio(false)
     } else {
-      setIsPlayingAudio(!isPlayingAudio)
+      audioRef.current.play().then(() => {
+        setIsPlayingAudio(true)
+      }).catch((err) => {
+        console.error("Audio playback error:", err)
+      })
     }
+  }
+
+  const handleSeek = (timeInSeconds: number) => {
+    if (!audioRef.current) return
+    audioRef.current.currentTime = timeInSeconds
+    setAudioCurrentTime(timeInSeconds)
+    if (!isPlayingAudio) {
+      audioRef.current.play().then(() => setIsPlayingAudio(true)).catch(console.error)
+    }
+  }
+
+  const handleProgressBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || !audioDuration) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const newFraction = Math.max(0, Math.min(1, clickX / rect.width))
+    handleSeek(newFraction * audioDuration)
+  }
+
+  const formatAudioTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`
+  }
+
+  const getActiveHighlight = () => {
+    if (audioCurrentTime < 38) return callHighlights[0]
+    if (audioCurrentTime < 85) return callHighlights[1]
+    if (audioCurrentTime < 130) return callHighlights[2]
+    return callHighlights[3]
   }
 
   // ─── Live Activity Feed Ticker ─────────────────────────────────────────────
@@ -1222,25 +1268,47 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── 5. Refined Audio Voice Demo Section ────────────────────────────── */}
+      {/* ─── 5. Real Inbound AI Agent Call Recording Section ───────────────── */}
       <section id="voice-audio" className="relative py-20 md:py-28 border-t border-[var(--line)] bg-[var(--surface-alt)]">
+        {/* Hidden HTML5 Audio Element */}
+        <audio
+          ref={audioRef}
+          src="/audio/sample-call.mp3"
+          preload="metadata"
+          onTimeUpdate={() => {
+            if (audioRef.current) {
+              setAudioCurrentTime(audioRef.current.currentTime)
+            }
+          }}
+          onLoadedMetadata={() => {
+            if (audioRef.current && audioRef.current.duration) {
+              setAudioDuration(audioRef.current.duration)
+            }
+          }}
+          onEnded={() => {
+            setIsPlayingAudio(false)
+            setAudioCurrentTime(0)
+          }}
+        />
+
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center mb-12">
             <div className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-1.5 text-xs sm:text-sm text-[var(--ink-muted)] font-semibold mb-3">
               <Headphones className="h-4 w-4 text-[var(--brand)]" />
-              <span>Sub-350ms Voice Telephony Engine</span>
+              <span>Real Customer Call Recording (Bilingual Hindi & English)</span>
             </div>
             <h2 className="font-serif text-3xl sm:text-5xl font-normal tracking-tight text-[var(--ink)]">
-              Hear what your AI Employee sounds like.
+              Listen to a real inbound customer call.
             </h2>
             <p className="mt-4 text-base sm:text-lg text-[var(--ink-muted)] leading-relaxed">
-              Indistinguishable from an experienced sales representative. Natural breathing, pauses, tone variation, and sub-350ms response latency so there are never awkward robotic delays.
+              No actors, no script simulation. Listen to our AI Agent (Riya) handle an inbound Karnataka RERA registration inquiry, quote ₹2,00,000 government fees, capture Puneet Kumar's email, offer WhatsApp documentation, and initiate a live human warm-transfer.
             </p>
           </div>
 
           {/* Refined Audio Player Card */}
-          <div className="max-w-3xl mx-auto rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-10 shadow-lg">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-6 border-b border-[var(--line)]">
+          <div className="max-w-4xl mx-auto rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-6 sm:p-10 shadow-lg">
+            {/* Player Header & Actions */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-[var(--line)]">
               <div className="flex items-center gap-4">
                 {/* Large Round Coral Play Button */}
                 <button
@@ -1248,19 +1316,19 @@ export default function LandingPage() {
                   className={`flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 ${
                     isPlayingAudio ? "ring-4 ring-[var(--accent)]/30 animate-pulse" : ""
                   }`}
-                  aria-label="Play spoken audio sample"
+                  aria-label={isPlayingAudio ? "Pause sample call audio" : "Play sample call audio"}
                 >
                   {isPlayingAudio ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7 ml-0.5" />}
                 </button>
                 <div>
-                  <div className="text-base sm:text-lg font-bold text-[var(--ink)] flex items-center gap-2">
-                    <span>Vox Voice Model v4 (Ultra-Low Latency)</span>
+                  <div className="text-base sm:text-lg font-bold text-[var(--ink)] flex items-center gap-2 flex-wrap">
+                    <span>Live Call: Karnataka RERA Registration</span>
                     <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-xs font-mono text-[var(--brand-soft-text)] font-bold">
-                      LIVE
+                      REAL RECORDING
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-[var(--ink-muted)] mt-1">
-                    {isPlayingAudio ? "Speaking live via Web Audio Synthesis..." : "Click play to listen to spoken speech sample"}
+                  <p className="text-xs sm:text-sm text-[var(--ink-muted)] mt-1 font-mono">
+                    AI Agent: <strong className="text-[var(--brand)] font-semibold">Riya</strong> · Caller: <strong className="text-[var(--ink)] font-semibold">Puneet Kumar</strong> · Duration: 2m 50s
                   </p>
                 </div>
               </div>
@@ -1275,48 +1343,130 @@ export default function LandingPage() {
               </a>
             </div>
 
-            {/* Animated Waveform in Forest Green */}
-            <div className="py-8">
-              <div className="flex items-end justify-between h-20 gap-1 sm:gap-1.5 px-2">
-                {[
-                  32, 65, 80, 45, 95, 30, 85, 60, 100, 75, 40, 90, 50, 85, 35, 70, 95, 40, 60, 80, 45, 90, 65, 35, 75, 50, 85, 40,
-                ].map((val, idx) => (
-                  <span
-                    key={idx}
-                    className={`w-full rounded-full transition-all duration-150 ${
-                      isPlayingAudio ? "bg-[var(--brand)]" : "bg-[var(--ink-faint)]/25"
-                    }`}
-                    style={{
-                      height: isPlayingAudio ? `${Math.max(16, val * (idx % 2 === 0 ? 1 : 0.82))}%` : "16%",
-                    }}
-                  />
-                ))}
+            {/* Clickable Progress Scrubber Bar */}
+            <div className="pt-6 pb-2">
+              <div
+                onClick={handleProgressBarClick}
+                className="h-3 w-full bg-[var(--surface-alt)] rounded-full overflow-hidden cursor-pointer relative group"
+                title="Click anywhere to jump in the audio"
+              >
+                <div
+                  className="h-full bg-[var(--brand)] rounded-full transition-all duration-100 relative"
+                  style={{
+                    width: `${Math.min(100, (audioCurrentTime / (audioDuration || 170)) * 100)}%`,
+                  }}
+                >
+                  <span className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[var(--accent)] shadow-xs opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+
+              {/* Time Indicators */}
+              <div className="flex items-center justify-between text-xs font-mono text-[var(--ink-muted)] mt-2">
+                <span className="font-bold text-[var(--ink)]">{formatAudioTime(audioCurrentTime)}</span>
+                <span className="text-[11px] font-mono text-[var(--brand)] font-semibold">Click bar or waveform to scrub</span>
+                <span>{formatAudioTime(audioDuration || 170)}</span>
               </div>
             </div>
 
-            {/* Spoken Transcript Preview */}
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 sm:p-6">
-              <span className="font-mono text-xs uppercase tracking-wider text-[var(--ink-muted)] block mb-1.5 font-bold">
-                Spoken Transcript Preview
+            {/* Animated Interactive Waveform in Forest Green */}
+            <div className="py-4">
+              <div className="flex items-end justify-between h-20 gap-1 sm:gap-1.5 px-1">
+                {[
+                  32, 65, 80, 45, 95, 30, 85, 60, 100, 75, 40, 90, 50, 85, 35, 70, 95, 40, 60, 80, 45, 90, 65, 35, 75, 50, 85, 40, 90, 60, 75, 45
+                ].map((val, idx) => {
+                  const progressFraction = audioCurrentTime / (audioDuration || 170)
+                  const barFraction = idx / 32
+                  const isPassed = barFraction <= progressFraction
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleSeek(barFraction * (audioDuration || 170))}
+                      className="w-full flex items-end h-full group focus:outline-none"
+                      title={`Jump to ${formatAudioTime(barFraction * (audioDuration || 170))}`}
+                      aria-label={`Jump to audio timestamp`}
+                    >
+                      <span
+                        className={`w-full rounded-full transition-all duration-150 ${
+                          isPassed
+                            ? "bg-[var(--brand)] group-hover:bg-[var(--accent)]"
+                            : "bg-[var(--ink-faint)]/20 group-hover:bg-[var(--brand)]/50"
+                        }`}
+                        style={{
+                          height: isPlayingAudio
+                            ? `${Math.max(16, val * (idx % 2 === 0 ? 1 : 0.82))}%`
+                            : `${Math.max(16, val * 0.7)}%`,
+                        }}
+                      />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Interactive Call Key Moments (Click to Jump) */}
+            <div className="my-5 pt-4 border-t border-[var(--line)]">
+              <span className="text-xs font-mono uppercase tracking-wider text-[var(--ink-muted)] block mb-2.5 font-bold">
+                Jump to Key Call Moments (Click to Listen):
               </span>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                {callHighlights.map((moment, idx) => {
+                  const isActive =
+                    (idx === 0 && audioCurrentTime < 38) ||
+                    (idx === 1 && audioCurrentTime >= 38 && audioCurrentTime < 85) ||
+                    (idx === 2 && audioCurrentTime >= 85 && audioCurrentTime < 130) ||
+                    (idx === 3 && audioCurrentTime >= 130)
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleSeek(moment.time)}
+                      className={`p-2.5 rounded-xl text-left border transition-all text-xs ${
+                        isActive
+                          ? "border-[var(--brand)] bg-[var(--brand-soft)] shadow-xs"
+                          : "border-[var(--line)] bg-[var(--surface-alt)] hover:bg-white hover:border-[var(--brand)]/40"
+                      }`}
+                    >
+                      <span className={`font-mono font-bold block ${isActive ? "text-[var(--brand)]" : "text-[var(--ink)]"}`}>
+                        {moment.label}
+                      </span>
+                      <span className="text-[11px] text-[var(--ink-muted)] line-clamp-1 mt-0.5">
+                        {moment.stage}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Live Synchronized Transcript Box */}
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 sm:p-6 mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-xs uppercase tracking-wider text-[var(--ink-muted)] font-bold">
+                  Live Synchronized Transcript
+                </span>
+                <span className="text-xs font-mono font-bold bg-[var(--brand)] text-[#F6F1E7] px-2.5 py-0.5 rounded-full">
+                  {getActiveHighlight().stage}
+                </span>
+              </div>
               <p className="text-base sm:text-lg font-medium text-[var(--ink)] italic leading-relaxed">
-                “{audioSamplePhrases[audioTranscriptIndex % audioSamplePhrases.length]}”
+                {getActiveHighlight().quote}
               </p>
             </div>
 
-            {/* 3 Simple Stat Tiles */}
+            {/* 3 Call Highlights Stat Tiles */}
             <div className="mt-6 pt-5 border-t border-[var(--line)] grid grid-cols-3 gap-3 text-center">
               <div>
-                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Response Cadence</span>
-                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">340ms Latency</span>
+                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Turnaround Latency</span>
+                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">340ms Cadence</span>
               </div>
               <div>
-                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Voice Naturalness</span>
-                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">99.4% Human Score</span>
+                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Language Fluency</span>
+                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">Hindi + English</span>
               </div>
               <div>
-                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Telephony Type</span>
-                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">WebRTC + SIP</span>
+                <span className="text-xs font-mono text-[var(--ink-muted)] block uppercase font-semibold">Automated Outcome</span>
+                <span className="font-serif text-xl sm:text-2xl font-bold text-[var(--brand)] mt-1 block">Live Patch to Human</span>
               </div>
             </div>
           </div>
