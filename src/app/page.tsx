@@ -1300,18 +1300,14 @@ export default function LandingPage() {
                   An autonomous salesperson on WhatsApp that never sleeps. Qualifies buyers, shares product catalogs, calculates customized estimates in Hindi & English, sends PDF brochures, and schedules appointments right into your team's calendar.
                 </p>
 
-                {/* Simulated WhatsApp Interaction */}
-                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 space-y-3 text-sm sm:text-base">
-                  <div className="flex justify-start">
-                    <div className="rounded-xl bg-white p-3.5 shadow-xs text-[var(--ink)] max-w-[90%]">
-                      <p>“What is the pricing for clinic onboarding?”</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <div className="rounded-xl bg-[var(--brand-soft)] p-3.5 shadow-xs text-[var(--brand-soft-text)] font-semibold max-w-[90%]">
-                      <p>“Setup is ₹20,000 one-time and ₹5,000/mo retainer. Includes 24/7 patient triage and doctor scheduling.”</p>
-                    </div>
-                  </div>
+                {/* 3D Realistic WhatsApp Chat & Calendar Booking Mockup */}
+                <div className="mt-6 rounded-2xl overflow-hidden border border-[var(--line)] bg-[#F1F4F9] shadow-sm">
+                  <img
+                    src="/images/whatsapp-chat-mockup.png"
+                    alt="WhatsApp AI Assistant Pricing Catalog & Calendar Booking Mockup"
+                    className="w-full h-auto object-cover hover:scale-[1.01] transition-transform duration-300"
+                    loading="lazy"
+                  />
                 </div>
 
                 <div className="mt-6 space-y-3">
@@ -1424,15 +1420,14 @@ export default function LandingPage() {
                   An executive email partner that reads incoming enterprise inquiries, categorizes high-value opportunities, generates bespoke context-aware replies matching your company voice, and keeps sales pipelines warm.
                 </p>
 
-                {/* Simulated Email Flow */}
-                <div className="mt-6 rounded-2xl border border-[var(--line)] bg-[var(--surface-alt)] p-5 space-y-2.5 text-sm sm:text-base">
-                  <div className="flex items-center justify-between border-b border-[var(--line)] pb-2 text-xs sm:text-sm font-mono text-[var(--ink-muted)] font-semibold">
-                    <span>Subject: Enterprise Franchise Proposal (18 Outlets)</span>
-                    <span className="text-[var(--brand)]">Draft Prepared</span>
-                  </div>
-                  <p className="text-sm sm:text-base text-[var(--ink)] italic line-clamp-2 leading-relaxed">
-                    “Dear Director Chopra, We have prepared specialized retail routing for your 18 outlets. Attached is the architectural breakdown and pricing...”
-                  </p>
+                {/* 3D Realistic Executive Email & Proposal Mockup */}
+                <div className="mt-6 rounded-2xl overflow-hidden border border-[var(--line)] bg-[#F1F4F9] shadow-sm">
+                  <img
+                    src="/images/email-executive-mockup.jpg"
+                    alt="Executive Email AI Automation & Proposal System Mockup"
+                    className="w-full h-auto object-cover hover:scale-[1.01] transition-transform duration-300"
+                    loading="lazy"
+                  />
                 </div>
 
                 <div className="mt-6 space-y-3">
@@ -1997,7 +1992,6 @@ export default function LandingPage() {
                   step: "01",
                   title: "Knowledge Ingestion",
                   sub: "We extract your business DNA",
-                  image: "/images/knowledge-ingestion-cube.jpg",
                   desc: "Our engineers ingest your product catalogs, SKU pricing tables, past WhatsApp conversations, sales call recordings, website FAQs, and PDFs. We map every objection your buyers throw at you so the AI never stumbles.",
                   deliverables: ["Product catalogs & price tiers", "Historical call transcripts", "Objection handling playbook"],
                 },
@@ -2028,16 +2022,6 @@ export default function LandingPage() {
                   className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] p-8 sm:p-10 shadow-xs flex flex-col justify-between"
                 >
                   <div>
-                    {'image' in st && st.image && (
-                      <div className="mb-6 rounded-2xl overflow-hidden border border-[var(--line)] bg-white shadow-xs">
-                        <img
-                          src={st.image}
-                          alt={st.title}
-                          className="w-full h-44 object-contain p-2 hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
                     <div className="font-serif text-6xl font-normal text-[var(--brand)] mb-4">
                       {st.step}
                     </div>
