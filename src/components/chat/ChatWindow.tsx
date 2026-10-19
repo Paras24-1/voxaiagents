@@ -152,7 +152,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
 
     setSavingName(true)
     try {
-      const res = await fetch(`/api/conversations/${conversation.id}`, {
+      const res = await fetchWithAuth(`/api/conversations/${conversation.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName })
@@ -162,11 +162,12 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
         window.dispatchEvent(new CustomEvent('update-conversation', { detail: { ...conversation, name: newName } }))
         setIsEditingName(false)
       } else {
-        alert('Failed to rename lead')
+        const errData = await res.json().catch(() => ({}))
+        alert(errData.error || 'Failed to rename lead')
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving lead name:', err)
-      alert('Network error saving name')
+      alert(err?.message || 'Network error saving name')
     } finally {
       setSavingName(false)
     }

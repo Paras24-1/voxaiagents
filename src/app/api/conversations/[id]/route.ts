@@ -258,7 +258,7 @@ export async function PATCH(
             try { meta = JSON.parse(meta) } catch {}
           }
           meta = { ...meta, name: newName, customer_name: newName, Name: newName }
-          await supabaseAdmin
+          const { error: leadErr } = await supabaseAdmin
             .from('leads')
             .update({ 
               name: newName,
@@ -268,6 +268,19 @@ export async function PATCH(
             })
             .eq('id', l.id)
             .eq('org_id', profile.orgId)
+
+          if (leadErr) {
+            // Fallback: update without customer_name column in case it doesn't exist in schema
+            await supabaseAdmin
+              .from('leads')
+              .update({ 
+                name: newName,
+                metadata: meta,
+                conversation_id: conv.id 
+              })
+              .eq('id', l.id)
+              .eq('org_id', profile.orgId)
+          }
         }
       }
 
