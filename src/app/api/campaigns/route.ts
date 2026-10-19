@@ -104,11 +104,15 @@ export async function POST(req: NextRequest) {
       status: 'pending',
     }))
 
-    const { error: contactError } = await supabaseAdmin
-      .from('campaign_contacts')
-      .insert(contactRows)
+    // Batch insert in chunks of 500
+    for (let i = 0; i < contactRows.length; i += 500) {
+      const chunk = contactRows.slice(i, i + 500)
+      const { error: contactError } = await supabaseAdmin
+        .from('campaign_contacts')
+        .insert(chunk)
 
-    if (contactError) throw contactError
+      if (contactError) throw contactError
+    }
 
     // Get org's n8n bulk webhook
     if (!finalScheduledAt) {

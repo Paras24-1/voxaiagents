@@ -50,17 +50,27 @@ export async function PATCH(req: NextRequest) {
 }
 
 async function recalcCampaign(campaign_id: string) {
-  const { data: counts } = await supabaseAdmin
-    .from('campaign_contacts')
-    .select('status')
-    .eq('campaign_id', campaign_id)
+  let allStatuses: { status: string }[] = []
+  let from = 0
+  while (true) {
+    const { data, error } = await supabaseAdmin
+      .from('campaign_contacts')
+      .select('status')
+      .eq('campaign_id', campaign_id)
+      .range(from, from + 999)
 
-  if (!counts) return
+    if (error || !data || data.length === 0) break
+    allStatuses.push(...data)
+    if (data.length < 1000) break
+    from += 1000
+  }
 
-  const sent      = counts.filter((c) => c.status === 'sent').length
-  const delivered = counts.filter((c) => c.status === 'delivered').length
-  const failed    = counts.filter((c) => c.status === 'failed').length
-  const pending   = counts.filter((c) => c.status === 'pending').length
+  if (allStatuses.length === 0) return
+
+  const sent      = allStatuses.filter((c) => c.status === 'sent').length
+  const delivered = allStatuses.filter((c) => c.status === 'delivered' || c.status === 'read').length
+  const failed    = allStatuses.filter((c) => c.status === 'failed').length
+  const pending   = allStatuses.filter((c) => c.status === 'pending').length
 
   await supabaseAdmin
     .from('campaigns')

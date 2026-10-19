@@ -10,15 +10,25 @@ export async function GET(req: NextRequest) {
     const campaignId = searchParams.get('campaign_id')
     if (!campaignId) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 })
 
-    const { data, error } = await supabaseAdmin
-      .from('campaign_contacts')
-      .select('*')
-      .eq('campaign_id', campaignId)
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: true })
+    let allContacts: any[] = []
+    let from = 0
+    while (true) {
+      const { data, error } = await supabaseAdmin
+        .from('campaign_contacts')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: true })
+        .range(from, from + 999)
 
-    if (error) throw error
-    return NextResponse.json(data)
+      if (error) throw error
+      if (!data || data.length === 0) break
+      allContacts.push(...data)
+      if (data.length < 1000) break
+      from += 1000
+    }
+
+    return NextResponse.json(allContacts)
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

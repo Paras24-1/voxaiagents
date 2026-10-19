@@ -21,15 +21,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Phonebook not found or unauthorized' }, { status: 404 })
     }
 
-    const { data: contacts, error } = await supabaseAdmin
-      .from('phonebook_contacts')
-      .select('*')
-      .eq('phonebook_id', phonebookId)
-      .order('created_at', { ascending: false })
+    let allContacts: any[] = []
+    let from = 0
+    while (true) {
+      const { data: contacts, error } = await supabaseAdmin
+        .from('phonebook_contacts')
+        .select('*')
+        .eq('phonebook_id', phonebookId)
+        .order('created_at', { ascending: false })
+        .range(from, from + 999)
 
-    if (error) throw error
+      if (error) throw error
+      if (!contacts || contacts.length === 0) break
+      allContacts.push(...contacts)
+      if (contacts.length < 1000) break
+      from += 1000
+    }
 
-    return NextResponse.json(contacts || [])
+    return NextResponse.json(allContacts)
   } catch (err: any) {
     return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
   }
