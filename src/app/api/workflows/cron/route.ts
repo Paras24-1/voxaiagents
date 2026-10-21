@@ -25,8 +25,20 @@ export async function GET(req: NextRequest) {
           // Mark as sending
           await supabaseAdmin.from('campaigns').update({ status: 'sending', started_at: nowIso }).eq('id', camp.id)
 
-          // Fetch contacts
-          const { data: contacts } = await supabaseAdmin.from('campaign_contacts').select('*').eq('campaign_id', camp.id)
+          // Fetch contacts with pagination to avoid 1000 limit
+          let contacts: any[] = []
+          let cFrom = 0
+          while (true) {
+            const { data: chunk, error: cErr } = await supabaseAdmin
+              .from('campaign_contacts')
+              .select('*')
+              .eq('campaign_id', camp.id)
+              .range(cFrom, cFrom + 999)
+            if (cErr || !chunk || chunk.length === 0) break
+            contacts.push(...chunk)
+            if (chunk.length < 1000) break
+            cFrom += 1000
+          }
           
           if (contacts && contacts.length > 0) {
             // Trigger external webhook (n8n)

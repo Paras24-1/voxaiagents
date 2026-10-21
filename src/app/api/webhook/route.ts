@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { isOsmoOrg, syncOsmoPhonebooks, invalidateUnifiedCache } from '@/lib/osmoPhonebooks'
+import { recalcCampaign } from '@/lib/campaigns'
 
 async function getNextEmployee(orgId: string): Promise<string | null> {
   const { data: employees } = await supabaseAdmin
@@ -330,28 +331,7 @@ export async function POST(req: NextRequest) {
           if (updatedContact && updatedContact.length > 0) {
             const campaignId = updatedContact[0].campaign_id
             if (campaignId) {
-              const { data: counts } = await supabaseAdmin
-                .from('campaign_contacts')
-                .select('status')
-                .eq('campaign_id', campaignId)
-
-              if (counts) {
-                const sent      = counts.filter((c) => c.status === 'sent').length
-                const delivered = counts.filter((c) => c.status === 'delivered' || c.status === 'read').length
-                const failed    = counts.filter((c) => c.status === 'failed').length
-                const pending   = counts.filter((c) => c.status === 'pending').length
-
-                await supabaseAdmin
-                  .from('campaigns')
-                  .update({
-                    sent,
-                    delivered,
-                    failed,
-                    status: pending === 0 ? 'completed' : 'sending',
-                    completed_at: pending === 0 ? new Date().toISOString() : null,
-                  })
-                  .eq('id', campaignId)
-              }
+              await recalcCampaign(campaignId)
             }
           }
         }

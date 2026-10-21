@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { recalcCampaign } from '@/lib/campaigns'
 
 export async function PATCH(req: NextRequest) {
   try {
@@ -49,37 +50,4 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-async function recalcCampaign(campaign_id: string) {
-  let allStatuses: { status: string }[] = []
-  let from = 0
-  while (true) {
-    const { data, error } = await supabaseAdmin
-      .from('campaign_contacts')
-      .select('status')
-      .eq('campaign_id', campaign_id)
-      .range(from, from + 999)
 
-    if (error || !data || data.length === 0) break
-    allStatuses.push(...data)
-    if (data.length < 1000) break
-    from += 1000
-  }
-
-  if (allStatuses.length === 0) return
-
-  const sent      = allStatuses.filter((c) => c.status === 'sent').length
-  const delivered = allStatuses.filter((c) => c.status === 'delivered' || c.status === 'read').length
-  const failed    = allStatuses.filter((c) => c.status === 'failed').length
-  const pending   = allStatuses.filter((c) => c.status === 'pending').length
-
-  await supabaseAdmin
-    .from('campaigns')
-    .update({
-      sent,
-      delivered,
-      failed,
-      status: pending === 0 ? 'completed' : 'sending',
-      completed_at: pending === 0 ? new Date().toISOString() : null,
-    })
-    .eq('id', campaign_id)
-}
