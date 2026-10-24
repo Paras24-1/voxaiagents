@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     while (fetchMore) {
       let query = supabaseAdmin
         .from('leads')
-        .select('*, conversations(*, conversation_assignments(*))')
+        .select('*, conversations(*)')
         .eq('org_id', orgId)
         .order('created_at', { ascending: false })
         .range(fromIndex, fromIndex + 999)
@@ -68,8 +68,8 @@ export async function GET(req: NextRequest) {
       const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
       const p = l.phone_number || c.phone_number
 
-      const ca = Array.isArray(c.conversation_assignments) ? c.conversation_assignments[0] || {} : c.conversation_assignments || {}
-      const assignedAt = ca.assigned_at || c.updated_at || l.created_at
+      const ca = {}
+      const assignedAt = c.updated_at || l.created_at
 
       // CRITICAL: l.metadata may arrive as a raw JSON string (text column) rather than
       // a parsed object (jsonb). If we spread a string with {...string}, JavaScript
