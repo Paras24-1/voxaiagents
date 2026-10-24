@@ -80,7 +80,7 @@ function ScraperContent() {
   
   // Form input states
   const [query, setQuery] = useState('')
-  const [maxResults, setMaxResults] = useState(50)
+  const [maxResults, setMaxResults] = useState(200)
   
   // Loading & Action states
   const [jobsLoading, setJobsLoading] = useState(true)
@@ -503,7 +503,7 @@ function ScraperContent() {
                 <input
                   type="range"
                   min="10"
-                  max="200"
+                  max="500"
                   step="10"
                   disabled={!!runningJob}
                   value={maxResults}
