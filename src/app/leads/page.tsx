@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { 
   Search, 
@@ -179,14 +179,19 @@ function LeadsContent() {
   const [bulkAssigning, setBulkAssigning] = useState(false)
 
   useEffect(() => {
-    fetch('/api/users')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setStaffList(data)
-        }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const token = session?.access_token || ''
+      fetch('/api/users', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       })
-      .catch(() => {})
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setStaffList(data)
+          }
+        })
+        .catch(() => {})
+    })
   }, [])
 
   useEffect(() => {
@@ -336,6 +341,30 @@ function LeadsContent() {
   useEffect(() => {
     fetchLeads(false)
   }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter])
+
+  // Infinite Scroll Observer — automatically loads next 50 leads when scrolling near bottom
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const fetchLeadsRef = useRef(fetchLeads)
+  fetchLeadsRef.current = fetchLeads
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        fetchLeadsRef.current(true)
+      }
+    }, { rootMargin: '300px' })
+
+    const currentSentinel = sentinelRef.current
+    if (currentSentinel) {
+      observer.observe(currentSentinel)
+    }
+
+    return () => {
+      if (currentSentinel) observer.unobserve(currentSentinel)
+    }
+  }, [hasMore, loading, loadingMore])
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -1345,21 +1374,24 @@ function LeadsContent() {
                     </tbody>
                   </table>
                   
-                  {hasMore && (
-                    <div className="flex justify-center p-4 pt-6 pb-8 border-t border-gray-100 dark:border-gray-800/60 relative">
+                  {/* Infinite Scroll Sentinel & Loader */}
+                  <div ref={sentinelRef} className="flex justify-center p-4 pt-6 pb-8 border-t border-gray-100 dark:border-gray-800/60 relative">
+                    {hasMore ? (
                       <button 
                         onClick={() => fetchLeads(true)}
                         disabled={loadingMore}
                         className="px-6 py-2.5 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 font-bold text-sm rounded-xl border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
                       >
                         {loadingMore ? (
-                          <><RefreshCw className="w-4 h-4 animate-spin" /> Loading...</>
+                          <><RefreshCw className="w-4 h-4 animate-spin" /> Loading more leads...</>
                         ) : (
-                          'Load More Leads'
+                          'Load More Leads (or scroll down)'
                         )}
                       </button>
-                    </div>
-                  )}
+                    ) : displayedLeads.length > 0 ? (
+                      <p className="text-xs text-gray-400 font-medium">All {displayedLeads.length} leads loaded</p>
+                    ) : null}
+                  </div>
                 </div>
             )}
           </div>

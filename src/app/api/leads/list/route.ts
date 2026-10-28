@@ -23,11 +23,11 @@ export async function GET(req: NextRequest) {
     const geographicState = searchParams.get('state') || ''
     const assignedToday = searchParams.get('assigned_today') === 'true'
 
-    // Pagination — DB-side, no full scan
+    // Pagination — DB-side, strictly 50 items per page
     const page = parseInt(searchParams.get('page') || '1', 10)
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
     const from = (page - 1) * limit
-    // Fetch one extra to determine hasMore without a COUNT query
+    // Fetch one extra to determine hasMore without an extra count query
     const fetchLimit = limit + 1
 
     let staffConvIds: string[] | null = null
@@ -44,14 +44,12 @@ export async function GET(req: NextRequest) {
     }
 
     // ----------------------------------------------------------------
-    // Build the query — push ALL filters to the DB, never fetch all rows
-    // Direct single-table query on leads for maximum PostgreSQL query plan efficiency
+    // Safely query leads using '*' so missing schema columns never crash.
+    // Join only necessary fields from conversations for stage and assignment.
     // ----------------------------------------------------------------
-    const selectFields = 'id, conversation_id, phone_number, name, customer_name, created_at, updated_at, stage, lead_quality, lead_score, lead_temperature, lead_type, osmo_category, notes, followup_date, followup_notes, metadata, org_id'
-
     let query = supabaseAdmin
       .from('leads')
-      .select(selectFields)
+      .select('*, conversations(id, stage, name, assigned_to, updated_at)')
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
       .range(from, from + fetchLimit - 1)
@@ -60,9 +58,6 @@ export async function GET(req: NextRequest) {
     if (staffConvIds) {
       query = query.in('conversation_id', staffConvIds) as any
     }
-
-    // Push stage filter to DB
-    if (stage) query = query.eq('stage', stage) as any
 
     // Push lead_type / osmo_category filter to DB
     if (leadType && leadType !== 'all') {
@@ -77,26 +72,32 @@ export async function GET(req: NextRequest) {
     if (startDate) query = query.gte('created_at', startDate) as any
     if (endDate) query = query.lte('created_at', `${endDate}T23:59:59.999Z`) as any
 
-    // If assignedToday filter is enabled, filter by today's date
+    // If assignedToday filter is active, filter by created_at of today
     if (assignedToday) {
       const startOfTodayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
-      query = query.gte('updated_at', startOfTodayIso) as any
+      query = query.gte('created_at', startOfTodayIso) as any
     }
 
-    // Push text search to DB (ilike on name OR phone_number OR customer_name)
+    // Push text search to DB (name, phone_number, customer_name)
     if (search) {
       query = query.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%,customer_name.ilike.%${search}%`) as any
     }
 
     const { data, error } = await query
-    if (error) throw error
+    if (error) {
+      console.error('[leads-list query error]:', error)
+      throw error
+    }
 
     const rows = data || []
     const hasMore = rows.length > limit
     const slicedRows = hasMore ? rows.slice(0, limit) : rows
 
-    // Lightweight enrichment — no heavy loops, no additional DB calls
+    // Lightweight enrichment
     const enrichedLeads = slicedRows.map((l: any) => {
+      const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
+      const p = l.phone_number || c.phone_number
+
       let parsedMetadata: Record<string, any> = {}
       try {
         if (typeof l.metadata === 'string' && l.metadata.trim()) {
@@ -111,36 +112,38 @@ export async function GET(req: NextRequest) {
         parsedMetadata = {}
       }
 
-      // Quality derived from score — applies client-side quality filter too
+      // Quality derived from score or lead_temperature
       const score = Number(l.lead_score ?? parsedMetadata.lead_score ?? 0)
       let q = (l.lead_quality || parsedMetadata.lead_quality || parsedMetadata.lead_temperature || l.lead_temperature || 'cold').toLowerCase()
       if (score >= 70) q = 'hot'
       else if (score >= 40) q = 'warm'
       else if (score > 0) q = 'cold'
 
-      // Apply quality filter (done in JS since it's derived)
+      // Apply quality filter
       if (quality && q !== quality.toLowerCase()) return null
 
-      // Apply geographic state filter (stored in metadata)
+      // Apply geographic state filter
       if (geographicState) {
         const leadState = (parsedMetadata.state || l.state || '').trim()
         if (leadState.toLowerCase() !== geographicState.toLowerCase()) return null
       }
 
-      const stg = l.stage || parsedMetadata.stage || 'new'
-      const displayName = l.name || l.customer_name || parsedMetadata.Name || parsedMetadata.name || parsedMetadata.contact_person || 'Unknown'
-      const assignedAt = l.updated_at || l.created_at
+      const stg = c.stage || l.stage || parsedMetadata.stage || 'new'
+      if (stage && stg !== stage) return null
+
+      const displayName = c.name || l.name || l.customer_name || parsedMetadata.Name || parsedMetadata.name || parsedMetadata.contact_person || 'Unknown'
+      const assignedAt = c.updated_at || l.created_at
 
       return {
         ...l,
         ...parsedMetadata,
         id: l.id,
-        conversation_id: l.conversation_id || null,
-        phone_number: l.phone_number,
+        conversation_id: l.conversation_id || c.id || null,
+        phone_number: p,
         name: displayName,
-        customer_name: l.customer_name,
+        customer_name: l.customer_name || c.name || displayName,
         created_at: l.created_at,
-        updated_at: l.updated_at,
+        updated_at: c.updated_at || l.created_at,
         assigned_at: assignedAt,
         stage: stg,
         lead_quality: q,
@@ -148,7 +151,7 @@ export async function GET(req: NextRequest) {
         lead_score: score,
         lead_type: l.osmo_category || 'unfiltered',
         osmo_category: l.osmo_category,
-        notes: l.notes,
+        notes: l.notes || parsedMetadata.notes,
         followup_date: l.followup_date,
         followup_notes: l.followup_notes,
         org_id: l.org_id,

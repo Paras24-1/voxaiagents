@@ -14,8 +14,6 @@ export async function GET(req: NextRequest) {
     const isStaffEmployee = role !== 'owner' && role !== 'admin'
 
     const searchParams = new URL(req.url).searchParams
-    const stage = searchParams.get('stage') || ''
-    const quality = searchParams.get('quality') || ''
     const search = searchParams.get('search') || ''
     const startDate = searchParams.get('start_date') || ''
     const endDate = searchParams.get('end_date') || ''
@@ -43,7 +41,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Helper to build a lightweight DB count query using PostgREST HEAD requests
+    // Helper to build lightweight DB count queries using PostgREST HEAD requests
     const buildCount = (applyFilter?: (q: any) => any) => {
       let q = supabaseAdmin
         .from('leads')
@@ -51,12 +49,11 @@ export async function GET(req: NextRequest) {
         .eq('org_id', orgId)
 
       if (staffConvIds) q = q.in('conversation_id', staffConvIds) as any
-      if (stage) q = q.eq('stage', stage) as any
       if (startDate) q = q.gte('created_at', startDate) as any
       if (endDate) q = q.lte('created_at', `${endDate}T23:59:59.999Z`) as any
       if (assignedToday) {
         const startOfTodayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
-        q = q.gte('updated_at', startOfTodayIso) as any
+        q = q.gte('created_at', startOfTodayIso) as any
       }
       if (search) {
         q = q.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%,customer_name.ilike.%${search}%`) as any
@@ -81,16 +78,15 @@ export async function GET(req: NextRequest) {
       buildCount(q => q.eq('osmo_category', 'dealer')),
       buildCount(q => q.eq('osmo_category', 'customer')),
       buildCount(q => q.or('osmo_category.eq.unfiltered,osmo_category.is.null')),
-      buildCount(q => q.or('stage.eq.followup,followup_date.not.is.null')),
-      buildCount(q => q.or('lead_temperature.ilike.HOT,lead_quality.ilike.hot,lead_score.gte.70')),
-      buildCount(q => q.or('lead_temperature.ilike.WARM,lead_quality.ilike.warm'))
+      buildCount(q => q.not('followup_date', 'is', null)),
+      buildCount(q => q.ilike('lead_temperature', '%hot%')),
+      buildCount(q => q.ilike('lead_temperature', '%warm%'))
     ])
 
     const total = totalCount || 0
     const osmo_dealer = osmoDealerCount || 0
     const dealer = dealerCount || 0
     const customer = customerCount || 0
-    // If unfiltered is 0 or unassigned, compute remainder
     const unfiltered = unfilteredCount ?? Math.max(0, total - (osmo_dealer + dealer + customer))
 
     return NextResponse.json({
