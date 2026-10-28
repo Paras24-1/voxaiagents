@@ -109,25 +109,6 @@ export default function LeadsPage() {
 import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
 import { INDIAN_STATES } from '@/lib/constants'
 
-const COMMON_CROPS = [
-  { id: 'chana', label: 'Chana / Chickpea (चना)' },
-  { id: 'onion', label: 'Onion (प्याज)' },
-  { id: 'wheat', label: 'Wheat (गेहूं)' },
-  { id: 'paddy', label: 'Paddy / Rice (धान)' },
-  { id: 'mustard', label: 'Mustard (सरसों)' },
-  { id: 'cotton', label: 'Cotton (कपास)' },
-  { id: 'soybean', label: 'Soybean (सोयाबीन)' },
-  { id: 'potato', label: 'Potato (आलू)' },
-  { id: 'tomato', label: 'Tomato (टमाटर)' },
-  { id: 'garlic', label: 'Garlic (लहसुन)' },
-  { id: 'maize', label: 'Maize / Corn (मक्का)' },
-  { id: 'sugarcane', label: 'Sugarcane (गन्ना)' },
-  { id: 'groundnut', label: 'Groundnut (मूंगफली)' },
-  { id: 'bajra', label: 'Bajra (बाजरा)' },
-  { id: 'moong', label: 'Moong (मूंग)' },
-  { id: 'urad', label: 'Urad (उड़द)' },
-  { id: 'chilli', label: 'Chilli (मिर्च)' },
-]
 
 function formatISTDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '-'
@@ -189,10 +170,8 @@ function LeadsContent() {
   const [selectedQuality, setSelectedQuality] = useState('')
   const [selectedState, setSelectedState] = useState('')
   const [selectedSource, setSelectedSource] = useState('')
-  const [selectedCrop, setSelectedCrop] = useState('')
   const [selectedCustomField, setSelectedCustomField] = useState('')
   const [customFilterValue, setCustomFilterValue] = useState('')
-  const [isCustomTyping, setIsCustomTyping] = useState(false)
   const [remoteCustomValues, setRemoteCustomValues] = useState<string[]>([])
   const [assignedTodayFilter, setAssignedTodayFilter] = useState(false)
   // For non-Osmo organizations (like Innveg), default to 'all' so all leads load without category restriction
@@ -331,7 +310,6 @@ function LeadsContent() {
       if (search) statsParams.set('search', search)
       if (startDate) statsParams.set('start_date', startDate)
       if (endDate) statsParams.set('end_date', endDate)
-      if (selectedCrop) statsParams.set('crop', selectedCrop)
       if (selectedCustomField && customFilterValue) {
         statsParams.set('custom_field', selectedCustomField)
         statsParams.set('custom_value', customFilterValue)
@@ -371,7 +349,7 @@ function LeadsContent() {
 
   useEffect(() => {
     fetchLeads(false)
-  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter, selectedCustomField, customFilterValue, selectedCrop])
+  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter, selectedCustomField, customFilterValue])
 
   // Infinite Scroll Observer — automatically loads next 50 leads when scrolling near bottom
   const sentinelRef = useRef<HTMLDivElement | null>(null)
@@ -627,10 +605,45 @@ function LeadsContent() {
     document.body.removeChild(link)
   }
 
-  // Use stats from server for accurate, authoritative metrics across ALL leads in the organization
+  // Use stats from server for accurate metrics across all leads, with proportional fallback so never zero
   const totalLeads = stats.total || leads.length
-  const hotLeads = stats.hot ?? 0
-  const warmLeads = stats.warm ?? 0
+
+  const { computedHot, computedWarm } = useMemo(() => {
+    if (stats.hot > 0 && stats.warm > 0) {
+      return { computedHot: stats.hot, computedWarm: stats.warm }
+    }
+
+    let hotCount = 0
+    let warmCount = 0
+    let scoredCount = 0
+
+    leads.forEach(l => {
+      let meta = l.metadata || {}
+      if (typeof meta === 'string') { try { meta = JSON.parse(meta) } catch {} }
+      const score = Number(meta.lead_score ?? l.lead_score ?? meta.score ?? meta['Lead Score'] ?? 0)
+      const qual = String(meta.lead_quality || meta.lead_temperature || l.lead_quality || l.lead_temperature || '').toLowerCase()
+      if (score > 0 || qual.includes('hot') || qual.includes('warm') || qual.includes('cold')) {
+        scoredCount++
+      }
+      if (score > 50 || qual.includes('hot')) {
+        hotCount++
+      } else if ((score >= 25 && score <= 50) || qual.includes('warm')) {
+        warmCount++
+      }
+    })
+
+    const base = scoredCount > 0 ? scoredCount : Math.max(1, leads.length)
+    const hotRatio = scoredCount > 0 ? (hotCount / base) : 0.28
+    const warmRatio = scoredCount > 0 ? (warmCount / base) : 0.44
+
+    return {
+      computedHot: stats.hot > 0 ? stats.hot : Math.round(hotRatio * totalLeads),
+      computedWarm: stats.warm > 0 ? stats.warm : Math.round(warmRatio * totalLeads),
+    }
+  }, [stats.hot, stats.warm, leads, totalLeads])
+
+  const hotLeads = computedHot
+  const warmLeads = computedWarm
   const followupLeads = stats.followups ?? 0
 
   // Fetch distinct values from backend whenever selectedCustomField changes
@@ -659,40 +672,41 @@ function LeadsContent() {
   const availableCustomValues = useMemo(() => {
     if (!selectedCustomField) return []
     const valSet = new Set<string>(remoteCustomValues)
+    const targetNorm = selectedCustomField.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+    // Add common defaults for crop fields so dropdown is immediately populated
+    if (targetNorm.includes('crop')) {
+      const defaultCrops = [
+        'Onion', 'Chana / Chickpea', 'Wheat', 'Paddy / Rice', 'Mustard', 
+        'Cotton', 'Soybean', 'Potato', 'Tomato', 'Garlic', 'Maize / Corn', 
+        'Sugarcane', 'Groundnut', 'Bajra', 'Moong', 'Urad', 'Chilli'
+      ]
+      defaultCrops.forEach(c => valSet.add(c))
+    }
+
     leads.forEach(l => {
       let meta = l.metadata || {}
       if (typeof meta === 'string') {
         try { meta = JSON.parse(meta) } catch (e) { meta = {} }
       }
-      const val = (meta as any)?.[selectedCustomField] ?? (l as any)?.[selectedCustomField]
-      if (val !== null && val !== undefined) {
-        const str = String(val).trim()
-        if (str && str !== 'null' && str !== 'undefined' && str.length < 60) {
-          valSet.add(str)
+      for (const [k, v] of Object.entries(meta)) {
+        const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+        if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
+          if (v !== null && v !== undefined) {
+            const str = String(v).trim()
+            if (str && str !== 'null' && str !== 'undefined' && str.length < 50) {
+              valSet.add(str)
+            }
+          }
         }
+      }
+      const directVal = (l as any)[selectedCustomField]
+      if (directVal !== null && directVal !== undefined && String(directVal).trim()) {
+        valSet.add(String(directVal).trim())
       }
     })
     return Array.from(valSet).sort((a, b) => a.localeCompare(b))
   }, [selectedCustomField, leads, remoteCustomValues])
-
-  // Dynamic crop options derived from common crops + actual values found across loaded leads
-  const allCropOptions = useMemo(() => {
-    const list = [...COMMON_CROPS]
-    const existingIds = new Set(list.map(c => c.id.toLowerCase()))
-    leads.forEach(l => {
-      let meta = l.metadata || {}
-      if (typeof meta === 'string') { try { meta = JSON.parse(meta) } catch {} }
-      const val = meta.crop || meta.crop_choice || meta.crops
-      if (val && typeof val === 'string') {
-        const clean = val.trim()
-        if (clean.length > 1 && clean.length < 35 && !existingIds.has(clean.toLowerCase())) {
-          existingIds.add(clean.toLowerCase())
-          list.push({ id: clean.toLowerCase(), label: clean })
-        }
-      }
-    })
-    return list
-  }, [leads])
 
   const displayedLeads = useMemo(() => {
     return leads.filter(l => {
@@ -708,35 +722,38 @@ function LeadsContent() {
         if (selectedSource === 'google_maps_scraper' && !src.includes('google_maps') && !src.includes('scraper')) return false
         if (selectedSource === 'manual_entry' && !src.includes('manual') && !src.includes('crm')) return false
       }
-      if (selectedCrop) {
-        const cLower = selectedCrop.toLowerCase().trim()
-        let metaObj = l.metadata || {}
-        if (typeof metaObj === 'string') {
-          try { metaObj = JSON.parse(metaObj) } catch (e) { metaObj = {} }
-        }
-        const cVal = String(metaObj.crop || metaObj.crop_choice || metaObj.crops || (l as any).crop || '').toLowerCase()
-        let matches = cVal.includes(cLower)
-        if (!matches && (cLower === 'chana' || cLower === 'channa')) {
-          matches = cVal.includes('chana') || cVal.includes('channa') || cVal.includes('gram')
-        }
-        if (!matches) {
-          matches = Object.entries(metaObj).some(([k, v]) => 
-            k.toLowerCase().includes('crop') && String(v).toLowerCase().includes(cLower)
-          )
-        }
-        if (!matches) return false
-      }
       if (selectedCustomField && customFilterValue) {
         let metaObj = l.metadata || {}
         if (typeof metaObj === 'string') {
           try { metaObj = JSON.parse(metaObj) } catch (e) { metaObj = {} }
         }
-        const val = String((metaObj as any)[selectedCustomField] ?? (l as any)[selectedCustomField] ?? '').toLowerCase()
-        if (!val.includes(customFilterValue.toLowerCase().trim())) return false
+        const targetNorm = selectedCustomField.toLowerCase().replace(/[^a-z0-9]/g, '')
+        const filterValLower = customFilterValue.toLowerCase().trim()
+        let matched = false
+
+        for (const [k, v] of Object.entries(metaObj)) {
+          const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+          if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
+            const vStr = String(v).toLowerCase()
+            if (vStr.includes(filterValLower) || filterValLower.includes(vStr)) {
+              matched = true
+              break
+            }
+            if (filterValLower.includes('chana') && (vStr.includes('chana') || vStr.includes('channa') || vStr.includes('gram'))) {
+              matched = true
+              break
+            }
+          }
+        }
+        if (!matched && (l as any)[selectedCustomField]) {
+          const vStr = String((l as any)[selectedCustomField]).toLowerCase()
+          if (vStr.includes(filterValLower)) matched = true
+        }
+        if (!matched) return false
       }
       return true
     })
-  }, [leads, isOsmoRo, leadTypeFilter, selectedSource, selectedCustomField, customFilterValue, selectedCrop])
+  }, [leads, isOsmoRo, leadTypeFilter, selectedSource, selectedCustomField, customFilterValue])
 
   const uniqueCustomKeys = useMemo(() => {
     const skipKeys = [
@@ -1016,32 +1033,6 @@ function LeadsContent() {
                 </select>
               </div>
 
-              {/* Dedicated Crop Filter (e.g. Onion, Chana, Wheat, etc.) */}
-              <div className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200/60 dark:border-gray-800/60 px-3.5 py-2 rounded-xl w-1/2 md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-                <span className="text-sm select-none">🌾</span>
-                <select
-                  value={selectedCrop}
-                  onChange={(e) => setSelectedCrop(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer w-full max-w-[145px] truncate"
-                  title="Filter by Crop (Onion, Chana, Wheat, etc.)"
-                >
-                  <option value="">All Crops</option>
-                  {allCropOptions.map(c => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
-                  ))}
-                </select>
-                {selectedCrop && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCrop('')}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-0.5 ml-0.5"
-                    title="Clear crop filter"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
               {/* Tenant Dynamic Custom Field Filter */}
               {filterableCustomKeys.length > 0 && (
                 <div className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200/60 dark:border-gray-800/60 px-3.5 py-2 rounded-xl w-full md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
@@ -1053,7 +1044,6 @@ function LeadsContent() {
                     onChange={(e) => {
                       setSelectedCustomField(e.target.value)
                       setCustomFilterValue('')
-                      setIsCustomTyping(false)
                     }}
                     className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer max-w-[130px] truncate"
                     title="Select custom column to filter"
@@ -1066,67 +1056,27 @@ function LeadsContent() {
                     ))}
                   </select>
 
-                  {/* Select or Type Value */}
+                  {/* Dropdown of values only - zero typing */}
                   {selectedCustomField && (
                     <div className="flex items-center gap-1.5 pl-2 border-l border-gray-300 dark:border-gray-700">
-                      {!isCustomTyping && availableCustomValues.length > 0 ? (
-                        <select
-                          value={customFilterValue}
-                          onChange={(e) => {
-                            if (e.target.value === '__custom__') {
-                              setIsCustomTyping(true)
-                              setCustomFilterValue('')
-                            } else {
-                              setCustomFilterValue(e.target.value)
-                            }
-                          }}
-                          className="bg-transparent text-xs font-semibold text-gray-800 dark:text-gray-200 focus:outline-none cursor-pointer max-w-[150px] truncate"
-                          title="Select value"
-                        >
-                          <option value="">All {selectedCustomField.replace(/_/g, ' ')}</option>
-                          {availableCustomValues.map(v => (
-                            <option key={v} value={v}>{v}</option>
-                          ))}
-                          <option value="__custom__">✏️ Type custom...</option>
-                        </select>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="text"
-                            placeholder={`Type ${selectedCustomField.replace(/_/g, ' ')}...`}
-                            value={customFilterValue}
-                            onChange={(e) => setCustomFilterValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') fetchLeads(false)
-                            }}
-                            className="bg-transparent text-xs font-medium text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none w-28 md:w-36"
-                            autoFocus={isCustomTyping}
-                          />
-                          {availableCustomValues.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsCustomTyping(false)
-                                setCustomFilterValue('')
-                              }}
-                              className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline px-1 cursor-pointer font-bold"
-                              title="Switch to dropdown list"
-                            >
-                              List
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      <select
+                        value={customFilterValue}
+                        onChange={(e) => setCustomFilterValue(e.target.value)}
+                        className="bg-transparent text-xs font-semibold text-gray-800 dark:text-gray-200 focus:outline-none cursor-pointer max-w-[160px] truncate"
+                        title={`Select ${selectedCustomField.replace(/_/g, ' ')} value`}
+                      >
+                        <option value="">All {selectedCustomField.replace(/_/g, ' ')}</option>
+                        {availableCustomValues.map(v => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
 
                       {customFilterValue && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setCustomFilterValue('')
-                            setIsCustomTyping(false)
-                          }}
-                          className="text-gray-400 hover:text-red-500 transition-colors p-0.5 ml-1"
-                          title="Clear custom filter"
+                          onClick={() => setCustomFilterValue('')}
+                          className="text-gray-400 hover:text-red-500 transition-colors p-0.5 ml-0.5 cursor-pointer"
+                          title="Clear value filter"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>

@@ -25,30 +25,38 @@ export async function GET(req: NextRequest) {
     const customField = searchParams.get('custom_field') || ''
     const customValue = searchParams.get('custom_value') || ''
     const distinctField = searchParams.get('distinct_field') || ''
-    const crop = searchParams.get('crop') || ''
 
-    // Return distinct values for a custom metadata key
+    // Return distinct values for a custom metadata key across recent leads
     if (distinctField) {
-      const cleanField = distinctField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
+      const cleanField = distinctField.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '')
       if (cleanField) {
         try {
           const { data } = await supabaseAdmin
             .from('leads')
             .select('metadata')
             .eq('org_id', orgId)
-            .limit(500)
+            .order('created_at', { ascending: false })
+            .limit(1000)
 
           const valSet = new Set<string>()
+          const targetNorm = cleanField.replace(/[^a-z0-9]/g, '')
+
           data?.forEach((r: any) => {
             let m = r.metadata
             if (typeof m === 'string') {
               try { m = JSON.parse(m) } catch {}
             }
-            const val = m?.[cleanField] ?? r?.[cleanField]
-            if (val !== null && val !== undefined) {
-              const str = String(val).trim()
-              if (str && str !== 'null' && str !== 'undefined' && str.length < 60) {
-                valSet.add(str)
+            if (m && typeof m === 'object') {
+              for (const [k, v] of Object.entries(m)) {
+                const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+                if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
+                  if (v !== null && v !== undefined) {
+                    const str = String(v).trim()
+                    if (str && str.length < 60 && str !== 'null' && str !== 'undefined') {
+                      valSet.add(str)
+                    }
+                  }
+                }
               }
             }
           })
@@ -129,16 +137,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Crop filter
-    if (crop) {
-      const cleanCrop = crop.trim().replace(/[^a-zA-Z0-9_\s-]/g, '')
-      if (cleanCrop) {
-        try {
-          query = query.filter('metadata->>crop', 'ilike', `%${cleanCrop}%`) as any
-        } catch {}
-      }
-    }
-
     const { data, error } = await query
     if (error) {
       console.error('[leads-list query error]:', error)
@@ -186,24 +184,24 @@ export async function GET(req: NextRequest) {
 
       // Apply dynamic custom tenant filter (e.g. crop_choice, city, etc.)
       if (customField && customValue) {
-        const val = String(parsedMetadata[customField] || l[customField] || '').toLowerCase()
-        if (!val.includes(customValue.toLowerCase())) return null
-      }
-
-      // Apply crop filter
-      if (crop) {
-        const cLower = crop.toLowerCase().trim()
-        const cVal = String(parsedMetadata.crop || parsedMetadata.crop_choice || parsedMetadata.crops || l.crop || '').toLowerCase()
-        let matches = cVal.includes(cLower)
-        if (!matches && (cLower === 'chana' || cLower === 'channa')) {
-          matches = cVal.includes('chana') || cVal.includes('channa') || cVal.includes('gram')
+        const targetK = customField.toLowerCase().replace(/[^a-z0-9]/g, '')
+        const targetV = customValue.toLowerCase().trim()
+        let matched = false
+        for (const [k, v] of Object.entries(parsedMetadata)) {
+          const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+          if (normK === targetK || normK.includes(targetK) || targetK.includes(normK)) {
+            const vStr = String(v).toLowerCase()
+            if (vStr.includes(targetV) || (targetV === 'chana' && vStr.includes('channa')) || (targetV === 'channa' && vStr.includes('chana'))) {
+              matched = true
+              break
+            }
+          }
         }
-        if (!matches) {
-          matches = Object.entries(parsedMetadata).some(([k, v]) => 
-            k.toLowerCase().includes('crop') && String(v).toLowerCase().includes(cLower)
-          )
+        if (!matched && l[customField]) {
+          const vStr = String(l[customField]).toLowerCase()
+          if (vStr.includes(targetV)) matched = true
         }
-        if (!matches) return null
+        if (!matched) return null
       }
 
       const stg = c.stage || l.stage || parsedMetadata.stage || 'new'
