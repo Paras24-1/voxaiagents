@@ -574,10 +574,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   let dynamicQuality = data.lead_quality || 'cold';
 
   if (computedScore > 0) {
-    if (computedScore >= 70) {
+    if (computedScore > 50) {
       dynamicTemp = 'HOT';
       dynamicQuality = 'hot';
-    } else if (computedScore >= 40) {
+    } else if (computedScore >= 25) {
       dynamicTemp = 'WARM';
       dynamicQuality = 'warm';
     } else {

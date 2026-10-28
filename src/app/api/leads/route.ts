@@ -189,8 +189,8 @@ export async function PATCH(req: NextRequest) {
       const numericScore = Number(sentScore);
       if (!isNaN(numericScore)) {
         let temp = 'COLD';
-        if (numericScore >= 70) temp = 'HOT';
-        else if (numericScore >= 40) temp = 'WARM';
+        if (numericScore > 50) temp = 'HOT';
+        else if (numericScore >= 25) temp = 'WARM';
         
         updates.lead_temperature = temp;
         mergedMeta.lead_quality = temp.toLowerCase();

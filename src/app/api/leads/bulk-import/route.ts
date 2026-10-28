@@ -216,8 +216,9 @@ export async function POST(req: NextRequest) {
       if (item.lead_score !== undefined) {
         const numericScore = Number(item.lead_score)
         if (!isNaN(numericScore)) {
-          if (numericScore >= 70) temp = 'HOT'
-          else if (numericScore >= 40) temp = 'WARM'
+          if (numericScore > 50) temp = 'HOT'
+          else if (numericScore >= 25) temp = 'WARM'
+          else temp = 'COLD'
         }
       } else if (item.lead_quality) {
         const q = String(item.lead_quality).toUpperCase()

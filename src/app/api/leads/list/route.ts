@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
     const leadType = searchParams.get('lead_type') || ''
     const geographicState = searchParams.get('state') || ''
     const assignedToday = searchParams.get('assigned_today') === 'true'
+    const customField = searchParams.get('custom_field') || ''
+    const customValue = searchParams.get('custom_value') || ''
 
     // Pagination — DB-side, strictly 50 items per page
     const page = parseInt(searchParams.get('page') || '1', 10)
@@ -83,6 +85,16 @@ export async function GET(req: NextRequest) {
       query = query.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%,customer_name.ilike.%${search}%`) as any
     }
 
+    // Custom tenant metadata filter (e.g. crop_choice, city, district, etc.)
+    if (customField && customValue) {
+      const cleanField = customField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
+      if (cleanField) {
+        try {
+          query = query.filter(`metadata->>${cleanField}`, 'ilike', `%${customValue.trim()}%`) as any
+        } catch {}
+      }
+    }
+
     const { data, error } = await query
     if (error) {
       console.error('[leads-list query error]:', error)
@@ -112,12 +124,12 @@ export async function GET(req: NextRequest) {
         parsedMetadata = {}
       }
 
-      // Quality derived from score or lead_temperature
+      // Quality derived from score (0-25: COLD, 25-50: WARM, >50: HOT)
       const score = Number(l.lead_score ?? parsedMetadata.lead_score ?? 0)
       let q = (l.lead_quality || parsedMetadata.lead_quality || parsedMetadata.lead_temperature || l.lead_temperature || 'cold').toLowerCase()
-      if (score >= 70) q = 'hot'
-      else if (score >= 40) q = 'warm'
-      else if (score > 0) q = 'cold'
+      if (score > 50) q = 'hot'
+      else if (score >= 25) q = 'warm'
+      else q = 'cold'
 
       // Apply quality filter
       if (quality && q !== quality.toLowerCase()) return null
@@ -126,6 +138,12 @@ export async function GET(req: NextRequest) {
       if (geographicState) {
         const leadState = (parsedMetadata.state || l.state || '').trim()
         if (leadState.toLowerCase() !== geographicState.toLowerCase()) return null
+      }
+
+      // Apply dynamic custom tenant filter (e.g. crop_choice, city, etc.)
+      if (customField && customValue) {
+        const val = String(parsedMetadata[customField] || l[customField] || '').toLowerCase()
+        if (!val.includes(customValue.toLowerCase())) return null
       }
 
       const stg = c.stage || l.stage || parsedMetadata.stage || 'new'

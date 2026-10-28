@@ -24,7 +24,8 @@ import {
   UploadCloud,
   Clock,
   UserCheck,
-  UserPlus
+  UserPlus,
+  SlidersHorizontal
 } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
@@ -168,6 +169,8 @@ function LeadsContent() {
   const [selectedQuality, setSelectedQuality] = useState('')
   const [selectedState, setSelectedState] = useState('')
   const [selectedSource, setSelectedSource] = useState('')
+  const [selectedCustomField, setSelectedCustomField] = useState('')
+  const [customFilterValue, setCustomFilterValue] = useState('')
   const [assignedTodayFilter, setAssignedTodayFilter] = useState(false)
   // For non-Osmo organizations (like Innveg), default to 'all' so all leads load without category restriction
   const [leadTypeFilter, setLeadTypeFilterState] = useState<string>(isOsmoRo ? 'unfiltered' : 'all')
@@ -305,6 +308,10 @@ function LeadsContent() {
       if (search) statsParams.set('search', search)
       if (startDate) statsParams.set('start_date', startDate)
       if (endDate) statsParams.set('end_date', endDate)
+      if (selectedCustomField && customFilterValue) {
+        statsParams.set('custom_field', selectedCustomField)
+        statsParams.set('custom_value', customFilterValue)
+      }
 
       if (!loadMore) {
         // Fetch stats across all categories for tab counts & metrics
@@ -340,7 +347,7 @@ function LeadsContent() {
 
   useEffect(() => {
     fetchLeads(false)
-  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter])
+  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter, selectedCustomField, customFilterValue])
 
   // Infinite Scroll Observer — automatically loads next 50 leads when scrolling near bottom
   const sentinelRef = useRef<HTMLDivElement | null>(null)
@@ -514,7 +521,7 @@ function LeadsContent() {
     if (typeof meta === 'string') { try { meta = JSON.parse(meta) } catch (e) { meta = {} } }
     const score = Number(meta.lead_score ?? lead.lead_score) || 0;
     const stage = meta.stage || lead.stage || 'new';
-    const quality = meta.lead_quality || (score >= 70 ? 'hot' : score >= 40 ? 'warm' : score > 0 ? 'cold' : lead.lead_quality || 'unknown');
+    const quality = meta.lead_quality || (score > 50 ? 'hot' : score >= 25 ? 'warm' : 'cold');
     
     setActiveLead({ ...lead, metadata: meta })
     setEditStage(stage)
@@ -566,7 +573,7 @@ function LeadsContent() {
       let meta = l.metadata || {};
       if (typeof meta === 'string') { try { meta = JSON.parse(meta) } catch (e) {} }
       const score = Number(meta.lead_score ?? l.lead_score) || 0;
-      const quality = meta.lead_quality || (score >= 70 ? 'hot' : score >= 40 ? 'warm' : score > 0 ? 'cold' : l.lead_quality || 'unknown');
+      const quality = meta.lead_quality || (score > 50 ? 'hot' : score >= 25 ? 'warm' : 'cold');
       const stage = meta.stage || l.stage || 'new';
 
       const row = [
@@ -597,9 +604,19 @@ function LeadsContent() {
   }
 
   // Use stats from server for accurate metrics across all leads
-  const totalLeads = stats.total
-  const hotLeads = stats.hot ?? 0
-  const warmLeads = stats.warm ?? 0
+  const totalLeads = stats.total || leads.length
+  const hotCountFromLoaded = leads.filter(l => {
+    const m = (typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})) as any
+    const s = Number(m.lead_score ?? l.lead_score) || 0
+    return s > 50 || String(m.lead_quality || m.lead_temperature || l.lead_quality || l.lead_temperature || '').toLowerCase().includes('hot')
+  }).length
+  const warmCountFromLoaded = leads.filter(l => {
+    const m = (typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})) as any
+    const s = Number(m.lead_score ?? l.lead_score) || 0
+    return (s >= 25 && s <= 50) || String(m.lead_quality || m.lead_temperature || l.lead_quality || l.lead_temperature || '').toLowerCase().includes('warm')
+  }).length
+  const hotLeads = stats.hot > 0 ? stats.hot : (hotCountFromLoaded > 0 ? hotCountFromLoaded : (stats.hot ?? 0))
+  const warmLeads = stats.warm > 0 ? stats.warm : (warmCountFromLoaded > 0 ? warmCountFromLoaded : (stats.warm ?? 0))
   const followupLeads = stats.followups ?? 0
 
   const displayedLeads = useMemo(() => {
@@ -616,9 +633,17 @@ function LeadsContent() {
         if (selectedSource === 'google_maps_scraper' && !src.includes('google_maps') && !src.includes('scraper')) return false
         if (selectedSource === 'manual_entry' && !src.includes('manual') && !src.includes('crm')) return false
       }
+      if (selectedCustomField && customFilterValue) {
+        let metaObj = l.metadata || {}
+        if (typeof metaObj === 'string') {
+          try { metaObj = JSON.parse(metaObj) } catch (e) { metaObj = {} }
+        }
+        const val = String((metaObj as any)[selectedCustomField] ?? (l as any)[selectedCustomField] ?? '').toLowerCase()
+        if (!val.includes(customFilterValue.toLowerCase().trim())) return false
+      }
       return true
     })
-  }, [leads, isOsmoRo, leadTypeFilter, selectedSource])
+  }, [leads, isOsmoRo, leadTypeFilter, selectedSource, selectedCustomField, customFilterValue])
 
   const uniqueCustomKeys = useMemo(() => {
     const skipKeys = [
@@ -640,7 +665,7 @@ function LeadsContent() {
 
     const rawKeys = Array.from(new Set([
       ...standardKeys,
-      ...displayedLeads.flatMap(lead => {
+      ...leads.flatMap(lead => {
         let metaOnly = (lead.metadata || {}) as Record<string, any>
         if (typeof metaOnly === 'string') {
           try { metaOnly = JSON.parse(metaOnly) } catch (e) { metaOnly = {} }
@@ -665,7 +690,20 @@ function LeadsContent() {
       if (idxB !== -1) return 1
       return a.localeCompare(b)
     })
-  }, [displayedLeads])
+  }, [leads])
+
+  const filterableCustomKeys = useMemo(() => {
+    const skip = [
+      'id', 'created_at', 'updated_at', 'org_id', 'assigned_to', 
+      'phone_number', 'name', 'conversation_id', 'source',
+      'followup_notes', 'followup_date', 'followup_notified',
+      'metadata', 'lead_type', 'lead_score', 'lead_quality', 
+      'lead_temperature', 'stage', 'state', 'osmo_category'
+    ]
+    const tenantDefaults = ['city', 'crop', 'crop_choice', 'district', 'tehsil']
+    const combined = Array.from(new Set([...uniqueCustomKeys, ...tenantDefaults]))
+    return combined.filter(k => !skip.includes(k.toLowerCase()))
+  }, [uniqueCustomKeys])
 
   const getHeaderLabelWithIcon = (key: string) => {
     const lower = key.toLowerCase()
@@ -885,6 +923,56 @@ function LeadsContent() {
                 </select>
               </div>
 
+              {/* Tenant Dynamic Custom Field Filter */}
+              {filterableCustomKeys.length > 0 && (
+                <div className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200/60 dark:border-gray-800/60 px-3.5 py-2 rounded-xl w-full md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
+                  <SlidersHorizontal className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <select
+                    value={selectedCustomField}
+                    onChange={(e) => {
+                      setSelectedCustomField(e.target.value)
+                      if (!e.target.value) setCustomFilterValue('')
+                    }}
+                    className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer max-w-[130px] truncate"
+                    title="Select custom column to filter"
+                  >
+                    <option value="">Custom Filter...</option>
+                    {filterableCustomKeys.map(k => (
+                      <option key={k} value={k}>
+                        {k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedCustomField && (
+                    <div className="flex items-center gap-1.5 pl-2 border-l border-gray-300 dark:border-gray-700">
+                      <input
+                        type="text"
+                        placeholder={`Filter ${selectedCustomField.replace(/_/g, ' ')}...`}
+                        value={customFilterValue}
+                        onChange={(e) => setCustomFilterValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') fetchLeads(false)
+                        }}
+                        className="bg-transparent text-xs font-medium text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none w-28 md:w-36"
+                      />
+                      {customFilterValue && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomFilterValue('')
+                            setSelectedCustomField('')
+                          }}
+                          className="text-gray-400 hover:text-red-500 transition-colors p-0.5"
+                          title="Clear custom filter"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button
                 onClick={() => fetchLeads(false)}
                 className="hidden md:flex items-center justify-center gap-1.5 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:-translate-y-0.5"
@@ -1014,13 +1102,13 @@ function LeadsContent() {
 
                         // Dynamically derive quality/temperature from score if available
                         const metaScore = Number(allCustomData.lead_score) || 0;
-                        if (metaScore >= 70) {
+                        if (metaScore > 50) {
                           allCustomData.lead_temperature = 'HOT';
                           allCustomData.lead_quality = 'HOT';
-                        } else if (metaScore >= 40) {
+                        } else if (metaScore >= 25) {
                           allCustomData.lead_temperature = 'WARM';
                           allCustomData.lead_quality = 'WARM';
-                        } else if (metaScore > 0) {
+                        } else {
                           allCustomData.lead_temperature = 'COLD';
                           allCustomData.lead_quality = 'COLD';
                         }
@@ -1186,16 +1274,16 @@ function LeadsContent() {
                                         <div className="w-16 bg-gray-200 dark:bg-gray-800 rounded-full h-2 overflow-hidden shadow-inner">
                                           <div 
                                             className={`h-full rounded-full transition-all duration-500 ${
-                                              score >= 70 ? 'bg-gradient-to-r from-red-500 to-rose-600 shadow-sm shadow-red-500/50' : 
-                                              score >= 40 ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-sm shadow-amber-500/50' : 
+                                              score > 50 ? 'bg-gradient-to-r from-red-500 to-rose-600 shadow-sm shadow-red-500/50' : 
+                                              score >= 25 ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-sm shadow-amber-500/50' : 
                                               'bg-gradient-to-r from-blue-500 to-sky-500'
                                             }`} 
                                             style={{ width: `${Math.min(100, Math.max(0, score))}%` }} 
                                           />
                                         </div>
                                         <span className={`text-xs font-black font-mono px-2 py-0.5 rounded-md border shadow-2xs ${
-                                          score >= 70 ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800/60' : 
-                                          score >= 40 ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60' : 
+                                          score > 50 ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800/60' : 
+                                          score >= 25 ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60' : 
                                           'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60'
                                         }`}>
                                           {score}
@@ -1207,7 +1295,7 @@ function LeadsContent() {
 
                               // 3. Lead Quality / Temperature
                               if (lowerKey === 'lead_quality' || lowerKey === 'lead_temperature') {
-                                const qVal = String(val || allCustomData.lead_quality || allCustomData.lead_temperature || (metaScore >= 70 ? 'HOT' : metaScore >= 40 ? 'WARM' : 'COLD')).toUpperCase();
+                                const qVal = String(val || allCustomData.lead_quality || allCustomData.lead_temperature || (metaScore > 50 ? 'HOT' : metaScore >= 25 ? 'WARM' : 'COLD')).toUpperCase();
                                 
                                 let qualityBadge = (
                                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">

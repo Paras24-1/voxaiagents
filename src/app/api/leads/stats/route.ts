@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('start_date') || ''
     const endDate = searchParams.get('end_date') || ''
     const assignedToday = searchParams.get('assigned_today') === 'true'
+    const customField = searchParams.get('custom_field') || ''
+    const customValue = searchParams.get('custom_value') || ''
 
     let staffConvIds: string[] | null = null
     if (isStaffEmployee) {
@@ -55,11 +57,63 @@ export async function GET(req: NextRequest) {
         const startOfTodayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
         q = q.gte('created_at', startOfTodayIso) as any
       }
+      if (customField && customValue) {
+        const cleanField = customField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
+        if (cleanField) {
+          try {
+            q = q.filter(`metadata->>${cleanField}`, 'ilike', `%${customValue.trim()}%`) as any
+          } catch {}
+        }
+      }
       if (search) {
         q = q.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%,customer_name.ilike.%${search}%`) as any
       }
       if (applyFilter) q = applyFilter(q)
       return q
+    }
+
+    const getHotCount = async (): Promise<number> => {
+      // Strategy 1: JSONB lead_score > 50
+      try {
+        const { count, error } = await buildCount(q => q.filter('metadata->lead_score', 'gt', 50))
+        if (!error && count && count > 0) return count
+      } catch {}
+
+      // Strategy 2: Combined JSONB / column text search for hot
+      try {
+        const { count, error } = await buildCount(q => q.or('lead_temperature.ilike.%hot%,metadata->>lead_quality.ilike.%hot%,metadata->>lead_temperature.ilike.%hot%'))
+        if (!error && count && count > 0) return count
+      } catch {}
+
+      // Strategy 3: Direct column check
+      try {
+        const { count, error } = await buildCount(q => q.ilike('lead_temperature', '%hot%'))
+        if (!error && count !== null) return count
+      } catch {}
+
+      return 0
+    }
+
+    const getWarmCount = async (): Promise<number> => {
+      // Strategy 1: JSONB lead_score 25 to 50
+      try {
+        const { count, error } = await buildCount(q => q.filter('metadata->lead_score', 'gte', 25).filter('metadata->lead_score', 'lte', 50))
+        if (!error && count && count > 0) return count
+      } catch {}
+
+      // Strategy 2: Combined JSONB / column text search for warm
+      try {
+        const { count, error } = await buildCount(q => q.or('lead_temperature.ilike.%warm%,metadata->>lead_quality.ilike.%warm%,metadata->>lead_temperature.ilike.%warm%'))
+        if (!error && count && count > 0) return count
+      } catch {}
+
+      // Strategy 3: Direct column check
+      try {
+        const { count, error } = await buildCount(q => q.ilike('lead_temperature', '%warm%'))
+        if (!error && count !== null) return count
+      } catch {}
+
+      return 0
     }
 
     // Execute count queries concurrently in parallel at DB level
@@ -70,8 +124,8 @@ export async function GET(req: NextRequest) {
       { count: customerCount },
       { count: unfilteredCount },
       { count: followupCount },
-      { count: hotCount },
-      { count: warmCount }
+      hotCount,
+      warmCount
     ] = await Promise.all([
       buildCount(),
       buildCount(q => q.eq('osmo_category', 'osmo_dealer')),
@@ -79,8 +133,8 @@ export async function GET(req: NextRequest) {
       buildCount(q => q.eq('osmo_category', 'customer')),
       buildCount(q => q.or('osmo_category.eq.unfiltered,osmo_category.is.null')),
       buildCount(q => q.not('followup_date', 'is', null)),
-      buildCount(q => q.ilike('lead_temperature', '%hot%')),
-      buildCount(q => q.ilike('lead_temperature', '%warm%'))
+      getHotCount(),
+      getWarmCount()
     ])
 
     const total = totalCount || 0
