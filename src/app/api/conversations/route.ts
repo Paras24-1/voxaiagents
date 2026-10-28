@@ -135,19 +135,22 @@ export async function GET(req: NextRequest) {
       const unlinkedConvs = enrichedData.filter((c: any) => !c.lead && c.phone_number)
       if (unlinkedConvs.length > 0) {
         const phoneNumbers = Array.from(new Set(unlinkedConvs.map((c: any) => c.phone_number)))
-        const CHUNK_SIZE = 50
-        const fallbackLeads: any[] = []
-
+        const CHUNK_SIZE = 100
+        const chunks: string[][] = []
         for (let i = 0; i < phoneNumbers.length; i += CHUNK_SIZE) {
-          const chunk = phoneNumbers.slice(i, i + CHUNK_SIZE)
-          const { data: chunkLeads } = await supabaseAdmin
-            .from('leads')
-            .select('*')
-            .eq('org_id', orgId)
-            .in('phone_number', chunk)
-
-          if (chunkLeads) fallbackLeads.push(...chunkLeads)
+          chunks.push(phoneNumbers.slice(i, i + CHUNK_SIZE))
         }
+
+        const chunkResults = await Promise.all(
+          chunks.map(chunk =>
+            supabaseAdmin
+              .from('leads')
+              .select('*')
+              .eq('org_id', orgId)
+              .in('phone_number', chunk)
+          )
+        )
+        const fallbackLeads = chunkResults.flatMap(r => r.data || [])
 
         if (fallbackLeads.length > 0) {
           const leadByPhone = new Map<string, any>()

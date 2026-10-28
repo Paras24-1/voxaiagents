@@ -21,60 +21,82 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get('end_date') || ''
     const leadType = searchParams.get('lead_type') || ''
     const geographicState = searchParams.get('state') || ''
-    
     const assignedToday = searchParams.get('assigned_today') === 'true'
 
-    // Pagination (default to page 1, 50 items per page)
+    // Pagination — DB-side, no full scan
     const page = parseInt(searchParams.get('page') || '1', 10)
-    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100)
     const from = (page - 1) * limit
+    // Fetch one extra to determine hasMore without a COUNT query
+    const fetchLimit = limit + 1
 
-    let allLeads: any[] = []
-    let fromIndex = 0
-    let fetchMore = true
-
-    while (fetchMore) {
-      let query = supabaseAdmin
-        .from('leads')
-        .select('*, conversations(*)')
+    let staffConvIds: string[] | null = null
+    if (isStaffEmployee) {
+      const { data: convs } = await supabaseAdmin
+        .from('conversations')
+        .select('id')
         .eq('org_id', orgId)
-        .order('created_at', { ascending: false })
-        .range(fromIndex, fromIndex + 999)
-
-      const { data, error } = await query
-      if (error) throw error
-      if (!data || data.length === 0) {
-        fetchMore = false
-      } else {
-        allLeads.push(...data)
-        if (data.length < 1000) fetchMore = false
-        else fromIndex += 1000
+        .eq('assigned_to', userId)
+      staffConvIds = (convs || []).map(c => c.id)
+      if (staffConvIds.length === 0) {
+        return NextResponse.json({ data: [], hasMore: false })
       }
     }
 
-    // Apply staff restriction first
-    let allowedContacts = allLeads
-    if (isStaffEmployee) {
-      allowedContacts = allLeads.filter(l => {
-        const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
-        return c.assigned_to === userId
-      })
+    // ----------------------------------------------------------------
+    // Build the query — push ALL filters to the DB, never fetch all rows
+    // Direct single-table query on leads for maximum PostgreSQL query plan efficiency
+    // ----------------------------------------------------------------
+    const selectFields = 'id, conversation_id, phone_number, name, customer_name, created_at, updated_at, stage, lead_quality, lead_score, lead_temperature, lead_type, osmo_category, notes, followup_date, followup_notes, metadata, org_id'
+
+    let query = supabaseAdmin
+      .from('leads')
+      .select(selectFields)
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
+      .range(from, from + fetchLimit - 1)
+
+    // Staff employees only see leads belonging to their assigned conversations
+    if (staffConvIds) {
+      query = query.in('conversation_id', staffConvIds) as any
     }
 
-    const startOfTodayMs = new Date().setHours(0, 0, 0, 0)
+    // Push stage filter to DB
+    if (stage) query = query.eq('stage', stage) as any
 
-    // 3. Process each lead, derive classification, and parse metadata
-    const enrichedLeads = allowedContacts.map((l) => {
-      const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
-      const p = l.phone_number || c.phone_number
+    // Push lead_type / osmo_category filter to DB
+    if (leadType && leadType !== 'all') {
+      if (leadType === 'unfiltered') {
+        query = query.or('osmo_category.eq.unfiltered,osmo_category.is.null') as any
+      } else {
+        query = query.eq('osmo_category', leadType) as any
+      }
+    }
 
-      const ca = {}
-      const assignedAt = c.updated_at || l.created_at
+    // Push date range filters to DB
+    if (startDate) query = query.gte('created_at', startDate) as any
+    if (endDate) query = query.lte('created_at', `${endDate}T23:59:59.999Z`) as any
 
-      // CRITICAL: l.metadata may arrive as a raw JSON string (text column) rather than
-      // a parsed object (jsonb). If we spread a string with {...string}, JavaScript
-      // iterates its characters and creates numeric index keys (0,1,2,3,...) which then
-      // appear as garbled column headers in the CRM table. Always parse it first.
+    // If assignedToday filter is enabled, filter by today's date
+    if (assignedToday) {
+      const startOfTodayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
+      query = query.gte('updated_at', startOfTodayIso) as any
+    }
+
+    // Push text search to DB (ilike on name OR phone_number OR customer_name)
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%,customer_name.ilike.%${search}%`) as any
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    const rows = data || []
+    const hasMore = rows.length > limit
+    const slicedRows = hasMore ? rows.slice(0, limit) : rows
+
+    // Lightweight enrichment — no heavy loops, no additional DB calls
+    const enrichedLeads = slicedRows.map((l: any) => {
       let parsedMetadata: Record<string, any> = {}
       try {
         if (typeof l.metadata === 'string' && l.metadata.trim()) {
@@ -82,102 +104,65 @@ export async function GET(req: NextRequest) {
         } else if (l.metadata && typeof l.metadata === 'object' && !Array.isArray(l.metadata)) {
           parsedMetadata = l.metadata
         }
-        // Extra guard: if after parse it's still not a plain object, reset to {}
         if (typeof parsedMetadata !== 'object' || Array.isArray(parsedMetadata) || parsedMetadata === null) {
           parsedMetadata = {}
         }
-      } catch (e) {
+      } catch {
         parsedMetadata = {}
       }
-      
-      const score = Number(parsedMetadata.lead_score ?? 0)
-      let q = (parsedMetadata.lead_quality || parsedMetadata.lead_temperature || l.lead_temperature || 'cold').toLowerCase()
+
+      // Quality derived from score — applies client-side quality filter too
+      const score = Number(l.lead_score ?? parsedMetadata.lead_score ?? 0)
+      let q = (l.lead_quality || parsedMetadata.lead_quality || parsedMetadata.lead_temperature || l.lead_temperature || 'cold').toLowerCase()
       if (score >= 70) q = 'hot'
       else if (score >= 40) q = 'warm'
       else if (score > 0) q = 'cold'
 
-      const stg = c.stage || l.stage || parsedMetadata.state || parsedMetadata.stage || 'new'
-      const displayName = c.name || l.name || l.customer_name || parsedMetadata.Name || parsedMetadata.name || parsedMetadata.contact_person || parsedMetadata.customer_name || 'Unknown'
+      // Apply quality filter (done in JS since it's derived)
+      if (quality && q !== quality.toLowerCase()) return null
 
-      // Keep original created_at if it's from lead, else conversation
-      const createdAt = l.created_at || c.created_at
-      
+      // Apply geographic state filter (stored in metadata)
+      if (geographicState) {
+        const leadState = (parsedMetadata.state || l.state || '').trim()
+        if (leadState.toLowerCase() !== geographicState.toLowerCase()) return null
+      }
+
+      const stg = l.stage || parsedMetadata.stage || 'new'
+      const displayName = l.name || l.customer_name || parsedMetadata.Name || parsedMetadata.name || parsedMetadata.contact_person || 'Unknown'
+      const assignedAt = l.updated_at || l.created_at
+
       return {
         ...l,
         ...parsedMetadata,
-        id: l.id || c.id || p,
-        conversation_id: l.conversation_id || c.id || null,
-        phone_number: p,
-        created_at: createdAt,
-        assigned_at: assignedAt,
-        lead_type: l.osmo_category || 'unfiltered',
+        id: l.id,
+        conversation_id: l.conversation_id || null,
+        phone_number: l.phone_number,
         name: displayName,
+        customer_name: l.customer_name,
+        created_at: l.created_at,
+        updated_at: l.updated_at,
+        assigned_at: assignedAt,
         stage: stg,
         lead_quality: q,
         lead_temperature: q.toUpperCase(),
         lead_score: score,
-        metadata: { ...parsedMetadata, lead_type: l.osmo_category || 'unfiltered', category: l.osmo_category || 'unfiltered' }
+        lead_type: l.osmo_category || 'unfiltered',
+        osmo_category: l.osmo_category,
+        notes: l.notes,
+        followup_date: l.followup_date,
+        followup_notes: l.followup_notes,
+        org_id: l.org_id,
+        metadata: { ...parsedMetadata, lead_type: l.osmo_category || 'unfiltered', category: l.osmo_category || 'unfiltered' },
+        state: parsedMetadata.state,
+        city: parsedMetadata.city,
+        source: parsedMetadata.source || l.source || 'Direct'
       }
-    })
+    }).filter(Boolean)
 
-    // 4. Apply filters (stage, quality, leadType, state, date, search, assignedToday)
-    const filteredLeads = enrichedLeads.filter(l => {
-      if (assignedToday) {
-        if (!l.assigned_at) return false
-        const assignTime = new Date(l.assigned_at).getTime()
-        if (assignTime < startOfTodayMs) return false
-      }
-      if (stage && l.stage !== stage) return false
-      if (quality && l.lead_quality !== quality.toLowerCase()) return false
-      if (leadType && leadType !== 'all') {
-        if (l.lead_type !== leadType) return false
-      }
-      // 'state' lives inside metadata — the enriched object spreads parsedMetadata so l.state works
-      // But also check l.metadata.state as a fallback for older records
-      if (geographicState) {
-        const leadState = (l.state || l.metadata?.state || '').trim()
-        if (leadState.toLowerCase() !== geographicState.toLowerCase()) return false
-      }
-      
-      if (startDate || endDate) {
-        if (!l.created_at) return false
-        const dt = new Date(l.created_at).getTime()
-        if (startDate && dt < new Date(startDate).getTime()) return false
-        if (endDate && dt > new Date(`${endDate}T23:59:59.999Z`).getTime()) return false
-      }
-      
-      if (search) {
-        const srch = search.toLowerCase()
-        const n = (l.name || '').toLowerCase()
-        const p = (l.phone_number || '').toLowerCase()
-        const cst = (l.customer_name || '').toLowerCase()
-        if (!n.includes(srch) && !p.includes(srch) && !cst.includes(srch)) return false
-      }
-      
-      return true
-    })
-
-    // Explicitly sort: If assignedToday is active, sort by assigned_at DESC; otherwise sort by created_at DESC
-    filteredLeads.sort((a, b) => {
-      const fieldA = assignedToday ? (a.assigned_at || a.created_at) : (a.created_at || a.updated_at)
-      const fieldB = assignedToday ? (b.assigned_at || b.created_at) : (b.created_at || b.updated_at)
-      const timeA = new Date(fieldA || 0).getTime()
-      const timeB = new Date(fieldB || 0).getTime()
-      return timeB - timeA
-    })
-
-    const slicedLeads = filteredLeads.slice(from, from + limit)
-    const hasMore = (from + limit) < filteredLeads.length
-
-    return NextResponse.json({
-      data: slicedLeads,
-      hasMore
-    })
+    return NextResponse.json({ data: enrichedLeads, hasMore })
   } catch (err: unknown) {
     console.error('[leads-list]', err)
     const error = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error }, { status: 500 })
   }
 }
-
-

@@ -12,47 +12,59 @@ export async function GET(req: NextRequest) {
     const conversationId = searchParams.get('conversation_id')
     if (!conversationId) return NextResponse.json({ error: 'conversation_id required' }, { status: 400 })
 
-    // 1. Get the phone number and last_message fallback info for this conversation
-    const { data: conv } = await supabaseAdmin
-      .from('conversations')
-      .select('phone_number, last_message, created_at')
-      .eq('id', conversationId)
-      .eq('org_id', orgId)
-      .maybeSingle()
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 300)
 
-    // 3. Find ALL conversation IDs for this phone number in this org
-    //    This merges messages across duplicate conversation records
-    let allConvIds = [conversationId]
+    // Fast-path: query directly by conversation_id first (1 round-trip)
+    const { data: directMsgs, error: directErr } = await supabaseAdmin
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('timestamp', { ascending: false })
+      .limit(limit)
 
-    if (conv?.phone_number) {
-      const cleanP = conv.phone_number.replace(/\D/g, '').slice(-10)
-      if (cleanP.length >= 10) {
-        const { data: dupes } = await supabaseAdmin
-          .from('conversations')
-          .select('id')
-          .ilike('phone_number', `%${cleanP}`)
-          .eq('org_id', orgId)
+    if (directErr) throw directErr
 
-        if (dupes && dupes.length > 0) {
-          allConvIds = dupes.map(d => d.id)
+    let finalMsgs = directMsgs || []
+    let conv: { phone_number?: string | null; last_message?: string | null; created_at?: string | null } | null = null
+
+    // Fallback only if no messages found directly under this conversation ID
+    if (finalMsgs.length === 0) {
+      const { data: convData } = await supabaseAdmin
+        .from('conversations')
+        .select('phone_number, last_message, created_at')
+        .eq('id', conversationId)
+        .eq('org_id', orgId)
+        .maybeSingle()
+      conv = convData
+
+      let allConvIds = [conversationId]
+      if (conv?.phone_number) {
+        const cleanP = conv.phone_number.replace(/\D/g, '').slice(-10)
+        if (cleanP.length >= 10) {
+          const { data: dupes } = await supabaseAdmin
+            .from('conversations')
+            .select('id')
+            .ilike('phone_number', `%${cleanP}`)
+            .eq('org_id', orgId)
+
+          if (dupes && dupes.length > 0) {
+            allConvIds = dupes.map(d => d.id)
+            const { data: dupeMsgs } = await supabaseAdmin
+              .from('messages')
+              .select('*')
+              .in('conversation_id', allConvIds)
+              .order('timestamp', { ascending: false })
+              .limit(limit)
+            finalMsgs = dupeMsgs || []
+          }
         }
       }
     }
 
-    // 4. Fetch messages from ALL matching conversations and deduplicate
-    const { data, error } = await supabaseAdmin
-      .from('messages')
-      .select('*')
-      .in('conversation_id', allConvIds)
-      .order('timestamp', { ascending: false }) // Fetch newest first to prevent cutting off new messages
-      .limit(100)
-
-    if (error) throw error
-
     // Deduplicate by message content + timestamp (within 2s window) to avoid showing
     // the same bot message that may have been logged in multiple conversation records
     const seen = new Map<string, boolean>()
-    const deduped = (data || []).filter(msg => {
+    const deduped = finalMsgs.filter(msg => {
       // Create a fingerprint: direction + message content + rounded timestamp (2s window)
       const ts = Math.floor(new Date(msg.timestamp).getTime() / 2000)
       const key = `${msg.direction}|${(msg.message || '').trim()}|${ts}`

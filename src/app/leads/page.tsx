@@ -48,6 +48,7 @@ interface Lead {
   lead_score?: number | null
   lead_temperature?: string | null
   lead_type?: string | null
+  osmo_category?: string | null
   notes?: string | null
   followup_date?: string | null
   followup_notes?: string | null
@@ -127,6 +128,12 @@ function formatISTDate(dateStr: string | null | undefined): string {
 }
 
 function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered' {
+  if (lead.osmo_category && ['osmo_dealer', 'dealer', 'customer', 'unfiltered'].includes(lead.osmo_category)) {
+    return lead.osmo_category as any
+  }
+  if (lead.lead_type && ['osmo_dealer', 'dealer', 'customer', 'unfiltered'].includes(lead.lead_type)) {
+    return lead.lead_type as any
+  }
   return classifyOsmoContact(lead)
 }
 
@@ -162,7 +169,8 @@ function LeadsContent() {
   const [selectedState, setSelectedState] = useState('')
   const [selectedSource, setSelectedSource] = useState('')
   const [assignedTodayFilter, setAssignedTodayFilter] = useState(false)
-  const [leadTypeFilter, setLeadTypeFilterState] = useState<string>('unfiltered') // unfiltered, osmo_dealer, dealer, customer
+  // For non-Osmo organizations (like Innveg), default to 'all' so all leads load without category restriction
+  const [leadTypeFilter, setLeadTypeFilterState] = useState<string>(isOsmoRo ? 'unfiltered' : 'all')
 
   // Multi-Select & Bulk Assignment State
   const [selectedLeadPhones, setSelectedLeadPhones] = useState<string[]>([])
@@ -182,15 +190,17 @@ function LeadsContent() {
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedTab = localStorage.getItem('osmo_lead_tab')
-      if (savedTab) setLeadTypeFilterState(savedTab)
+    if (typeof window !== 'undefined' && isOsmoRo) {
+      const savedTab = localStorage.getItem('osmo_lead_tab') || 'unfiltered'
+      setLeadTypeFilterState(savedTab)
+    } else if (!isOsmoRo) {
+      setLeadTypeFilterState('all')
     }
-  }, [])
+  }, [isOsmoRo])
 
   const setLeadTypeFilter = (tab: string) => {
     setLeadTypeFilterState(tab)
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && isOsmoRo) {
       localStorage.setItem('osmo_lead_tab', tab)
     }
   }
@@ -563,6 +573,104 @@ function LeadsContent() {
   const warmLeads = stats.warm ?? 0
   const followupLeads = stats.followups ?? 0
 
+  const displayedLeads = useMemo(() => {
+    return leads.filter(l => {
+      if (isOsmoRo && leadTypeFilter && leadTypeFilter !== 'all') {
+        const currentCategory = l.lead_type || (l.metadata as any)?.category || l.osmo_category || 'unfiltered'
+        if (currentCategory !== leadTypeFilter) return false
+      }
+      if (selectedSource) {
+        const metaObj = (typeof l.metadata === 'object' ? l.metadata : {}) as any
+        const src = String(metaObj?.source || (l as any).source || '').toLowerCase()
+        if (selectedSource === 'bulk_import' && !src.includes('bulk_import') && !src.includes('bulk') && !src.includes('import')) return false
+        if (selectedSource === 'inbound_chat' && !src.includes('inbound') && !src.includes('chat') && !src.includes('whatsapp')) return false
+        if (selectedSource === 'google_maps_scraper' && !src.includes('google_maps') && !src.includes('scraper')) return false
+        if (selectedSource === 'manual_entry' && !src.includes('manual') && !src.includes('crm')) return false
+      }
+      return true
+    })
+  }, [leads, isOsmoRo, leadTypeFilter, selectedSource])
+
+  const uniqueCustomKeys = useMemo(() => {
+    const skipKeys = [
+      'id', 'created_at', 'updated_at', 'org_id', 'assigned_to', 
+      'phone_number', 'name', 'conversation_id',
+      'followup_notes', 'followup_date', 'followup_notified',
+      'metadata', 'lead_type'
+    ]
+
+    const priorityOrder = [
+      'source', 'lead_score', 'lead_quality', 'state', 'industry', 'business_intent', 
+      'business_type', 'business_name', 'contact_person', 'city', 'email', 
+      'demo_selected', 'pricing_requested', 'consultation_ready'
+    ]
+
+    const standardKeys = [
+      'source', 'lead_score', 'lead_quality', 'state', 'industry', 'business_intent'
+    ]
+
+    const rawKeys = Array.from(new Set([
+      ...standardKeys,
+      ...displayedLeads.flatMap(lead => {
+        let metaOnly = (lead.metadata || {}) as Record<string, any>
+        if (typeof metaOnly === 'string') {
+          try { metaOnly = JSON.parse(metaOnly) } catch (e) { metaOnly = {} }
+        }
+        if (typeof metaOnly !== 'object' || Array.isArray(metaOnly)) return []
+        return Object.keys(metaOnly).filter(key => {
+          if (skipKeys.includes(key.toLowerCase())) return false
+          if (/^\d+$/.test(key)) return false
+          const val = metaOnly[key]
+          if (typeof val === 'object' && !Array.isArray(val)) return false
+          if (val === null || val === undefined || String(val).trim() === '') return false
+          return true
+        })
+      })
+    ]))
+
+    return rawKeys.sort((a, b) => {
+      const idxA = priorityOrder.indexOf(a.toLowerCase())
+      const idxB = priorityOrder.indexOf(b.toLowerCase())
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      if (idxA !== -1) return -1
+      if (idxB !== -1) return 1
+      return a.localeCompare(b)
+    })
+  }, [displayedLeads])
+
+  const getHeaderLabelWithIcon = (key: string) => {
+    const lower = key.toLowerCase()
+    const formatted = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+    if (lower.includes('tehsil') || lower.includes('village') || lower.includes('location') || lower.includes('pincode')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {formatted}</span>
+    }
+    if (lower.includes('district') || lower.includes('city') || lower.includes('state')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🏙️</span> {formatted}</span>
+    }
+    if (lower.includes('crop') || lower.includes('farm')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🌾</span> {formatted}</span>
+    }
+    if (lower.includes('product') || lower.includes('item') || lower.includes('requirement') || lower.includes('machine')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">📦</span> {formatted}</span>
+    }
+    if (lower.includes('intent') || lower.includes('purpose') || lower.includes('goal')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🎯</span> {formatted}</span>
+    }
+    if (lower.includes('score')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><TrendingUp className="w-3.5 h-3.5 text-amber-500 shrink-0" /> {formatted}</span>
+    }
+    if (lower.includes('quality') || lower.includes('temperature')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🔥</span> {formatted}</span>
+    }
+    if (lower.includes('source')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">📌</span> {formatted}</span>
+    }
+    if (lower.includes('stage')) {
+      return <span className="inline-flex items-center gap-1.5 font-extrabold"><Tag className="w-3.5 h-3.5 text-purple-500 shrink-0" /> {formatted}</span>
+    }
+    return <span className="inline-flex items-center gap-1.5 font-extrabold">{formatted}</span>
+  }
+
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 overflow-hidden text-gray-900 dark:text-gray-100">
       
@@ -813,126 +921,14 @@ function LeadsContent() {
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-white">No Leads Found</h4>
                 <p className="text-xs text-gray-500 mt-1 max-w-xs">Adjust your search parameters or check your n8n workflow connections.</p>
               </div>
-            ) : (() => {
-              const displayedLeads = leads.filter(l => {
-                if (leadTypeFilter && leadTypeFilter !== 'all') {
-                  const currentCategory = l.lead_type || (l.metadata as any)?.category || 'unfiltered'
-                  if (currentCategory !== leadTypeFilter) return false
-                }
-                if (selectedSource) {
-                  const metaObj = (typeof l.metadata === 'object' ? l.metadata : {}) as any
-                  const src = String(metaObj?.source || (l as any).source || '').toLowerCase()
-                  if (selectedSource === 'bulk_import' && !src.includes('bulk_import') && !src.includes('bulk') && !src.includes('import')) return false
-                  if (selectedSource === 'inbound_chat' && !src.includes('inbound') && !src.includes('chat') && !src.includes('whatsapp')) return false
-                  if (selectedSource === 'google_maps_scraper' && !src.includes('google_maps') && !src.includes('scraper')) return false
-                  if (selectedSource === 'manual_entry' && !src.includes('manual') && !src.includes('crm')) return false
-                }
-                return true
-              })
-
-              if (displayedLeads.length === 0) {
-                return (
-                  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-                    <AlertCircle className="w-12 h-12 text-gray-400 mb-2" />
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">No Leads in this Category</h4>
-                    <p className="text-xs text-gray-500 mt-1 max-w-xs">No leads match the selected category filter.</p>
-                  </div>
-                )
-              }
-
-              const skipKeys = [
-                'id', 'created_at', 'updated_at', 'org_id', 'assigned_to', 
-                'phone_number', 'name', 'conversation_id',
-                'followup_notes', 'followup_date', 'followup_notified',
-                'metadata', 'lead_type'
-              ];
-
-              const priorityOrder = [
-                'source', 'lead_score', 'lead_quality', 'state', 'industry', 'business_intent', 
-                'business_type', 'business_name', 'contact_person', 'city', 'email', 
-                'demo_selected', 'pricing_requested', 'consultation_ready'
-              ];
-
-              // Always include core standard CRM keys so columns never disappear
-              const standardKeys = [
-                'source', 'lead_score', 'lead_quality', 'state', 'industry', 'business_intent'
-              ];
-
-              // Collect all unique custom keys by scanning ONLY the metadata JSON object.
-              // IMPORTANT: Do NOT use { ...lead, ...meta } here — the API already spreads
-              // parsedMetadata onto the lead object, so top-level lead fields may be plain
-              // string values. Calling Object.keys() on a combined object that includes those
-              // string-typed keys causes JavaScript to iterate their character indices
-              // (e.g. Object.keys("Biaora") → ["0","1","2","3","4","5"]), producing the
-              // garbled numeric column headers (0, 1, 10, 100...) seen in the CRM table.
-              const rawKeys = Array.from(new Set([
-                ...standardKeys,
-                ...displayedLeads.flatMap(lead => {
-                  // Parse metadata cleanly — never spread the full lead object
-                  let metaOnly = (lead.metadata || {}) as Record<string, any>;
-                  if (typeof metaOnly === 'string') {
-                    try { metaOnly = JSON.parse(metaOnly) } catch (e) { metaOnly = {} }
-                  }
-                  // Guard: if metadata is not a plain object (e.g. still a string), skip
-                  if (typeof metaOnly !== 'object' || Array.isArray(metaOnly)) return [];
-                  return Object.keys(metaOnly).filter(key => {
-                    if (skipKeys.includes(key.toLowerCase())) return false;
-                    // Guard: filter out pure numeric keys (0, 1, 2, 250...) produced if a string is indexed
-                    if (/^\d+$/.test(key)) return false;
-                    const val = metaOnly[key];
-                    // Skip nested objects/arrays and empty values
-                    if (typeof val === 'object' && !Array.isArray(val)) return false;
-                    if (val === null || val === undefined || String(val).trim() === '') return false;
-                    return true;
-                  });
-                })
-              ]));
-
-              // Sort keys so high-priority CRM fields (Score, Quality, State, Industry) appear first
-              const uniqueCustomKeys = rawKeys.sort((a, b) => {
-                const idxA = priorityOrder.indexOf(a.toLowerCase());
-                const idxB = priorityOrder.indexOf(b.toLowerCase());
-                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                if (idxA !== -1) return -1;
-                if (idxB !== -1) return 1;
-                return a.localeCompare(b);
-              });
-
-              const getHeaderLabelWithIcon = (key: string) => {
-                const lower = key.toLowerCase();
-                const formatted = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                if (lower.includes('tehsil') || lower.includes('village') || lower.includes('location') || lower.includes('pincode')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {formatted}</span>
-                }
-                if (lower.includes('district') || lower.includes('city') || lower.includes('state')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🏙️</span> {formatted}</span>
-                }
-                if (lower.includes('crop') || lower.includes('farm')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🌾</span> {formatted}</span>
-                }
-                if (lower.includes('product') || lower.includes('item') || lower.includes('requirement') || lower.includes('machine')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">📦</span> {formatted}</span>
-                }
-                if (lower.includes('intent') || lower.includes('purpose') || lower.includes('goal')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🎯</span> {formatted}</span>
-                }
-                if (lower.includes('score')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><TrendingUp className="w-3.5 h-3.5 text-amber-500 shrink-0" /> {formatted}</span>
-                }
-                if (lower.includes('quality') || lower.includes('temperature')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">🔥</span> {formatted}</span>
-                }
-                if (lower.includes('source')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><span className="text-xs">📌</span> {formatted}</span>
-                }
-                if (lower.includes('stage')) {
-                  return <span className="inline-flex items-center gap-1.5 font-extrabold"><Tag className="w-3.5 h-3.5 text-purple-500 shrink-0" /> {formatted}</span>
-                }
-                return <span className="inline-flex items-center gap-1.5 font-extrabold">{formatted}</span>
-              }
-
-              return (
-                <div className="overflow-x-auto flex-1 pb-4">
+            ) : displayedLeads.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                <AlertCircle className="w-12 h-12 text-gray-400 mb-2" />
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">No Leads in this Category</h4>
+                <p className="text-xs text-gray-500 mt-1 max-w-xs">No leads match the selected category filter.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto flex-1 pb-4">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
                     <thead className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 text-[11px] font-black tracking-wider text-left uppercase sticky top-0 z-20 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-2xs">
                       <tr>
@@ -1365,8 +1361,7 @@ function LeadsContent() {
                     </div>
                   )}
                 </div>
-              );
-            })()}
+            )}
           </div>
 
         </div>

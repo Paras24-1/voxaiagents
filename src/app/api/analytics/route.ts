@@ -130,40 +130,41 @@ export async function GET(req: NextRequest) {
 
     const employeeStats = await Promise.all(employeeStatsPromises)
 
-    // 6. Fetch daily lead generation timeline (last 30 days)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    let recentLeads: any[] = []
-    let fromLead = 0
-    while (true) {
-      const { data, error } = await supabaseAdmin
-        .from('conversations')
-        .select('created_at')
-        .eq('org_id', orgId)
-        .gte('created_at', thirtyDaysAgo.toISOString())
-        .range(fromLead, fromLead + 999)
-      if (error || !data || data.length === 0) break
-      recentLeads.push(...data)
-      if (data.length < 1000) break
-      fromLead += 1000
-    }
-
+    // 6. Fetch daily lead generation timeline (last 30 days) via fast parallel DB count queries (no row fetching)
     const dailyCounts: Record<string, number> = {}
+    const dayBuckets: Array<{ dateKey: string; start: string; end: string }> = []
+
     for (let i = 29; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().split('T')[0]
+      const start = new Date()
+      start.setDate(start.getDate() - i)
+      start.setHours(0, 0, 0, 0)
+
+      const end = new Date(start)
+      end.setDate(end.getDate() + 1)
+
+      const dateStr = start.toISOString().split('T')[0]
       dailyCounts[dateStr] = 0
+      dayBuckets.push({
+        dateKey: dateStr,
+        start: start.toISOString(),
+        end: end.toISOString()
+      })
     }
 
-    recentLeads?.forEach((lead: any) => {
-      if (lead.created_at) {
-        const dateStr = lead.created_at.split('T')[0]
-        if (dateStr in dailyCounts) {
-          dailyCounts[dateStr]++
-        }
-      }
+    const dayCounts = await Promise.all(
+      dayBuckets.map(async b => {
+        const { count } = await supabaseAdmin
+          .from('conversations')
+          .select('*', { count: 'exact', head: true })
+          .eq('org_id', orgId)
+          .gte('created_at', b.start)
+          .lt('created_at', b.end)
+        return { dateKey: b.dateKey, count: count || 0 }
+      })
+    )
+
+    dayCounts.forEach(dc => {
+      dailyCounts[dc.dateKey] = dc.count
     })
 
     const timeline = Object.keys(dailyCounts).map(date => ({

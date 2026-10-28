@@ -167,7 +167,6 @@ export function useConversations(filters: {
       } else {
         setHasMore(true)
       }
-      const toReZeroInDB: string[] = []
       const normalized = data.map(c => {
         const cleanP = (c.phone_number || '').replace(/\D/g, '').slice(-10)
         const isRead = 
@@ -176,10 +175,6 @@ export function useConversations(filters: {
           (selectedIdRef.current && c.id === selectedIdRef.current)
         
         if (isRead) {
-          // If the DB still thinks this is unread, re-zero it silently in background
-          if ((c.unread_count || 0) > 0) {
-            toReZeroInDB.push(c.id)
-          }
           return { ...c, unread_count: 0 }
         }
         return c
@@ -194,17 +189,6 @@ export function useConversations(filters: {
         })
       }
       if (data.length > 0 && data[0].org_id) setOrgId(data[0].org_id)
-
-      // Background cleanup: re-zero DB for any stale conversations that are in our read set
-      if (toReZeroInDB.length > 0) {
-        toReZeroInDB.forEach(convId => {
-          fetchWithAuth(`/api/conversations/${convId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ unread_count: 0 })
-          }).catch(() => {})
-        })
-      }
     }
     setLoading(false)
   }, [filters.search, filters.stage, filters.unread, filters.assignFilter, filters.category, filters.userId, filters.userRole])
@@ -257,9 +241,6 @@ export function useConversations(filters: {
               (selectedIdRef.current && c.id === selectedIdRef.current)
             
             if (isRead) {
-              if ((c.unread_count || 0) > 0) {
-                toReZeroInDB.push(c.id)
-              }
               return { ...c, unread_count: 0 }
             }
             return c
@@ -270,16 +251,6 @@ export function useConversations(filters: {
             const newConvs = normalized.filter(c => !existingIds.has(c.id))
             return [...prev, ...newConvs]
           })
-
-          if (toReZeroInDB.length > 0) {
-            toReZeroInDB.forEach(convId => {
-              fetchWithAuth(`/api/conversations/${convId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ unread_count: 0 })
-              }).catch(() => {})
-            })
-          }
         }
       }
     } catch (err) {

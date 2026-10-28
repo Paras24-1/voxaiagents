@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,110 +19,97 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || ''
     const startDate = searchParams.get('start_date') || ''
     const endDate = searchParams.get('end_date') || ''
-    const geographicState = searchParams.get('state') || ''
+    const assignedToday = searchParams.get('assigned_today') === 'true'
 
-    let allLeads: any[] = []
-    let from = 0
-    let fetchMore = true
-
-    while (fetchMore) {
-      let query = supabaseAdmin
-        .from('leads')
-        .select('*, conversations(*)')
+    let staffConvIds: string[] | null = null
+    if (isStaffEmployee) {
+      const { data: convs } = await supabaseAdmin
+        .from('conversations')
+        .select('id')
         .eq('org_id', orgId)
-        .order('created_at', { ascending: false })
-        .range(from, from + 999)
-
-      const { data, error } = await query
-      if (error) throw error
-      if (!data || data.length === 0) {
-        fetchMore = false
-      } else {
-        allLeads.push(...data)
-        if (data.length < 1000) fetchMore = false
-        else from += 1000
+        .eq('assigned_to', userId)
+      staffConvIds = (convs || []).map(c => c.id)
+      if (staffConvIds.length === 0) {
+        return NextResponse.json({
+          total: 0,
+          osmo_dealer: 0,
+          dealer: 0,
+          customer: 0,
+          unfiltered: 0,
+          hot: 0,
+          warm: 0,
+          followups: 0
+        })
       }
     }
 
-    const stats: Record<string, number> = {
-      total: 0,
-      osmo_dealer: 0,
-      dealer: 0,
-      customer: 0,
-      unfiltered: 0,
-      hot: 0,
-      warm: 0,
-      followups: 0
-    }
+    // Helper to build a lightweight DB count query using PostgREST HEAD requests
+    const buildCount = (applyFilter?: (q: any) => any) => {
+      let q = supabaseAdmin
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('org_id', orgId)
 
-    allLeads.forEach(l => {
-      // leads has a single linked conversation, Supabase returns it as an object or array depending on relation type, usually object for many-to-one
-      const c = Array.isArray(l.conversations) ? l.conversations[0] || {} : l.conversations || {}
-
-      if (isStaffEmployee && c.assigned_to !== userId) {
-        return
+      if (staffConvIds) q = q.in('conversation_id', staffConvIds) as any
+      if (stage) q = q.eq('stage', stage) as any
+      if (startDate) q = q.gte('created_at', startDate) as any
+      if (endDate) q = q.lte('created_at', `${endDate}T23:59:59.999Z`) as any
+      if (assignedToday) {
+        const startOfTodayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
+        q = q.gte('updated_at', startOfTodayIso) as any
       }
-      
-      let parsedMeta: Record<string, any> = l.metadata || {}
-      if (typeof l.metadata === 'string') {
-        try { parsedMeta = JSON.parse(l.metadata) } catch {}
-      }
-
-      const leadStage = c.stage || l.stage || parsedMeta.state || parsedMeta.stage || 'new'
-      if (leadStage === 'followup' || !!l.followup_date) stats.followups++
-      if (stage && leadStage !== stage) return
-
-      const score = Number(parsedMeta.lead_score ?? 0)
-      let q = (parsedMeta.lead_quality || parsedMeta.lead_temperature || l.lead_temperature || 'cold').toLowerCase()
-      if (score >= 70) q = 'hot'
-      else if (score >= 40) q = 'warm'
-      else if (score > 0) q = 'cold'
-
-      if (q === 'hot') stats.hot++
-      if (q === 'warm') stats.warm++
-      if (quality && q !== quality.toLowerCase()) return
-
-      if (geographicState) {
-        const leadState = (parsedMeta.state || '').trim()
-        if (leadState.toLowerCase() !== geographicState.toLowerCase()) return
-      }
-
-      if (startDate || endDate) {
-        const createdAt = l.created_at || c.created_at
-        if (!createdAt) return
-        const dt = new Date(createdAt).getTime()
-        if (startDate && dt < new Date(startDate).getTime()) return
-        if (endDate && dt > new Date(`${endDate}T23:59:59.999Z`).getTime()) return
-      }
-
       if (search) {
-        const srch = search.toLowerCase()
-        const n = (l.name || c.name || '').toLowerCase()
-        const p = (l.phone_number || c.phone_number || '').toLowerCase()
-        const cst = (l.customer_name || '').toLowerCase()
-        if (!n.includes(srch) && !p.includes(srch) && !cst.includes(srch)) return
+        q = q.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%,customer_name.ilike.%${search}%`) as any
       }
+      if (applyFilter) q = applyFilter(q)
+      return q
+    }
 
-      const category = l.osmo_category || 'unfiltered'
-      stats.total++
-      if (category === 'osmo_dealer') {
-        stats.osmo_dealer++
-      } else if (category === 'dealer') {
-        stats.dealer++
-      } else if (category === 'customer') {
-        stats.customer++
-      } else {
-        stats.unfiltered++
+    // Execute count queries concurrently in parallel at DB level
+    const [
+      { count: totalCount },
+      { count: osmoDealerCount },
+      { count: dealerCount },
+      { count: customerCount },
+      { count: unfilteredCount },
+      { count: followupCount },
+      { count: hotCount },
+      { count: warmCount }
+    ] = await Promise.all([
+      buildCount(),
+      buildCount(q => q.eq('osmo_category', 'osmo_dealer')),
+      buildCount(q => q.eq('osmo_category', 'dealer')),
+      buildCount(q => q.eq('osmo_category', 'customer')),
+      buildCount(q => q.or('osmo_category.eq.unfiltered,osmo_category.is.null')),
+      buildCount(q => q.or('stage.eq.followup,followup_date.not.is.null')),
+      buildCount(q => q.or('lead_temperature.ilike.HOT,lead_quality.ilike.hot,lead_score.gte.70')),
+      buildCount(q => q.or('lead_temperature.ilike.WARM,lead_quality.ilike.warm'))
+    ])
+
+    const total = totalCount || 0
+    const osmo_dealer = osmoDealerCount || 0
+    const dealer = dealerCount || 0
+    const customer = customerCount || 0
+    // If unfiltered is 0 or unassigned, compute remainder
+    const unfiltered = unfilteredCount ?? Math.max(0, total - (osmo_dealer + dealer + customer))
+
+    return NextResponse.json({
+      total,
+      osmo_dealer,
+      dealer,
+      customer,
+      unfiltered,
+      hot: hotCount || 0,
+      warm: warmCount || 0,
+      followups: followupCount || 0
+    }, {
+      headers: {
+        'Cache-Control': 'private, no-cache, no-store, max-age=0, must-revalidate'
       }
     })
-
-    return NextResponse.json(stats)
   } catch (err: unknown) {
     console.error('[leads-stats]', err)
     const error = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error }, { status: 500 })
   }
 }
-
-
-

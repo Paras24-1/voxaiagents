@@ -249,6 +249,26 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
   const hasInstagram = conversations.some(c => c.platform === 'instagram')
 
+  const displayConversations = useMemo(() => {
+    return conversations
+      .filter(c => {
+        if (!isOsmo) return true
+        return extractOsmoCategory(c) === osmoTab.toLowerCase()
+      })
+      .filter((c) => {
+        if (unread) {
+          return (c.unread_count || 0) > 0
+        }
+        return true
+      })
+      .filter((c) => {
+        if (channelFilter === 'whatsapp') return !c.platform || c.platform === 'whatsapp'
+        if (channelFilter === 'instagram') return c.platform === 'instagram'
+        return true
+      })
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+  }, [conversations, isOsmo, osmoTab, unread, channelFilter])
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
     if (scrollHeight - scrollTop - clientHeight < 250) {
@@ -532,31 +552,14 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
       >
         {loading ? (
           <LoadingSkeleton />
-        ) : conversations.length === 0 ? (
+        ) : displayConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 text-xs gap-2">
             <Filter className="w-6 h-6 opacity-30" />
             <span>No conversations found</span>
           </div>
         ) : (
           <>
-            {[...conversations]
-              .filter(c => {
-                if (!isOsmo) return true
-                return extractOsmoCategory(c) === osmoTab.toLowerCase()
-              })
-              .filter((c) => {
-                if (unread) {
-                  return (c.unread_count || 0) > 0
-                }
-                return true
-              })
-              .filter((c) => {
-                if (channelFilter === 'whatsapp') return !c.platform || c.platform === 'whatsapp'
-                if (channelFilter === 'instagram') return c.platform === 'instagram'
-                return true
-              })
-              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-              .map((conv) => (
+            {displayConversations.map((conv) => (
                 <ConversationItem
                   key={conv.id}
                   conversation={conv}
@@ -717,7 +720,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   )
 }
 
-function ConversationItem({
+const ConversationItem = React.memo(function ConversationItem({
   conversation: conv,
   isSelected,
   selectedId,
@@ -991,7 +994,7 @@ function ConversationItem({
       )}
     </div>
   )
-}
+})
 
 function LoadingSkeleton() {
   return (
