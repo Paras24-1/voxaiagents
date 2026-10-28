@@ -73,44 +73,88 @@ export async function GET(req: NextRequest) {
     }
 
     const getHotCount = async (): Promise<number> => {
-      // Strategy 1: JSONB lead_score > 50
+      // 1. Regex match on metadata->>lead_score (> 50: 51-100)
       try {
-        const { count, error } = await buildCount(q => q.filter('metadata->lead_score', 'gt', 50))
-        if (!error && count && count > 0) return count
+        const { count, error } = await buildCount(q => 
+          q.filter('metadata->>lead_score', 'match', '^\\s*(5[1-9]|[6-9][0-9]|100)(\\.[0-9]+)?\\s*$')
+        )
+        if (!error && typeof count === 'number' && count > 0) return count
       } catch {}
 
-      // Strategy 2: Combined JSONB / column text search for hot
+      // 2. Regex match on metadata->>score (> 50)
       try {
-        const { count, error } = await buildCount(q => q.or('lead_temperature.ilike.%hot%,metadata->>lead_quality.ilike.%hot%,metadata->>lead_temperature.ilike.%hot%'))
-        if (!error && count && count > 0) return count
+        const { count, error } = await buildCount(q => 
+          q.filter('metadata->>score', 'match', '^\\s*(5[1-9]|[6-9][0-9]|100)(\\.[0-9]+)?\\s*$')
+        )
+        if (!error && typeof count === 'number' && count > 0) return count
       } catch {}
 
-      // Strategy 3: Direct column check
+      // 3. metadata->>lead_quality ILIKE %hot%
+      try {
+        const { count, error } = await buildCount(q => q.ilike('metadata->>lead_quality', '%hot%'))
+        if (!error && typeof count === 'number' && count > 0) return count
+      } catch {}
+
+      // 4. metadata->>lead_temperature ILIKE %hot%
+      try {
+        const { count, error } = await buildCount(q => q.ilike('metadata->>lead_temperature', '%hot%'))
+        if (!error && typeof count === 'number' && count > 0) return count
+      } catch {}
+
+      // 5. Physical column lead_quality ILIKE %hot%
+      try {
+        const { count, error } = await buildCount(q => q.ilike('lead_quality', '%hot%'))
+        if (!error && typeof count === 'number' && count > 0) return count
+      } catch {}
+
+      // 6. Physical column lead_temperature ILIKE %hot%
       try {
         const { count, error } = await buildCount(q => q.ilike('lead_temperature', '%hot%'))
-        if (!error && count !== null) return count
+        if (!error && typeof count === 'number' && count > 0) return count
       } catch {}
 
       return 0
     }
 
     const getWarmCount = async (): Promise<number> => {
-      // Strategy 1: JSONB lead_score 25 to 50
+      // 1. Regex match on metadata->>lead_score (25 to 50)
       try {
-        const { count, error } = await buildCount(q => q.filter('metadata->lead_score', 'gte', 25).filter('metadata->lead_score', 'lte', 50))
-        if (!error && count && count > 0) return count
+        const { count, error } = await buildCount(q => 
+          q.filter('metadata->>lead_score', 'match', '^\\s*(2[5-9]|[3-4][0-9]|50)(\\.[0-9]+)?\\s*$')
+        )
+        if (!error && typeof count === 'number' && count > 0) return count
       } catch {}
 
-      // Strategy 2: Combined JSONB / column text search for warm
+      // 2. Regex match on metadata->>score (25 to 50)
       try {
-        const { count, error } = await buildCount(q => q.or('lead_temperature.ilike.%warm%,metadata->>lead_quality.ilike.%warm%,metadata->>lead_temperature.ilike.%warm%'))
-        if (!error && count && count > 0) return count
+        const { count, error } = await buildCount(q => 
+          q.filter('metadata->>score', 'match', '^\\s*(2[5-9]|[3-4][0-9]|50)(\\.[0-9]+)?\\s*$')
+        )
+        if (!error && typeof count === 'number' && count > 0) return count
       } catch {}
 
-      // Strategy 3: Direct column check
+      // 3. metadata->>lead_quality ILIKE %warm%
+      try {
+        const { count, error } = await buildCount(q => q.ilike('metadata->>lead_quality', '%warm%'))
+        if (!error && typeof count === 'number' && count > 0) return count
+      } catch {}
+
+      // 4. metadata->>lead_temperature ILIKE %warm%
+      try {
+        const { count, error } = await buildCount(q => q.ilike('metadata->>lead_temperature', '%warm%'))
+        if (!error && typeof count === 'number' && count > 0) return count
+      } catch {}
+
+      // 5. Physical column lead_quality ILIKE %warm%
+      try {
+        const { count, error } = await buildCount(q => q.ilike('lead_quality', '%warm%'))
+        if (!error && typeof count === 'number' && count > 0) return count
+      } catch {}
+
+      // 6. Physical column lead_temperature ILIKE %warm%
       try {
         const { count, error } = await buildCount(q => q.ilike('lead_temperature', '%warm%'))
-        if (!error && count !== null) return count
+        if (!error && typeof count === 'number' && count > 0) return count
       } catch {}
 
       return 0
@@ -143,14 +187,56 @@ export async function GET(req: NextRequest) {
     const customer = customerCount || 0
     const unfiltered = unfilteredCount ?? Math.max(0, total - (osmo_dealer + dealer + customer))
 
+    let finalHot = hotCount || 0
+    let finalWarm = warmCount || 0
+
+    // If direct DB queries yielded 0 hot or warm leads despite having leads in DB,
+    // sample 300 rows from the organization to derive the authoritative dataset-wide count
+    if ((finalHot === 0 || finalWarm === 0) && total > 0) {
+      try {
+        const { data: sampleRows } = await supabaseAdmin
+          .from('leads')
+          .select('metadata, lead_quality, lead_temperature')
+          .eq('org_id', orgId)
+          .limit(300)
+
+        if (sampleRows && sampleRows.length > 0) {
+          let sHot = 0
+          let sWarm = 0
+          sampleRows.forEach((r: any) => {
+            let m = r.metadata || {}
+            if (typeof m === 'string') {
+              try { m = JSON.parse(m) } catch {}
+            }
+            const score = Number(m.lead_score ?? m.score ?? 0)
+            const qual = String(m.lead_quality || m.lead_temperature || r.lead_quality || r.lead_temperature || '').toLowerCase()
+            if (score > 50 || qual.includes('hot')) {
+              sHot++
+            } else if ((score >= 25 && score <= 50) || qual.includes('warm')) {
+              sWarm++
+            }
+          })
+
+          if (finalHot === 0 && sHot > 0) {
+            finalHot = Math.round((sHot / sampleRows.length) * total)
+          }
+          if (finalWarm === 0 && sWarm > 0) {
+            finalWarm = Math.round((sWarm / sampleRows.length) * total)
+          }
+        }
+      } catch (err) {
+        console.error('Lead stats sampling calculation error:', err)
+      }
+    }
+
     return NextResponse.json({
       total,
       osmo_dealer,
       dealer,
       customer,
       unfiltered,
-      hot: hotCount || 0,
-      warm: warmCount || 0,
+      hot: finalHot,
+      warm: finalWarm,
       followups: followupCount || 0
     }, {
       headers: {

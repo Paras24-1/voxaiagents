@@ -171,6 +171,8 @@ function LeadsContent() {
   const [selectedSource, setSelectedSource] = useState('')
   const [selectedCustomField, setSelectedCustomField] = useState('')
   const [customFilterValue, setCustomFilterValue] = useState('')
+  const [isCustomTyping, setIsCustomTyping] = useState(false)
+  const [remoteCustomValues, setRemoteCustomValues] = useState<string[]>([])
   const [assignedTodayFilter, setAssignedTodayFilter] = useState(false)
   // For non-Osmo organizations (like Innveg), default to 'all' so all leads load without category restriction
   const [leadTypeFilter, setLeadTypeFilterState] = useState<string>(isOsmoRo ? 'unfiltered' : 'all')
@@ -603,21 +605,53 @@ function LeadsContent() {
     document.body.removeChild(link)
   }
 
-  // Use stats from server for accurate metrics across all leads
+  // Use stats from server for accurate, authoritative metrics across ALL leads in the organization
   const totalLeads = stats.total || leads.length
-  const hotCountFromLoaded = leads.filter(l => {
-    const m = (typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})) as any
-    const s = Number(m.lead_score ?? l.lead_score) || 0
-    return s > 50 || String(m.lead_quality || m.lead_temperature || l.lead_quality || l.lead_temperature || '').toLowerCase().includes('hot')
-  }).length
-  const warmCountFromLoaded = leads.filter(l => {
-    const m = (typeof l.metadata === 'string' ? JSON.parse(l.metadata || '{}') : (l.metadata || {})) as any
-    const s = Number(m.lead_score ?? l.lead_score) || 0
-    return (s >= 25 && s <= 50) || String(m.lead_quality || m.lead_temperature || l.lead_quality || l.lead_temperature || '').toLowerCase().includes('warm')
-  }).length
-  const hotLeads = stats.hot > 0 ? stats.hot : (hotCountFromLoaded > 0 ? hotCountFromLoaded : (stats.hot ?? 0))
-  const warmLeads = stats.warm > 0 ? stats.warm : (warmCountFromLoaded > 0 ? warmCountFromLoaded : (stats.warm ?? 0))
+  const hotLeads = stats.hot ?? 0
+  const warmLeads = stats.warm ?? 0
   const followupLeads = stats.followups ?? 0
+
+  // Fetch distinct values from backend whenever selectedCustomField changes
+  useEffect(() => {
+    if (!selectedCustomField) {
+      setRemoteCustomValues([])
+      return
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const token = session?.access_token || ''
+      fetch(`/api/leads/list?distinct_field=${encodeURIComponent(selectedCustomField)}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data.values)) {
+            setRemoteCustomValues(data.values)
+          }
+        })
+        .catch(() => {})
+    })
+  }, [selectedCustomField])
+
+  // Combine distinct values from backend and loaded leads for the values dropdown
+  const availableCustomValues = useMemo(() => {
+    if (!selectedCustomField) return []
+    const valSet = new Set<string>(remoteCustomValues)
+    leads.forEach(l => {
+      let meta = l.metadata || {}
+      if (typeof meta === 'string') {
+        try { meta = JSON.parse(meta) } catch (e) { meta = {} }
+      }
+      const val = (meta as any)?.[selectedCustomField] ?? (l as any)?.[selectedCustomField]
+      if (val !== null && val !== undefined) {
+        const str = String(val).trim()
+        if (str && str !== 'null' && str !== 'undefined' && str.length < 60) {
+          valSet.add(str)
+        }
+      }
+    })
+    return Array.from(valSet).sort((a, b) => a.localeCompare(b))
+  }, [selectedCustomField, leads, remoteCustomValues])
 
   const displayedLeads = useMemo(() => {
     return leads.filter(l => {
@@ -927,11 +961,14 @@ function LeadsContent() {
               {filterableCustomKeys.length > 0 && (
                 <div className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200/60 dark:border-gray-800/60 px-3.5 py-2 rounded-xl w-full md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
                   <SlidersHorizontal className="w-4 h-4 text-emerald-500 shrink-0" />
+                  
+                  {/* Select Column / Field */}
                   <select
                     value={selectedCustomField}
                     onChange={(e) => {
                       setSelectedCustomField(e.target.value)
-                      if (!e.target.value) setCustomFilterValue('')
+                      setCustomFilterValue('')
+                      setIsCustomTyping(false)
                     }}
                     className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer max-w-[130px] truncate"
                     title="Select custom column to filter"
@@ -943,26 +980,67 @@ function LeadsContent() {
                       </option>
                     ))}
                   </select>
+
+                  {/* Select or Type Value */}
                   {selectedCustomField && (
                     <div className="flex items-center gap-1.5 pl-2 border-l border-gray-300 dark:border-gray-700">
-                      <input
-                        type="text"
-                        placeholder={`Filter ${selectedCustomField.replace(/_/g, ' ')}...`}
-                        value={customFilterValue}
-                        onChange={(e) => setCustomFilterValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') fetchLeads(false)
-                        }}
-                        className="bg-transparent text-xs font-medium text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none w-28 md:w-36"
-                      />
+                      {!isCustomTyping && availableCustomValues.length > 0 ? (
+                        <select
+                          value={customFilterValue}
+                          onChange={(e) => {
+                            if (e.target.value === '__custom__') {
+                              setIsCustomTyping(true)
+                              setCustomFilterValue('')
+                            } else {
+                              setCustomFilterValue(e.target.value)
+                            }
+                          }}
+                          className="bg-transparent text-xs font-semibold text-gray-800 dark:text-gray-200 focus:outline-none cursor-pointer max-w-[150px] truncate"
+                          title="Select value"
+                        >
+                          <option value="">All {selectedCustomField.replace(/_/g, ' ')}</option>
+                          {availableCustomValues.map(v => (
+                            <option key={v} value={v}>{v}</option>
+                          ))}
+                          <option value="__custom__">✏️ Type custom...</option>
+                        </select>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            placeholder={`Type ${selectedCustomField.replace(/_/g, ' ')}...`}
+                            value={customFilterValue}
+                            onChange={(e) => setCustomFilterValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') fetchLeads(false)
+                            }}
+                            className="bg-transparent text-xs font-medium text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none w-28 md:w-36"
+                            autoFocus={isCustomTyping}
+                          />
+                          {availableCustomValues.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCustomTyping(false)
+                                setCustomFilterValue('')
+                              }}
+                              className="text-[10px] text-emerald-600 dark:text-emerald-400 hover:underline px-1 cursor-pointer font-bold"
+                              title="Switch to dropdown list"
+                            >
+                              List
+                            </button>
+                          )}
+                        </div>
+                      )}
+
                       {customFilterValue && (
                         <button
                           type="button"
                           onClick={() => {
                             setCustomFilterValue('')
-                            setSelectedCustomField('')
+                            setIsCustomTyping(false)
                           }}
-                          className="text-gray-400 hover:text-red-500 transition-colors p-0.5"
+                          className="text-gray-400 hover:text-red-500 transition-colors p-0.5 ml-1"
                           title="Clear custom filter"
                         >
                           <X className="w-3.5 h-3.5" />

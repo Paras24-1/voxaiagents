@@ -24,6 +24,39 @@ export async function GET(req: NextRequest) {
     const assignedToday = searchParams.get('assigned_today') === 'true'
     const customField = searchParams.get('custom_field') || ''
     const customValue = searchParams.get('custom_value') || ''
+    const distinctField = searchParams.get('distinct_field') || ''
+
+    // Return distinct values for a custom metadata key
+    if (distinctField) {
+      const cleanField = distinctField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
+      if (cleanField) {
+        try {
+          const { data } = await supabaseAdmin
+            .from('leads')
+            .select('metadata')
+            .eq('org_id', orgId)
+            .limit(500)
+
+          const valSet = new Set<string>()
+          data?.forEach((r: any) => {
+            let m = r.metadata
+            if (typeof m === 'string') {
+              try { m = JSON.parse(m) } catch {}
+            }
+            const val = m?.[cleanField] ?? r?.[cleanField]
+            if (val !== null && val !== undefined) {
+              const str = String(val).trim()
+              if (str && str !== 'null' && str !== 'undefined' && str.length < 60) {
+                valSet.add(str)
+              }
+            }
+          })
+          return NextResponse.json({ values: Array.from(valSet).sort((a, b) => a.localeCompare(b)) })
+        } catch {
+          return NextResponse.json({ values: [] })
+        }
+      }
+    }
 
     // Pagination — DB-side, strictly 50 items per page
     const page = parseInt(searchParams.get('page') || '1', 10)
