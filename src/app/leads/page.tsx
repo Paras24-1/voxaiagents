@@ -109,6 +109,26 @@ export default function LeadsPage() {
 import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
 import { INDIAN_STATES } from '@/lib/constants'
 
+const COMMON_CROPS = [
+  { id: 'chana', label: 'Chana / Chickpea (चना)' },
+  { id: 'onion', label: 'Onion (प्याज)' },
+  { id: 'wheat', label: 'Wheat (गेहूं)' },
+  { id: 'paddy', label: 'Paddy / Rice (धान)' },
+  { id: 'mustard', label: 'Mustard (सरसों)' },
+  { id: 'cotton', label: 'Cotton (कपास)' },
+  { id: 'soybean', label: 'Soybean (सोयाबीन)' },
+  { id: 'potato', label: 'Potato (आलू)' },
+  { id: 'tomato', label: 'Tomato (टमाटर)' },
+  { id: 'garlic', label: 'Garlic (लहसुन)' },
+  { id: 'maize', label: 'Maize / Corn (मक्का)' },
+  { id: 'sugarcane', label: 'Sugarcane (गन्ना)' },
+  { id: 'groundnut', label: 'Groundnut (मूंगफली)' },
+  { id: 'bajra', label: 'Bajra (बाजरा)' },
+  { id: 'moong', label: 'Moong (मूंग)' },
+  { id: 'urad', label: 'Urad (उड़द)' },
+  { id: 'chilli', label: 'Chilli (मिर्च)' },
+]
+
 function formatISTDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '-'
   try {
@@ -169,6 +189,7 @@ function LeadsContent() {
   const [selectedQuality, setSelectedQuality] = useState('')
   const [selectedState, setSelectedState] = useState('')
   const [selectedSource, setSelectedSource] = useState('')
+  const [selectedCrop, setSelectedCrop] = useState('')
   const [selectedCustomField, setSelectedCustomField] = useState('')
   const [customFilterValue, setCustomFilterValue] = useState('')
   const [isCustomTyping, setIsCustomTyping] = useState(false)
@@ -310,6 +331,7 @@ function LeadsContent() {
       if (search) statsParams.set('search', search)
       if (startDate) statsParams.set('start_date', startDate)
       if (endDate) statsParams.set('end_date', endDate)
+      if (selectedCrop) statsParams.set('crop', selectedCrop)
       if (selectedCustomField && customFilterValue) {
         statsParams.set('custom_field', selectedCustomField)
         statsParams.set('custom_value', customFilterValue)
@@ -349,7 +371,7 @@ function LeadsContent() {
 
   useEffect(() => {
     fetchLeads(false)
-  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter, selectedCustomField, customFilterValue])
+  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter, selectedCustomField, customFilterValue, selectedCrop])
 
   // Infinite Scroll Observer — automatically loads next 50 leads when scrolling near bottom
   const sentinelRef = useRef<HTMLDivElement | null>(null)
@@ -653,6 +675,25 @@ function LeadsContent() {
     return Array.from(valSet).sort((a, b) => a.localeCompare(b))
   }, [selectedCustomField, leads, remoteCustomValues])
 
+  // Dynamic crop options derived from common crops + actual values found across loaded leads
+  const allCropOptions = useMemo(() => {
+    const list = [...COMMON_CROPS]
+    const existingIds = new Set(list.map(c => c.id.toLowerCase()))
+    leads.forEach(l => {
+      let meta = l.metadata || {}
+      if (typeof meta === 'string') { try { meta = JSON.parse(meta) } catch {} }
+      const val = meta.crop || meta.crop_choice || meta.crops
+      if (val && typeof val === 'string') {
+        const clean = val.trim()
+        if (clean.length > 1 && clean.length < 35 && !existingIds.has(clean.toLowerCase())) {
+          existingIds.add(clean.toLowerCase())
+          list.push({ id: clean.toLowerCase(), label: clean })
+        }
+      }
+    })
+    return list
+  }, [leads])
+
   const displayedLeads = useMemo(() => {
     return leads.filter(l => {
       if (isOsmoRo && leadTypeFilter && leadTypeFilter !== 'all') {
@@ -667,6 +708,24 @@ function LeadsContent() {
         if (selectedSource === 'google_maps_scraper' && !src.includes('google_maps') && !src.includes('scraper')) return false
         if (selectedSource === 'manual_entry' && !src.includes('manual') && !src.includes('crm')) return false
       }
+      if (selectedCrop) {
+        const cLower = selectedCrop.toLowerCase().trim()
+        let metaObj = l.metadata || {}
+        if (typeof metaObj === 'string') {
+          try { metaObj = JSON.parse(metaObj) } catch (e) { metaObj = {} }
+        }
+        const cVal = String(metaObj.crop || metaObj.crop_choice || metaObj.crops || (l as any).crop || '').toLowerCase()
+        let matches = cVal.includes(cLower)
+        if (!matches && (cLower === 'chana' || cLower === 'channa')) {
+          matches = cVal.includes('chana') || cVal.includes('channa') || cVal.includes('gram')
+        }
+        if (!matches) {
+          matches = Object.entries(metaObj).some(([k, v]) => 
+            k.toLowerCase().includes('crop') && String(v).toLowerCase().includes(cLower)
+          )
+        }
+        if (!matches) return false
+      }
       if (selectedCustomField && customFilterValue) {
         let metaObj = l.metadata || {}
         if (typeof metaObj === 'string') {
@@ -677,7 +736,7 @@ function LeadsContent() {
       }
       return true
     })
-  }, [leads, isOsmoRo, leadTypeFilter, selectedSource, selectedCustomField, customFilterValue])
+  }, [leads, isOsmoRo, leadTypeFilter, selectedSource, selectedCustomField, customFilterValue, selectedCrop])
 
   const uniqueCustomKeys = useMemo(() => {
     const skipKeys = [
@@ -955,6 +1014,32 @@ function LeadsContent() {
                   <option value="google_maps_scraper">🗺️ Google Maps Scraper</option>
                   <option value="manual_entry">✏️ Manual Entry</option>
                 </select>
+              </div>
+
+              {/* Dedicated Crop Filter (e.g. Onion, Chana, Wheat, etc.) */}
+              <div className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-gray-950/50 border border-gray-200/60 dark:border-gray-800/60 px-3.5 py-2 rounded-xl w-1/2 md:w-auto shrink-0 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
+                <span className="text-sm select-none">🌾</span>
+                <select
+                  value={selectedCrop}
+                  onChange={(e) => setSelectedCrop(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none cursor-pointer w-full max-w-[145px] truncate"
+                  title="Filter by Crop (Onion, Chana, Wheat, etc.)"
+                >
+                  <option value="">All Crops</option>
+                  {allCropOptions.map(c => (
+                    <option key={c.id} value={c.id}>{c.label}</option>
+                  ))}
+                </select>
+                {selectedCrop && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCrop('')}
+                    className="text-gray-400 hover:text-red-500 transition-colors p-0.5 ml-0.5"
+                    title="Clear crop filter"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               {/* Tenant Dynamic Custom Field Filter */}

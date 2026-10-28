@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     const customField = searchParams.get('custom_field') || ''
     const customValue = searchParams.get('custom_value') || ''
     const distinctField = searchParams.get('distinct_field') || ''
+    const crop = searchParams.get('crop') || ''
 
     // Return distinct values for a custom metadata key
     if (distinctField) {
@@ -128,6 +129,16 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Crop filter
+    if (crop) {
+      const cleanCrop = crop.trim().replace(/[^a-zA-Z0-9_\s-]/g, '')
+      if (cleanCrop) {
+        try {
+          query = query.filter('metadata->>crop', 'ilike', `%${cleanCrop}%`) as any
+        } catch {}
+      }
+    }
+
     const { data, error } = await query
     if (error) {
       console.error('[leads-list query error]:', error)
@@ -177,6 +188,22 @@ export async function GET(req: NextRequest) {
       if (customField && customValue) {
         const val = String(parsedMetadata[customField] || l[customField] || '').toLowerCase()
         if (!val.includes(customValue.toLowerCase())) return null
+      }
+
+      // Apply crop filter
+      if (crop) {
+        const cLower = crop.toLowerCase().trim()
+        const cVal = String(parsedMetadata.crop || parsedMetadata.crop_choice || parsedMetadata.crops || l.crop || '').toLowerCase()
+        let matches = cVal.includes(cLower)
+        if (!matches && (cLower === 'chana' || cLower === 'channa')) {
+          matches = cVal.includes('chana') || cVal.includes('channa') || cVal.includes('gram')
+        }
+        if (!matches) {
+          matches = Object.entries(parsedMetadata).some(([k, v]) => 
+            k.toLowerCase().includes('crop') && String(v).toLowerCase().includes(cLower)
+          )
+        }
+        if (!matches) return null
       }
 
       const stg = c.stage || l.stage || parsedMetadata.stage || 'new'
