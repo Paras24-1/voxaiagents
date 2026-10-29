@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
             if (m && typeof m === 'object') {
               for (const [k, v] of Object.entries(m)) {
                 const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-                if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
+                if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK) || (targetNorm.includes('crop') && normK.includes('crop'))) {
                   if (v !== null && v !== undefined) {
                     const str = String(v).trim()
                     if (str && str.length < 60 && str !== 'null' && str !== 'undefined') {
@@ -122,18 +122,94 @@ export async function GET(req: NextRequest) {
       query = query.gte('created_at', startOfTodayIso) as any
     }
 
-    // Push text search to DB (name, phone_number, customer_name)
+    // Push text search to DB (name, phone_number, customer_name, and metadata fields)
     if (search) {
-      query = query.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%,customer_name.ilike.%${search}%`) as any
+      const s = search.trim()
+      const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(s)
+      const isChana = /chana|channa|gram|chickpea|चना/i.test(s)
+
+      const searchClauses = [
+        `name.ilike.%${s}%`,
+        `phone_number.ilike.%${s}%`,
+        `customer_name.ilike.%${s}%`,
+        `metadata->>crop.ilike.%${s}%`,
+        `metadata->>Crop.ilike.%${s}%`,
+        `metadata->>crop_choice.ilike.%${s}%`,
+        `metadata->>Crop_Choice.ilike.%${s}%`,
+        `metadata->>Crop_Requirement.ilike.%${s}%`,
+        `metadata->>crop_requirement.ilike.%${s}%`,
+        `metadata->>crops.ilike.%${s}%`,
+        `metadata->>Crops.ilike.%${s}%`,
+        `metadata->>crop_name.ilike.%${s}%`,
+        `metadata->>city.ilike.%${s}%`,
+        `metadata->>district.ilike.%${s}%`,
+        `metadata->>tehsil.ilike.%${s}%`
+      ]
+
+      if (isOnion) {
+        for (const term of ['onion', 'pyaz', 'pyaaz', 'kanda']) {
+          searchClauses.push(`metadata->>crop.ilike.%${term}%`)
+          searchClauses.push(`metadata->>Crop.ilike.%${term}%`)
+          searchClauses.push(`metadata->>crop_choice.ilike.%${term}%`)
+          searchClauses.push(`metadata->>Crop_Requirement.ilike.%${term}%`)
+        }
+      } else if (isChana) {
+        for (const term of ['chana', 'channa', 'gram', 'chickpea']) {
+          searchClauses.push(`metadata->>crop.ilike.%${term}%`)
+          searchClauses.push(`metadata->>Crop.ilike.%${term}%`)
+          searchClauses.push(`metadata->>crop_choice.ilike.%${term}%`)
+          searchClauses.push(`metadata->>Crop_Requirement.ilike.%${term}%`)
+        }
+      }
+
+      query = query.or(searchClauses.join(',')) as any
     }
 
     // Custom tenant metadata filter (e.g. crop_choice, city, district, etc.)
     if (customField && customValue) {
-      const cleanField = customField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
-      if (cleanField) {
-        try {
-          query = query.filter(`metadata->>${cleanField}`, 'ilike', `%${customValue.trim()}%`) as any
-        } catch {}
+      const isCropField = /crop/i.test(customField)
+      const valTrim = customValue.trim()
+      const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(valTrim)
+      const isChana = /chana|channa|gram|chickpea|चना/i.test(valTrim)
+
+      if (isCropField) {
+        const cropKeys = [
+          'crop', 'Crop', 'crop_choice', 'Crop_Choice',
+          'crop_requirement', 'Crop_Requirement',
+          'crops', 'Crops', 'crop_name', 'Crop_Name',
+          'farm_crop', 'Farm_Crop'
+        ]
+        let valPatterns = [`%${valTrim}%`]
+        if (isOnion) {
+          valPatterns = ['%onion%', '%pyaz%', '%pyaaz%', '%kanda%', '%कांदा%', '%प्याज%']
+        } else if (isChana) {
+          valPatterns = ['%chana%', '%channa%', '%gram%', '%chickpea%', '%चना%']
+        }
+
+        const orClauses: string[] = []
+        for (const k of cropKeys) {
+          for (const v of valPatterns) {
+            orClauses.push(`metadata->>${k}.ilike.${v}`)
+          }
+        }
+        if (orClauses.length > 0) {
+          try {
+            query = query.or(orClauses.join(',')) as any
+          } catch {}
+        }
+      } else {
+        const cleanField = customField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
+        if (cleanField) {
+          const lower = cleanField.toLowerCase()
+          const capitalized = cleanField.charAt(0).toUpperCase() + cleanField.slice(1)
+          const keys = Array.from(new Set([cleanField, lower, capitalized]))
+          const orClauses = keys.map(k => `metadata->>${k}.ilike.%${valTrim}%`).join(',')
+          try {
+            query = query.or(orClauses) as any
+          } catch {
+            query = query.filter(`metadata->>${cleanField}`, 'ilike', `%${valTrim}%`) as any
+          }
+        }
       }
     }
 
@@ -186,12 +262,24 @@ export async function GET(req: NextRequest) {
       if (customField && customValue) {
         const targetK = customField.toLowerCase().replace(/[^a-z0-9]/g, '')
         const targetV = customValue.toLowerCase().trim()
+        const isCropFilter = targetK.includes('crop')
+        const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(targetV)
+        const isChana = /chana|channa|gram|chickpea|चना/i.test(targetV)
         let matched = false
+
         for (const [k, v] of Object.entries(parsedMetadata)) {
           const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-          if (normK === targetK || normK.includes(targetK) || targetK.includes(normK)) {
+          if (normK === targetK || normK.includes(targetK) || targetK.includes(normK) || (isCropFilter && (normK.includes('crop') || normK.includes('farm')))) {
             const vStr = String(v).toLowerCase()
-            if (vStr.includes(targetV) || (targetV === 'chana' && vStr.includes('channa')) || (targetV === 'channa' && vStr.includes('chana'))) {
+            if (vStr.includes(targetV) || targetV.includes(vStr)) {
+              matched = true
+              break
+            }
+            if (isOnion && (vStr.includes('onion') || vStr.includes('pyaz') || vStr.includes('pyaaz') || vStr.includes('kanda') || vStr.includes('pyaj') || vStr.includes('प्याज') || vStr.includes('कांदा'))) {
+              matched = true
+              break
+            }
+            if (isChana && (vStr.includes('chana') || vStr.includes('channa') || vStr.includes('gram') || vStr.includes('chickpea') || vStr.includes('चना'))) {
               matched = true
               break
             }
@@ -199,7 +287,7 @@ export async function GET(req: NextRequest) {
         }
         if (!matched && l[customField]) {
           const vStr = String(l[customField]).toLowerCase()
-          if (vStr.includes(targetV)) matched = true
+          if (vStr.includes(targetV) || (isOnion && (vStr.includes('onion') || vStr.includes('pyaz') || vStr.includes('kanda')))) matched = true
         }
         if (!matched) return null
       }

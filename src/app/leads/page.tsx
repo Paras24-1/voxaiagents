@@ -690,7 +690,7 @@ function LeadsContent() {
       }
       for (const [k, v] of Object.entries(meta)) {
         const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-        if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
+        if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK) || (targetNorm.includes('crop') && normK.includes('crop'))) {
           if (v !== null && v !== undefined) {
             const str = String(v).trim()
             if (str && str !== 'null' && str !== 'undefined' && str.length < 50) {
@@ -728,17 +728,24 @@ function LeadsContent() {
         }
         const targetNorm = selectedCustomField.toLowerCase().replace(/[^a-z0-9]/g, '')
         const filterValLower = customFilterValue.toLowerCase().trim()
+        const isCropFilter = targetNorm.includes('crop')
+        const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(filterValLower)
+        const isChana = /chana|channa|gram|chickpea|चना/i.test(filterValLower)
         let matched = false
 
         for (const [k, v] of Object.entries(metaObj)) {
           const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-          if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
+          if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK) || (isCropFilter && (normK.includes('crop') || normK.includes('farm')))) {
             const vStr = String(v).toLowerCase()
             if (vStr.includes(filterValLower) || filterValLower.includes(vStr)) {
               matched = true
               break
             }
-            if (filterValLower.includes('chana') && (vStr.includes('chana') || vStr.includes('channa') || vStr.includes('gram'))) {
+            if (isOnion && (vStr.includes('onion') || vStr.includes('pyaz') || vStr.includes('pyaaz') || vStr.includes('kanda') || vStr.includes('pyaj') || vStr.includes('प्याज') || vStr.includes('कांदा'))) {
+              matched = true
+              break
+            }
+            if (isChana && (vStr.includes('chana') || vStr.includes('channa') || vStr.includes('gram') || vStr.includes('chickpea') || vStr.includes('चना'))) {
               matched = true
               break
             }
@@ -746,7 +753,7 @@ function LeadsContent() {
         }
         if (!matched && (l as any)[selectedCustomField]) {
           const vStr = String((l as any)[selectedCustomField]).toLowerCase()
-          if (vStr.includes(filterValLower)) matched = true
+          if (vStr.includes(filterValLower) || (isOnion && (vStr.includes('onion') || vStr.includes('pyaz') || vStr.includes('kanda')))) matched = true
         }
         if (!matched) return false
       }
@@ -809,7 +816,7 @@ function LeadsContent() {
       'metadata', 'lead_type', 'lead_score', 'lead_quality', 
       'lead_temperature', 'stage', 'state', 'osmo_category'
     ]
-    const tenantDefaults = ['city', 'crop', 'crop_choice', 'district', 'tehsil']
+    const tenantDefaults = ['crop', 'crop_choice', 'crop_requirement', 'city', 'district', 'tehsil']
     const combined = Array.from(new Set([...uniqueCustomKeys, ...tenantDefaults]))
     return combined.filter(k => !skip.includes(k.toLowerCase()))
   }, [uniqueCustomKeys])

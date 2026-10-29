@@ -57,16 +57,93 @@ export async function GET(req: NextRequest) {
         const startOfTodayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
         q = q.gte('created_at', startOfTodayIso) as any
       }
-      if (customField && customValue) {
-        const cleanField = customField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
-        if (cleanField) {
-          try {
-            q = q.filter(`metadata->>${cleanField}`, 'ilike', `%${customValue.trim()}%`) as any
-          } catch {}
-        }
-      }
       if (search) {
-        q = q.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%,customer_name.ilike.%${search}%`) as any
+        const s = search.trim()
+        const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(s)
+        const isChana = /chana|channa|gram|chickpea|चना/i.test(s)
+
+        const searchClauses = [
+          `name.ilike.%${s}%`,
+          `phone_number.ilike.%${s}%`,
+          `customer_name.ilike.%${s}%`,
+          `metadata->>crop.ilike.%${s}%`,
+          `metadata->>Crop.ilike.%${s}%`,
+          `metadata->>crop_choice.ilike.%${s}%`,
+          `metadata->>Crop_Choice.ilike.%${s}%`,
+          `metadata->>Crop_Requirement.ilike.%${s}%`,
+          `metadata->>crop_requirement.ilike.%${s}%`,
+          `metadata->>crops.ilike.%${s}%`,
+          `metadata->>Crops.ilike.%${s}%`,
+          `metadata->>crop_name.ilike.%${s}%`,
+          `metadata->>city.ilike.%${s}%`,
+          `metadata->>district.ilike.%${s}%`,
+          `metadata->>tehsil.ilike.%${s}%`
+        ]
+
+        if (isOnion) {
+          for (const term of ['onion', 'pyaz', 'pyaaz', 'kanda']) {
+            searchClauses.push(`metadata->>crop.ilike.%${term}%`)
+            searchClauses.push(`metadata->>Crop.ilike.%${term}%`)
+            searchClauses.push(`metadata->>crop_choice.ilike.%${term}%`)
+            searchClauses.push(`metadata->>Crop_Requirement.ilike.%${term}%`)
+          }
+        } else if (isChana) {
+          for (const term of ['chana', 'channa', 'gram', 'chickpea']) {
+            searchClauses.push(`metadata->>crop.ilike.%${term}%`)
+            searchClauses.push(`metadata->>Crop.ilike.%${term}%`)
+            searchClauses.push(`metadata->>crop_choice.ilike.%${term}%`)
+            searchClauses.push(`metadata->>Crop_Requirement.ilike.%${term}%`)
+          }
+        }
+
+        q = q.or(searchClauses.join(',')) as any
+      }
+
+      if (customField && customValue) {
+        const isCropField = /crop/i.test(customField)
+        const valTrim = customValue.trim()
+        const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(valTrim)
+        const isChana = /chana|channa|gram|chickpea|चना/i.test(valTrim)
+
+        if (isCropField) {
+          const cropKeys = [
+            'crop', 'Crop', 'crop_choice', 'Crop_Choice',
+            'crop_requirement', 'Crop_Requirement',
+            'crops', 'Crops', 'crop_name', 'Crop_Name',
+            'farm_crop', 'Farm_Crop'
+          ]
+          let valPatterns = [`%${valTrim}%`]
+          if (isOnion) {
+            valPatterns = ['%onion%', '%pyaz%', '%pyaaz%', '%kanda%', '%कांदा%', '%प्याज%']
+          } else if (isChana) {
+            valPatterns = ['%chana%', '%channa%', '%gram%', '%chickpea%', '%चना%']
+          }
+
+          const orClauses: string[] = []
+          for (const k of cropKeys) {
+            for (const v of valPatterns) {
+              orClauses.push(`metadata->>${k}.ilike.${v}`)
+            }
+          }
+          if (orClauses.length > 0) {
+            try {
+              q = q.or(orClauses.join(',')) as any
+            } catch {}
+          }
+        } else {
+          const cleanField = customField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
+          if (cleanField) {
+            const lower = cleanField.toLowerCase()
+            const capitalized = cleanField.charAt(0).toUpperCase() + cleanField.slice(1)
+            const keys = Array.from(new Set([cleanField, lower, capitalized]))
+            const orClauses = keys.map(k => `metadata->>${k}.ilike.%${valTrim}%`).join(',')
+            try {
+              q = q.or(orClauses) as any
+            } catch {
+              q = q.filter(`metadata->>${cleanField}`, 'ilike', `%${valTrim}%`) as any
+            }
+          }
+        }
       }
       if (applyFilter) q = applyFilter(q)
       return q
