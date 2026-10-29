@@ -182,6 +182,7 @@ function LeadsContent() {
   const [staffList, setStaffList] = useState<{ id: string; name: string; email: string; role: string }[]>([])
   const [bulkAssignEmployeeId, setBulkAssignEmployeeId] = useState('')
   const [bulkAssigning, setBulkAssigning] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -547,62 +548,60 @@ function LeadsContent() {
     }
   }
 
-  // Download filtered leads as CSV
-  const handleDownloadCSV = () => {
-    if (leads.length === 0) return
-
-    // Standard columns
-    const standardHeaders = ['Name', 'Phone', 'Stage', 'Lead Quality', 'Lead Score', 'Created At']
-
-    // Unique keys in metadata
-    const metadataKeys = new Set<string>()
-    leads.forEach(l => {
-      let meta = l.metadata || {};
-      if (typeof meta === 'string') { try { meta = JSON.parse(meta) } catch (e) {} }
-      if (meta) {
-        Object.keys(meta).forEach(k => metadataKeys.add(k))
+  // Download leads as CSV (either all filtered leads across entire DB, or only chosen/selected leads)
+  const handleDownloadCSV = async (exportSelectedOnly = false) => {
+    try {
+      setIsExporting(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
-    })
 
-    const allHeaders = [...standardHeaders, ...Array.from(metadataKeys)]
-    const csvRows = []
+      const payload: any = {
+        stage: selectedStage || '',
+        quality: selectedQuality || '',
+        search: search || '',
+        start_date: startDate || '',
+        end_date: endDate || '',
+        lead_type: leadTypeFilter || '',
+        state: selectedState || '',
+        assigned_today: assignedTodayFilter,
+        custom_field: selectedCustomField || '',
+        custom_value: customFilterValue || '',
+      }
 
-    // Header row
-    csvRows.push(allHeaders.map(h => `"${h.replace(/"/g, '""')}"`).join(','))
+      if (exportSelectedOnly && selectedLeadPhones.length > 0) {
+        payload.selected_phones = selectedLeadPhones
+      }
 
-    // Data rows
-    leads.forEach(l => {
-      let meta = l.metadata || {};
-      if (typeof meta === 'string') { try { meta = JSON.parse(meta) } catch (e) {} }
-      const score = Number(meta.lead_score ?? l.lead_score) || 0;
-      const quality = meta.lead_quality || (score > 50 ? 'hot' : score >= 25 ? 'warm' : 'cold');
-      const stage = meta.stage || l.stage || 'new';
-
-      const row = [
-        l.name || (l as any).customer_name || meta.name || meta.contact_person || 'Unknown',
-        l.phone_number || '',
-        stage,
-        quality,
-        String(score),
-        l.created_at ? new Date(l.created_at).toLocaleString() : ''
-      ]
-
-      metadataKeys.forEach(k => {
-        row.push(meta?.[k] || '')
+      const res = await fetch('/api/leads/export', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
       })
 
-      csvRows.push(row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
-    })
+      if (!res.ok) {
+        throw new Error(`Export failed with status ${res.status}`)
+      }
 
-    const csvContent = csvRows.join("\n")
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `leads_crm_export_${new Date().toISOString().slice(0, 10)}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.setAttribute("href", url)
+      const suffix = (exportSelectedOnly && selectedLeadPhones.length > 0) ? `selected_${selectedLeadPhones.length}` : 'all_filtered'
+      link.setAttribute("download", `leads_crm_export_${suffix}_${new Date().toISOString().slice(0, 10)}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err: any) {
+      console.error('Export error:', err)
+      alert(`Export failed: ${err.message || 'Error downloading CSV'}`)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   // Use stats from server for accurate metrics across all leads, with proportional fallback so never zero
@@ -886,13 +885,23 @@ function LeadsContent() {
             <Plus className="w-4 h-4" />
             + Custom Stages
           </button>
+          {selectedLeadPhones.length > 0 && (
+            <button
+              onClick={() => handleDownloadCSV(true)}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm border border-emerald-400/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+            >
+              {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Export Selected ({selectedLeadPhones.length})
+            </button>
+          )}
           <button
-            onClick={handleDownloadCSV}
-            disabled={leads.length === 0}
+            onClick={() => handleDownloadCSV(false)}
+            disabled={isExporting || (totalLeads === 0 && leads.length === 0)}
             className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-800/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
           >
-            <Download className="w-4 h-4" />
-            Export CSV
+            {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {selectedLeadPhones.length > 0 ? `Export All Filtered (${totalLeads.toLocaleString()})` : `Export CSV (${totalLeads.toLocaleString()})`}
           </button>
         </div>
       </header>
@@ -1159,6 +1168,18 @@ function LeadsContent() {
               </div>
             ) : (
               <div className="overflow-x-auto flex-1 pb-4">
+                  {displayedLeads.length > 0 && displayedLeads.every(l => selectedLeadPhones.includes(l.phone_number)) && totalLeads > displayedLeads.length && (
+                    <div className="bg-emerald-50 dark:bg-emerald-950/40 border-b border-emerald-200 dark:border-emerald-800/50 py-2.5 px-6 text-center text-xs text-emerald-800 dark:text-emerald-200 font-medium flex items-center justify-center gap-2">
+                      <span>All {displayedLeads.length} leads on this page are selected ({selectedLeadPhones.length} total selected).</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadCSV(false)}
+                        className="underline font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 cursor-pointer"
+                      >
+                        Export all {totalLeads.toLocaleString()} filtered leads instead
+                      </button>
+                    </div>
+                  )}
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
                     <thead className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 text-[11px] font-black tracking-wider text-left uppercase sticky top-0 z-20 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-2xs">
                       <tr>
@@ -1840,6 +1861,16 @@ function LeadsContent() {
             >
               {bulkAssigning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
               Apply Bulk Assignment
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDownloadCSV(true)}
+              disabled={isExporting}
+              className="px-3.5 py-1.5 text-xs font-bold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              {isExporting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              Export Selected
             </button>
 
             <button
