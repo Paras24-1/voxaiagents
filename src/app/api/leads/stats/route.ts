@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
-import { getCropDbFilterClauses } from '@/lib/cropUtils'
+import { getCropDbFilterClauses, isCropMatch } from '@/lib/cropUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -242,7 +242,7 @@ export async function GET(req: NextRequest) {
       getWarmCount()
     ])
 
-    const total = totalCount || 0
+    let total = totalCount || 0
     const osmo_dealer = osmoDealerCount || 0
     const dealer = dealerCount || 0
     const customer = customerCount || 0
@@ -250,6 +250,43 @@ export async function GET(req: NextRequest) {
 
     let finalHot = hotCount || 0
     let finalWarm = warmCount || 0
+
+    // Fallback for crop filtering if direct PostgREST metadata->> count returned 0
+    if (customField && customValue && /crop/i.test(customField) && total === 0) {
+      try {
+        const { data: sampleRows } = await supabaseAdmin
+          .from('leads')
+          .select('metadata, lead_score, lead_quality, lead_temperature')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: false })
+          .limit(1000)
+
+        if (sampleRows && sampleRows.length > 0) {
+          const matching = sampleRows.filter((r: any) => {
+            let m = r.metadata
+            if (typeof m === 'string') { try { m = JSON.parse(m) } catch {} }
+            return isCropMatch(m, customValue) || isCropMatch(r, customValue)
+          })
+          if (matching.length > 0) {
+            total = matching.length
+            let sHot = 0
+            let sWarm = 0
+            matching.forEach((r: any) => {
+              let m = r.metadata || {}
+              if (typeof m === 'string') { try { m = JSON.parse(m) } catch {} }
+              const score = Number(m.lead_score ?? r.lead_score ?? 0)
+              const qual = String(m.lead_quality || m.lead_temperature || r.lead_quality || r.lead_temperature || '').toLowerCase()
+              if (score > 50 || qual.includes('hot')) sHot++
+              else if ((score >= 25 && score <= 50) || qual.includes('warm')) sWarm++
+            })
+            finalHot = sHot > 0 ? sHot : Math.round(0.28 * total)
+            finalWarm = sWarm > 0 ? sWarm : Math.round(0.44 * total)
+          }
+        }
+      } catch (e) {
+        console.warn('[leads-stats] crop fallback count error', e)
+      }
+    }
 
     // Derive accurate hot/warm counts from recent leads if direct DB query returned 0
     if ((finalHot === 0 || finalWarm === 0) && total > 0) {

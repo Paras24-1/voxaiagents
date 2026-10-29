@@ -51,6 +51,7 @@ interface Lead {
   lead_temperature?: string | null
   lead_type?: string | null
   osmo_category?: string | null
+  crop?: string | null
   notes?: string | null
   followup_date?: string | null
   followup_notes?: string | null
@@ -740,25 +741,27 @@ function LeadsContent() {
         const isCropFilter = targetNorm.includes('crop')
         let matched = false
 
-        for (const [k, v] of Object.entries(metaObj)) {
-          const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-          if (isCropFilter && (normK.includes('crop') || normK.includes('farm'))) {
-            if (isCropMatch(v, customFilterValue)) {
-              matched = true
-              break
-            }
-          } else if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
-            const vStr = String(v).toLowerCase()
-            const filterValLower = customFilterValue.toLowerCase().trim()
-            if (vStr.includes(filterValLower) || filterValLower.includes(vStr)) {
-              matched = true
-              break
+        if (isCropFilter) {
+          matched = isCropMatch(metaObj, customFilterValue) || 
+                    isCropMatch((l as any).crop, customFilterValue) || 
+                    isCropMatch((l as any)[selectedCustomField], customFilterValue) ||
+                    isCropMatch(l, customFilterValue)
+        } else {
+          for (const [k, v] of Object.entries(metaObj)) {
+            const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+            if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
+              const vStr = String(v).toLowerCase()
+              const filterValLower = customFilterValue.toLowerCase().trim()
+              if (vStr.includes(filterValLower) || filterValLower.includes(vStr)) {
+                matched = true
+                break
+              }
             }
           }
-        }
-        if (!matched && (l as any)[selectedCustomField]) {
-          if (isCropFilter ? isCropMatch((l as any)[selectedCustomField], customFilterValue) : String((l as any)[selectedCustomField]).toLowerCase().includes(customFilterValue.toLowerCase().trim())) {
-            matched = true
+          if (!matched && (l as any)[selectedCustomField]) {
+            if (String((l as any)[selectedCustomField]).toLowerCase().includes(customFilterValue.toLowerCase().trim())) {
+              matched = true
+            }
           }
         }
         if (!matched) return false

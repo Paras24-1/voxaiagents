@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
-import { getCropDbFilterClauses, isCropMatch, normalizeCrop, PRIMARY_CROP_KEYS } from '@/lib/cropUtils'
+import { 
+  CANONICAL_CROP_LIST, 
+  getCropDbFilterClauses, 
+  isCropMatch, 
+  normalizeCrop, 
+  PRIMARY_CROP_KEYS, 
+  extractLeadCrop 
+} from '@/lib/cropUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -31,6 +38,11 @@ export async function GET(req: NextRequest) {
     if (distinctField) {
       const cleanField = distinctField.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '')
       if (cleanField) {
+        // For agricultural crops, return canonical taxonomy values immediately
+        if (cleanField.includes('crop')) {
+          return NextResponse.json({ values: CANONICAL_CROP_LIST })
+        }
+
         try {
           const { data } = await supabaseAdmin
             .from('leads')
@@ -50,7 +62,7 @@ export async function GET(req: NextRequest) {
             if (m && typeof m === 'object') {
               for (const [k, v] of Object.entries(m)) {
                 const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-                if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK) || (targetNorm.includes('crop') && normK.includes('crop'))) {
+                if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
                   if (v !== null && v !== undefined) {
                     const str = String(v).trim()
                     if (str && str.length < 60 && str !== 'null' && str !== 'undefined') {
@@ -126,9 +138,6 @@ export async function GET(req: NextRequest) {
     // Push text search to DB (name, phone_number, customer_name, and metadata fields)
     if (search) {
       const s = search.trim()
-      const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(s)
-      const isChana = /chana|channa|gram|chickpea|चना/i.test(s)
-
       const searchClauses = [
         `name.ilike.%${s}%`,
         `phone_number.ilike.%${s}%`,
@@ -142,26 +151,12 @@ export async function GET(req: NextRequest) {
         `metadata->>crops.ilike.%${s}%`,
         `metadata->>Crops.ilike.%${s}%`,
         `metadata->>crop_name.ilike.%${s}%`,
+        `metadata->>Crop_Name.ilike.%${s}%`,
+        `metadata->>farm_crop.ilike.%${s}%`,
         `metadata->>city.ilike.%${s}%`,
         `metadata->>district.ilike.%${s}%`,
         `metadata->>tehsil.ilike.%${s}%`
       ]
-
-      if (isOnion) {
-        for (const term of ['onion', 'pyaz', 'pyaaz', 'kanda']) {
-          searchClauses.push(`metadata->>crop.ilike.%${term}%`)
-          searchClauses.push(`metadata->>Crop.ilike.%${term}%`)
-          searchClauses.push(`metadata->>crop_choice.ilike.%${term}%`)
-          searchClauses.push(`metadata->>Crop_Requirement.ilike.%${term}%`)
-        }
-      } else if (isChana) {
-        for (const term of ['chana', 'channa', 'gram', 'chickpea']) {
-          searchClauses.push(`metadata->>crop.ilike.%${term}%`)
-          searchClauses.push(`metadata->>Crop.ilike.%${term}%`)
-          searchClauses.push(`metadata->>crop_choice.ilike.%${term}%`)
-          searchClauses.push(`metadata->>Crop_Requirement.ilike.%${term}%`)
-        }
-      }
 
       query = query.or(searchClauses.join(',')) as any
     }
@@ -202,7 +197,41 @@ export async function GET(req: NextRequest) {
       throw error
     }
 
-    const rows = data || []
+    let rows = data || []
+
+    // Production Fallback: If DB query with PostgREST metadata->> returned 0 rows for crop,
+    // fallback to broader query to fetch tenant leads and match using comprehensive crop normalization.
+    if (customField && customValue && /crop/i.test(customField) && rows.length === 0) {
+      try {
+        let fallbackQuery = supabaseAdmin
+          .from('leads')
+          .select('*, conversations(id, stage, name, assigned_to, updated_at)')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: false })
+
+        if (stage) fallbackQuery = fallbackQuery.eq('stage', stage)
+        if (startDate) fallbackQuery = fallbackQuery.gte('created_at', startDate)
+        if (endDate) fallbackQuery = fallbackQuery.lte('created_at', `${endDate}T23:59:59.999Z`)
+        if (staffConvIds) fallbackQuery = fallbackQuery.in('conversation_id', staffConvIds)
+
+        const { data: fallbackData } = await fallbackQuery.limit(1000)
+        if (fallbackData && fallbackData.length > 0) {
+          const matchedFallback = fallbackData.filter((l: any) => {
+            let m = l.metadata
+            if (typeof m === 'string') {
+              try { m = JSON.parse(m) } catch {}
+            }
+            return isCropMatch(m, customValue) || isCropMatch(l, customValue)
+          })
+          if (matchedFallback.length > 0) {
+            rows = matchedFallback.slice(from, from + fetchLimit)
+          }
+        }
+      } catch (fbErr) {
+        console.warn('[leads-list] crop fallback scan error', fbErr)
+      }
+    }
+
     const hasMore = rows.length > limit
     const slicedRows = hasMore ? rows.slice(0, limit) : rows
 
@@ -247,38 +276,31 @@ export async function GET(req: NextRequest) {
         const isCropFilter = targetK.includes('crop')
         let matched = false
 
-        for (const [k, v] of Object.entries(parsedMetadata)) {
-          const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-          if (isCropFilter && (normK.includes('crop') || normK.includes('farm'))) {
-            if (isCropMatch(v, customValue)) {
-              matched = true
-              break
-            }
-          } else if (normK === targetK || normK.includes(targetK) || targetK.includes(normK)) {
-            const vStr = String(v).toLowerCase()
-            const targetV = customValue.toLowerCase().trim()
-            if (vStr.includes(targetV) || targetV.includes(vStr)) {
-              matched = true
-              break
+        if (isCropFilter) {
+          matched = isCropMatch(parsedMetadata, customValue) || isCropMatch(l, customValue)
+        } else {
+          for (const [k, v] of Object.entries(parsedMetadata)) {
+            const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+            if (normK === targetK || normK.includes(targetK) || targetK.includes(normK)) {
+              const vStr = String(v).toLowerCase()
+              const targetV = customValue.toLowerCase().trim()
+              if (vStr.includes(targetV) || targetV.includes(vStr)) {
+                matched = true
+                break
+              }
             }
           }
-        }
-        if (!matched && l[customField]) {
-          if (isCropFilter ? isCropMatch(l[customField], customValue) : String(l[customField]).toLowerCase().includes(customValue.toLowerCase().trim())) {
-            matched = true
+          if (!matched && l[customField]) {
+            if (String(l[customField]).toLowerCase().includes(customValue.toLowerCase().trim())) {
+              matched = true
+            }
           }
         }
         if (!matched) return null
       }
 
       // Extract and normalize crop if present
-      let leadCrop: string | null = null
-      for (const k of PRIMARY_CROP_KEYS) {
-        if (parsedMetadata[k]) {
-          leadCrop = normalizeCrop(parsedMetadata[k])
-          if (leadCrop) break
-        }
-      }
+      const leadCrop = extractLeadCrop(parsedMetadata, l)
 
       const stg = c.stage || l.stage || parsedMetadata.stage || 'new'
       if (stage && stg !== stage) return null

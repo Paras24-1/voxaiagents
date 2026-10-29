@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
-import { getCropDbFilterClauses, isCropMatch, normalizeCrop, PRIMARY_CROP_KEYS } from '@/lib/cropUtils'
+import { getCropDbFilterClauses, isCropMatch, normalizeCrop, PRIMARY_CROP_KEYS, extractLeadCrop } from '@/lib/cropUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -251,6 +251,37 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
         offset += BATCH_SIZE
       }
     }
+
+    // Production Fallback for Crop Export:
+    // If DB query with PostgREST metadata->> returned 0 rows, fallback to scanning tenant leads directly
+    if (customField && customValue && /crop/i.test(customField) && allRawRows.length === 0) {
+      try {
+        let fallbackQuery = supabaseAdmin
+          .from('leads')
+          .select('*, conversations(id, stage, name, assigned_to, updated_at)')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: false })
+          .limit(5000)
+
+        if (stage) fallbackQuery = fallbackQuery.eq('stage', stage)
+        if (startDate) fallbackQuery = fallbackQuery.gte('created_at', startDate)
+        if (endDate) fallbackQuery = fallbackQuery.lte('created_at', `${endDate}T23:59:59.999Z`)
+
+        const { data: fallbackData } = await fallbackQuery
+        if (fallbackData && fallbackData.length > 0) {
+          const matched = fallbackData.filter((l: any) => {
+            let m = l.metadata
+            if (typeof m === 'string') { try { m = JSON.parse(m) } catch {} }
+            return isCropMatch(m, customValue) || isCropMatch(l, customValue)
+          })
+          if (matched.length > 0) {
+            allRawRows.push(...matched)
+          }
+        }
+      } catch (fbErr) {
+        console.warn('[leads-export] crop fallback scan error', fbErr)
+      }
+    }
   }
 
   // Enrich and apply secondary in-memory filters (stage, quality, state, custom field variants)
@@ -293,38 +324,31 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
       const isCropFilter = targetK.includes('crop')
       let matched = false
 
-      for (const [k, v] of Object.entries(parsedMetadata)) {
-        const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-        if (isCropFilter && (normK.includes('crop') || normK.includes('farm'))) {
-          if (isCropMatch(v, customValue)) {
-            matched = true
-            break
-          }
-        } else if (normK === targetK || normK.includes(targetK) || targetK.includes(normK)) {
-          const vStr = String(v).toLowerCase()
-          const targetV = customValue.toLowerCase().trim()
-          if (vStr.includes(targetV) || targetV.includes(vStr)) {
-            matched = true
-            break
+      if (isCropFilter) {
+        matched = isCropMatch(parsedMetadata, customValue) || isCropMatch(l, customValue)
+      } else {
+        for (const [k, v] of Object.entries(parsedMetadata)) {
+          const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+          if (normK === targetK || normK.includes(targetK) || targetK.includes(normK)) {
+            const vStr = String(v).toLowerCase()
+            const targetV = customValue.toLowerCase().trim()
+            if (vStr.includes(targetV) || targetV.includes(vStr)) {
+              matched = true
+              break
+            }
           }
         }
-      }
-      if (!matched && l[customField]) {
-        if (isCropFilter ? isCropMatch(l[customField], customValue) : String(l[customField]).toLowerCase().includes(customValue.toLowerCase().trim())) {
-          matched = true
+        if (!matched && l[customField]) {
+          if (String(l[customField]).toLowerCase().includes(customValue.toLowerCase().trim())) {
+            matched = true
+          }
         }
       }
       if (!matched) return null
     }
 
     // Extract and normalize crop if present
-    let leadCrop: string | null = null
-    for (const k of PRIMARY_CROP_KEYS) {
-      if (parsedMetadata[k]) {
-        leadCrop = normalizeCrop(parsedMetadata[k])
-        if (leadCrop) break
-      }
-    }
+    const leadCrop = extractLeadCrop(parsedMetadata, l)
 
     const stg = c.stage || l.stage || parsedMetadata.stage || 'new'
     if (stage && stg !== stage) return null
