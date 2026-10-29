@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
+import { getCropDbFilterClauses, isCropMatch, normalizeCrop, PRIMARY_CROP_KEYS } from '@/lib/cropUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -165,37 +166,19 @@ export async function GET(req: NextRequest) {
       query = query.or(searchClauses.join(',')) as any
     }
 
-    // Custom tenant metadata filter (e.g. crop_choice, city, district, etc.)
+    // Custom tenant metadata filter (e.g. crop, city, district, etc.)
     if (customField && customValue) {
       const isCropField = /crop/i.test(customField)
       const valTrim = customValue.trim()
-      const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(valTrim)
-      const isChana = /chana|channa|gram|chickpea|चना/i.test(valTrim)
 
       if (isCropField) {
-        const cropKeys = [
-          'crop', 'Crop', 'crop_choice', 'Crop_Choice',
-          'crop_requirement', 'Crop_Requirement',
-          'crops', 'Crops', 'crop_name', 'Crop_Name',
-          'farm_crop', 'Farm_Crop'
-        ]
-        let valPatterns = [`%${valTrim}%`]
-        if (isOnion) {
-          valPatterns = ['%onion%', '%pyaz%', '%pyaaz%', '%kanda%', '%कांदा%', '%प्याज%']
-        } else if (isChana) {
-          valPatterns = ['%chana%', '%channa%', '%gram%', '%chickpea%', '%चना%']
-        }
-
-        const orClauses: string[] = []
-        for (const k of cropKeys) {
-          for (const v of valPatterns) {
-            orClauses.push(`metadata->>${k}.ilike.${v}`)
-          }
-        }
+        const orClauses = getCropDbFilterClauses(valTrim)
         if (orClauses.length > 0) {
           try {
             query = query.or(orClauses.join(',')) as any
-          } catch {}
+          } catch (e) {
+            console.warn('[leads-list] crop or query fallback', e)
+          }
         }
       } else {
         const cleanField = customField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
@@ -258,38 +241,43 @@ export async function GET(req: NextRequest) {
         if (leadState.toLowerCase() !== geographicState.toLowerCase()) return null
       }
 
-      // Apply dynamic custom tenant filter (e.g. crop_choice, city, etc.)
+      // Apply dynamic custom tenant filter (e.g. crop, city, etc.)
       if (customField && customValue) {
         const targetK = customField.toLowerCase().replace(/[^a-z0-9]/g, '')
-        const targetV = customValue.toLowerCase().trim()
         const isCropFilter = targetK.includes('crop')
-        const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(targetV)
-        const isChana = /chana|channa|gram|chickpea|चना/i.test(targetV)
         let matched = false
 
         for (const [k, v] of Object.entries(parsedMetadata)) {
           const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-          if (normK === targetK || normK.includes(targetK) || targetK.includes(normK) || (isCropFilter && (normK.includes('crop') || normK.includes('farm')))) {
+          if (isCropFilter && (normK.includes('crop') || normK.includes('farm'))) {
+            if (isCropMatch(v, customValue)) {
+              matched = true
+              break
+            }
+          } else if (normK === targetK || normK.includes(targetK) || targetK.includes(normK)) {
             const vStr = String(v).toLowerCase()
+            const targetV = customValue.toLowerCase().trim()
             if (vStr.includes(targetV) || targetV.includes(vStr)) {
-              matched = true
-              break
-            }
-            if (isOnion && (vStr.includes('onion') || vStr.includes('pyaz') || vStr.includes('pyaaz') || vStr.includes('kanda') || vStr.includes('pyaj') || vStr.includes('प्याज') || vStr.includes('कांदा'))) {
-              matched = true
-              break
-            }
-            if (isChana && (vStr.includes('chana') || vStr.includes('channa') || vStr.includes('gram') || vStr.includes('chickpea') || vStr.includes('चना'))) {
               matched = true
               break
             }
           }
         }
         if (!matched && l[customField]) {
-          const vStr = String(l[customField]).toLowerCase()
-          if (vStr.includes(targetV) || (isOnion && (vStr.includes('onion') || vStr.includes('pyaz') || vStr.includes('kanda')))) matched = true
+          if (isCropFilter ? isCropMatch(l[customField], customValue) : String(l[customField]).toLowerCase().includes(customValue.toLowerCase().trim())) {
+            matched = true
+          }
         }
         if (!matched) return null
+      }
+
+      // Extract and normalize crop if present
+      let leadCrop: string | null = null
+      for (const k of PRIMARY_CROP_KEYS) {
+        if (parsedMetadata[k]) {
+          leadCrop = normalizeCrop(parsedMetadata[k])
+          if (leadCrop) break
+        }
       }
 
       const stg = c.stage || l.stage || parsedMetadata.stage || 'new'
@@ -322,6 +310,7 @@ export async function GET(req: NextRequest) {
         metadata: { ...parsedMetadata, lead_type: l.osmo_category || 'unfiltered', category: l.osmo_category || 'unfiltered' },
         state: parsedMetadata.state,
         city: parsedMetadata.city,
+        crop: leadCrop || parsedMetadata.crop || null,
         source: parsedMetadata.source || l.source || 'Direct'
       }
     }).filter(Boolean)

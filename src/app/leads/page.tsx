@@ -35,6 +35,7 @@ import { useLeadStages } from '@/hooks/useLeadStages'
 import CustomStageModal from '@/components/leads/CustomStageModal'
 import BulkImportLeadsModal from '@/components/leads/BulkImportLeadsModal'
 import CreateLeadModal from '@/components/leads/CreateLeadModal'
+import { CANONICAL_CROP_LIST, isCropMatch, normalizeCrop } from '@/lib/cropUtils'
 
 interface Lead {
   id: string
@@ -151,6 +152,12 @@ function LeadsContent() {
     profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
     org?.name?.toLowerCase().includes('osmo') ||
     org?.slug?.toLowerCase().includes('osmo')
+
+  const isInnoveg = 
+    org?.name?.toLowerCase().includes('innoveg') ||
+    org?.slug?.toLowerCase().includes('innoveg') ||
+    org?.name?.toLowerCase().includes('innveg') ||
+    org?.slug?.toLowerCase().includes('innveg')
 
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
@@ -670,18 +677,21 @@ function LeadsContent() {
   // Combine distinct values from backend and loaded leads for the values dropdown
   const availableCustomValues = useMemo(() => {
     if (!selectedCustomField) return []
-    const valSet = new Set<string>(remoteCustomValues)
     const targetNorm = selectedCustomField.toLowerCase().replace(/[^a-z0-9]/g, '')
 
-    // Add common defaults for crop fields so dropdown is immediately populated
+    // For Innoveg / Crop filter: return the clean canonical taxonomy list (no raw duplicates)
     if (targetNorm.includes('crop')) {
-      const defaultCrops = [
-        'Onion', 'Chana / Chickpea', 'Wheat', 'Paddy / Rice', 'Mustard', 
-        'Cotton', 'Soybean', 'Potato', 'Tomato', 'Garlic', 'Maize / Corn', 
-        'Sugarcane', 'Groundnut', 'Bajra', 'Moong', 'Urad', 'Chilli'
-      ]
-      defaultCrops.forEach(c => valSet.add(c))
+      return CANONICAL_CROP_LIST
     }
+
+    const valSet = new Set<string>()
+    // Add remote distinct values normalized
+    remoteCustomValues.forEach(v => {
+      const trimmed = String(v || '').trim()
+      if (trimmed && trimmed.length < 50 && trimmed !== 'null' && trimmed !== 'undefined') {
+        valSet.add(trimmed)
+      }
+    })
 
     leads.forEach(l => {
       let meta = l.metadata || {}
@@ -690,7 +700,7 @@ function LeadsContent() {
       }
       for (const [k, v] of Object.entries(meta)) {
         const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-        if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK) || (targetNorm.includes('crop') && normK.includes('crop'))) {
+        if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
           if (v !== null && v !== undefined) {
             const str = String(v).trim()
             if (str && str !== 'null' && str !== 'undefined' && str.length < 50) {
@@ -727,33 +737,29 @@ function LeadsContent() {
           try { metaObj = JSON.parse(metaObj) } catch (e) { metaObj = {} }
         }
         const targetNorm = selectedCustomField.toLowerCase().replace(/[^a-z0-9]/g, '')
-        const filterValLower = customFilterValue.toLowerCase().trim()
         const isCropFilter = targetNorm.includes('crop')
-        const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(filterValLower)
-        const isChana = /chana|channa|gram|chickpea|चना/i.test(filterValLower)
         let matched = false
 
         for (const [k, v] of Object.entries(metaObj)) {
           const normK = k.toLowerCase().replace(/[^a-z0-9]/g, '')
-          if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK) || (isCropFilter && (normK.includes('crop') || normK.includes('farm')))) {
+          if (isCropFilter && (normK.includes('crop') || normK.includes('farm'))) {
+            if (isCropMatch(v, customFilterValue)) {
+              matched = true
+              break
+            }
+          } else if (normK === targetNorm || normK.includes(targetNorm) || targetNorm.includes(normK)) {
             const vStr = String(v).toLowerCase()
+            const filterValLower = customFilterValue.toLowerCase().trim()
             if (vStr.includes(filterValLower) || filterValLower.includes(vStr)) {
-              matched = true
-              break
-            }
-            if (isOnion && (vStr.includes('onion') || vStr.includes('pyaz') || vStr.includes('pyaaz') || vStr.includes('kanda') || vStr.includes('pyaj') || vStr.includes('प्याज') || vStr.includes('कांदा'))) {
-              matched = true
-              break
-            }
-            if (isChana && (vStr.includes('chana') || vStr.includes('channa') || vStr.includes('gram') || vStr.includes('chickpea') || vStr.includes('चना'))) {
               matched = true
               break
             }
           }
         }
         if (!matched && (l as any)[selectedCustomField]) {
-          const vStr = String((l as any)[selectedCustomField]).toLowerCase()
-          if (vStr.includes(filterValLower) || (isOnion && (vStr.includes('onion') || vStr.includes('pyaz') || vStr.includes('kanda')))) matched = true
+          if (isCropFilter ? isCropMatch((l as any)[selectedCustomField], customFilterValue) : String((l as any)[selectedCustomField]).toLowerCase().includes(customFilterValue.toLowerCase().trim())) {
+            matched = true
+          }
         }
         if (!matched) return false
       }
@@ -814,12 +820,23 @@ function LeadsContent() {
       'phone_number', 'name', 'conversation_id', 'source',
       'followup_notes', 'followup_date', 'followup_notified',
       'metadata', 'lead_type', 'lead_score', 'lead_quality', 
-      'lead_temperature', 'stage', 'state', 'osmo_category'
+      'lead_temperature', 'stage', 'state', 'osmo_category',
+      'crop_choice', 'crop_requirement', 'crops', 'farm_crop'
     ]
-    const tenantDefaults = ['crop', 'crop_choice', 'crop_requirement', 'city', 'district', 'tehsil']
-    const combined = Array.from(new Set([...uniqueCustomKeys, ...tenantDefaults]))
-    return combined.filter(k => !skip.includes(k.toLowerCase()))
-  }, [uniqueCustomKeys])
+    // Only give crop filter to agricultural organizations (like Innoveg)
+    const tenantDefaults = isInnoveg 
+      ? ['crop', 'city', 'district', 'tehsil'] 
+      : ['city', 'district', 'state']
+
+    const combined = Array.from(new Set([...tenantDefaults, ...uniqueCustomKeys]))
+    return combined.filter(k => {
+      const lower = k.toLowerCase()
+      if (skip.includes(lower)) return false
+      // Non-agri tenants should never see crop
+      if (!isInnoveg && lower.includes('crop')) return false
+      return true
+    })
+  }, [uniqueCustomKeys, isInnoveg])
 
   const getHeaderLabelWithIcon = (key: string) => {
     const lower = key.toLowerCase()
@@ -1524,11 +1541,12 @@ function LeadsContent() {
 
                               // 7. Crop Requirement / Farm Fields
                               if (lowerKey.includes('crop') || lowerKey.includes('farm')) {
+                                const cleanCrop = normalizeCrop(displayVal) || displayVal
                                 return (
                                   <td key={key} className="px-6 py-4 whitespace-nowrap">
                                     <span className="inline-flex items-center gap-1.5 bg-green-50 dark:bg-green-950/40 text-green-900 dark:text-green-200 border border-green-200 dark:border-green-800/60 font-extrabold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
                                       <span className="text-xs">🌾</span>
-                                      {displayVal}
+                                      {cleanCrop}
                                     </span>
                                   </td>
                                 );

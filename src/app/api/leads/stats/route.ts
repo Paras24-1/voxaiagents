@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
+import { getCropDbFilterClauses } from '@/lib/cropUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -99,36 +100,19 @@ export async function GET(req: NextRequest) {
         q = q.or(searchClauses.join(',')) as any
       }
 
+      // Custom tenant metadata filter (e.g. crop, city, district, etc.)
       if (customField && customValue) {
         const isCropField = /crop/i.test(customField)
         const valTrim = customValue.trim()
-        const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(valTrim)
-        const isChana = /chana|channa|gram|chickpea|चना/i.test(valTrim)
 
         if (isCropField) {
-          const cropKeys = [
-            'crop', 'Crop', 'crop_choice', 'Crop_Choice',
-            'crop_requirement', 'Crop_Requirement',
-            'crops', 'Crops', 'crop_name', 'Crop_Name',
-            'farm_crop', 'Farm_Crop'
-          ]
-          let valPatterns = [`%${valTrim}%`]
-          if (isOnion) {
-            valPatterns = ['%onion%', '%pyaz%', '%pyaaz%', '%kanda%', '%कांदा%', '%प्याज%']
-          } else if (isChana) {
-            valPatterns = ['%chana%', '%channa%', '%gram%', '%chickpea%', '%चना%']
-          }
-
-          const orClauses: string[] = []
-          for (const k of cropKeys) {
-            for (const v of valPatterns) {
-              orClauses.push(`metadata->>${k}.ilike.${v}`)
-            }
-          }
+          const orClauses = getCropDbFilterClauses(valTrim)
           if (orClauses.length > 0) {
             try {
               q = q.or(orClauses.join(',')) as any
-            } catch {}
+            } catch (e) {
+              console.warn('[leads-stats] crop or query fallback', e)
+            }
           }
         } else {
           const cleanField = customField.trim().replace(/[^a-zA-Z0-9_-]/g, '')
