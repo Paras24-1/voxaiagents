@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { INDIAN_STATES } from '@/lib/constants'
-import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown, Loader2 } from 'lucide-react'
+import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown, Loader2, Tag } from 'lucide-react'
 
 const getLocalDateString = (d: Date) => {
   const year = d.getFullYear();
@@ -591,7 +591,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   data.lead_quality = dynamicQuality;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white/40 dark:bg-gray-950/40 relative border-l border-white/20 dark:border-gray-800 backdrop-blur-xl">
+    <div className="flex-1 flex flex-col overflow-hidden bg-white/40 dark:bg-gray-950/40 relative border-l border-white/20 dark:border-gray-800 backdrop-blur-xl w-full min-w-0">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800/85 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] shrink-0 z-10">
         <div className="flex items-center gap-3 mb-1">
@@ -604,7 +604,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3.5 min-w-0">
         {data.Phone ? (
           <>
             {/* Quick Actions (Call & WhatsApp Buttons) */}
@@ -831,16 +831,19 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 'Phone', 'Name', 'Lead_Type', 'city', 'machine_interest', 
                 'lead_quality', 'lead_score', 'callback_ready', 'conversation_summary', 
                 'followup_date', 'followup_notes', 'followup_notified', 'id', 'conversation_id', 'stage',
-                'lead_type', 'category', 'user_type', 'Lead_Type', 'lead_temperature'
+                'lead_type', 'category', 'user_type', 'Lead_Type', 'lead_temperature',
+                'notes', 'Notes', 'Stage'
               ]
-              if (standardKeys.includes(key) || !value) return null
+              if (standardKeys.includes(key) || value === null || value === undefined || value === '') return null
+              if (typeof value === 'object') return null
               
               const formattedLabel = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+              const IconComponent = getFieldIcon(key)
               
               return (
                 <InfoCard 
                   key={key} 
-                  icon={Target} 
+                  icon={IconComponent} 
                   label={formattedLabel} 
                   value={String(value)} 
                 />
@@ -1427,6 +1430,36 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   )
 }
 
+function getFieldIcon(key: string) {
+  const k = key.toLowerCase()
+  if (k.includes('message') || k.includes('reply') || k.includes('chat') || k.includes('text')) return MessageSquare
+  if (k.includes('count') || k.includes('score') || k.includes('total') || k.includes('stat')) return TrendingUp
+  if (k.includes('time') || k.includes('date') || k.includes('at')) return Clock
+  if (k.includes('opt') || k.includes('status') || k.includes('verified') || k.includes('active') || k.includes('ready')) return CheckCircle
+  if (k.includes('city') || k.includes('state') || k.includes('location') || k.includes('tehsil') || k.includes('district') || k.includes('address')) return MapPin
+  if (k.includes('id') || k.includes('wamid') || k.includes('code')) return Tag
+  return Target
+}
+
+function formatFieldValue(val: any): string {
+  if (val === null || val === undefined) return ''
+  const str = String(val).trim()
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(str)) {
+    const d = new Date(str)
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    }
+  }
+  return str
+}
+
 function InfoCard({ icon: Icon, label, value, badge, colored }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
@@ -1434,32 +1467,67 @@ function InfoCard({ icon: Icon, label, value, badge, colored }: {
   badge?: boolean
   colored?: boolean
 }) {
-  if (!value) return null
+  if (!value && value !== '0') return null
+
+  const isBooleanLike = ['yes', 'no', 'true', 'false'].includes(value.toLowerCase().trim())
+  const isBadge = badge || isBooleanLike
+  const formattedVal = formatFieldValue(value)
+  const isLong = formattedVal.length > 22 || formattedVal.includes('\n') || (formattedVal.includes(' ') && formattedVal.length > 18)
 
   return (
-    <div className="p-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-xl border border-gray-100 dark:border-gray-800/80 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md transition-all duration-300 flex justify-between items-center gap-2 group">
-      <div className="flex items-center gap-2.5 shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-emerald-500 border border-gray-150 dark:border-gray-700/50 shadow-inner shrink-0 transition-colors">
-          <Icon className="w-3.5 h-3.5" />
+    <div className="p-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 dark:hover:border-emerald-500/20 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-md transition-all duration-200 min-w-0 w-full overflow-hidden group">
+      {isLong && !isBadge ? (
+        <div className="space-y-1.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 rounded-lg bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-emerald-500 border border-gray-150 dark:border-gray-700/50 shadow-inner shrink-0 transition-colors">
+              <Icon className="w-3 h-3" />
+            </div>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 truncate transition-colors" title={label}>
+              {label}
+            </p>
+          </div>
+          <div 
+            className="text-[11px] text-gray-800 dark:text-gray-200 font-medium font-mono break-all bg-gray-50/70 dark:bg-gray-800/50 px-2.5 py-1.5 rounded-lg border border-gray-150/80 dark:border-gray-700/50 max-h-24 overflow-y-auto select-text leading-relaxed"
+            title={formattedVal}
+          >
+            {formattedVal}
+          </div>
         </div>
-        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 whitespace-nowrap transition-colors">{label}</p>
-      </div>
-      {badge ? (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
-          colored
-            ? value.toLowerCase() === 'high' || parseInt(value) >= 80
-              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100/10'
-              : value.toLowerCase() === 'medium' || (parseInt(value) >= 50 && parseInt(value) < 80)
-              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-100/10'
-              : 'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-            : value.toLowerCase() === 'yes' || value.toLowerCase() === 'hot'
-            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100/10'
-            : 'bg-gray-100 text-gray-650 dark:bg-gray-800 dark:text-gray-400'
-        }`}>
-          {value}
-        </span>
       ) : (
-        <p className="text-xs text-gray-900 dark:text-white font-bold font-mono tracking-tight text-right shrink-0">{value}</p>
+        <div className="flex justify-between items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 shrink-0 max-w-[60%]">
+            <div className="w-6 h-6 rounded-lg bg-gray-50 dark:bg-gray-850 flex items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-emerald-500 border border-gray-150 dark:border-gray-700/50 shadow-inner shrink-0 transition-colors">
+              <Icon className="w-3 h-3" />
+            </div>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 truncate transition-colors" title={label}>
+              {label}
+            </p>
+          </div>
+          {isBadge ? (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+              colored
+                ? formattedVal.toLowerCase() === 'high' || parseInt(formattedVal) >= 80
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100/10'
+                  : formattedVal.toLowerCase() === 'medium' || (parseInt(formattedVal) >= 50 && parseInt(formattedVal) < 80)
+                  ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-100/10'
+                  : 'bg-gray-150 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                : formattedVal.toLowerCase() === 'yes' || formattedVal.toLowerCase() === 'hot' || formattedVal.toLowerCase() === 'true'
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-100/10'
+                : formattedVal.toLowerCase() === 'no' || formattedVal.toLowerCase() === 'false'
+                ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200/50 dark:border-gray-700/50'
+                : 'bg-gray-100 text-gray-650 dark:bg-gray-800 dark:text-gray-400'
+            }`}>
+              {formattedVal}
+            </span>
+          ) : (
+            <p 
+              className="text-xs text-gray-900 dark:text-white font-bold font-mono tracking-tight text-right truncate min-w-0 flex-1 ml-1"
+              title={formattedVal}
+            >
+              {formattedVal}
+            </p>
+          )}
+        </div>
       )}
     </div>
   )

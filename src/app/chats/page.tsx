@@ -266,7 +266,7 @@ function ChatsPageContent() {
           className={`
             flex flex-col overflow-hidden border-l border-gray-200/50 dark:border-gray-800/50
             ${mobileView === 'lead' ? 'flex' : 'hidden'}
-            md:flex md:w-72 md:shrink-0
+            md:flex md:w-80 md:shrink-0
             w-full
           `}
         >
