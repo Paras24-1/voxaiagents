@@ -81,8 +81,39 @@ export default function TemplatesPage() {
   }, [templates, search, selectedCategory, selectedStatus])
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      <Sidebar />
+    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
+      {/* Top Header Navigation Bar */}
+      <header className="h-16 shrink-0 flex items-center justify-between px-6 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800 shadow-sm">
+        <div className="flex items-center gap-4">
+          <Sidebar />
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Sparkles className="w-4 h-4" />
+            </span>
+            <span className="text-base font-extrabold text-white tracking-tight">
+              Meta WhatsApp Templates
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={fetchTemplates}
+            disabled={loading}
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 rounded-xl transition-all shadow-sm active:scale-95"
+            title="Refresh Templates"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Create Meta Template</span>
+          </button>
+        </div>
+      </header>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">

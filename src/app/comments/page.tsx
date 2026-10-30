@@ -52,9 +52,21 @@ export default function CommentsPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Sidebar />
-      <main className="flex-1 min-h-screen p-6 md:p-8 ml-64 transition-all overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
+      {/* Top Header */}
+      <header className="h-16 shrink-0 sticky top-0 flex items-center justify-between px-6 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm transition-all">
+        <div className="flex items-center gap-4">
+          <Sidebar />
+          <div className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+            <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">
+              Comments & Moderation Center
+            </h1>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full transition-all overflow-x-hidden">
         {org?.has_comments_crm ? (
           <CommentsContent />
         ) : (
