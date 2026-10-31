@@ -86,18 +86,9 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
   const customField = params.custom_field || ''
   const customValue = params.custom_value || ''
 
-  let staffConvIds: string[] | null = null
-  if (isStaffEmployee) {
-    const { data: convs } = await supabaseAdmin
-      .from('conversations')
-      .select('id')
-      .eq('org_id', orgId)
-      .eq('assigned_to', userId)
-    staffConvIds = (convs || []).map(c => c.id)
-    if (staffConvIds.length === 0) {
-      return emptyCsvResponse()
-    }
-  }
+  const convJoin = isStaffEmployee
+    ? 'conversations!inner(id, stage, name, assigned_to, updated_at)'
+    : 'conversations(id, stage, name, assigned_to, updated_at)'
 
   let allRawRows: any[] = []
 
@@ -108,12 +99,12 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
       const chunk = selectedPhones.slice(i, i + CHUNK_SIZE)
       let q = supabaseAdmin
         .from('leads')
-        .select('*, conversations(id, stage, name, assigned_to, updated_at)')
+        .select(`*, ${convJoin}`)
         .eq('org_id', orgId)
         .in('phone_number', chunk)
 
-      if (staffConvIds) {
-        q = q.in('conversation_id', staffConvIds) as any
+      if (isStaffEmployee) {
+        q = q.eq('conversations.assigned_to', userId) as any
       }
 
       const { data, error } = await q
@@ -135,13 +126,13 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
     while (keepFetching && allRawRows.length < MAX_EXPORT_LIMIT) {
       let query = supabaseAdmin
         .from('leads')
-        .select('*, conversations(id, stage, name, assigned_to, updated_at)')
+        .select(`*, ${convJoin}`)
         .eq('org_id', orgId)
         .order('created_at', { ascending: false })
         .range(offset, offset + BATCH_SIZE - 1)
 
-      if (staffConvIds) {
-        query = query.in('conversation_id', staffConvIds) as any
+      if (isStaffEmployee) {
+        query = query.eq('conversations.assigned_to', userId) as any
       }
 
       if (leadType && leadType !== 'all') {
@@ -258,7 +249,7 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
       try {
         let fallbackQuery = supabaseAdmin
           .from('leads')
-          .select('*, conversations(id, stage, name, assigned_to, updated_at)')
+          .select(`*, ${convJoin}`)
           .eq('org_id', orgId)
           .order('created_at', { ascending: false })
           .limit(5000)
@@ -266,6 +257,7 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
         if (stage) fallbackQuery = fallbackQuery.eq('stage', stage)
         if (startDate) fallbackQuery = fallbackQuery.gte('created_at', startDate)
         if (endDate) fallbackQuery = fallbackQuery.lte('created_at', `${endDate}T23:59:59.999Z`)
+        if (isStaffEmployee) fallbackQuery = fallbackQuery.eq('conversations.assigned_to', userId)
 
         const { data: fallbackData } = await fallbackQuery
         if (fallbackData && fallbackData.length > 0) {

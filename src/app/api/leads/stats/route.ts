@@ -22,36 +22,19 @@ export async function GET(req: NextRequest) {
     const customField = searchParams.get('custom_field') || ''
     const customValue = searchParams.get('custom_value') || ''
 
-    let staffConvIds: string[] | null = null
-    if (isStaffEmployee) {
-      const { data: convs } = await supabaseAdmin
-        .from('conversations')
-        .select('id')
-        .eq('org_id', orgId)
-        .eq('assigned_to', userId)
-      staffConvIds = (convs || []).map(c => c.id)
-      if (staffConvIds.length === 0) {
-        return NextResponse.json({
-          total: 0,
-          osmo_dealer: 0,
-          dealer: 0,
-          customer: 0,
-          unfiltered: 0,
-          hot: 0,
-          warm: 0,
-          followups: 0
-        })
-      }
-    }
-
     // Helper to build lightweight DB count queries using PostgREST HEAD requests
     const buildCount = (applyFilter?: (q: any) => any) => {
-      let q = supabaseAdmin
-        .from('leads')
-        .select('*', { count: 'exact', head: true })
-        .eq('org_id', orgId)
+      let q = isStaffEmployee
+        ? supabaseAdmin
+            .from('leads')
+            .select('id, conversations!inner(assigned_to)', { count: 'exact', head: true })
+            .eq('org_id', orgId)
+            .eq('conversations.assigned_to', userId)
+        : supabaseAdmin
+            .from('leads')
+            .select('*', { count: 'exact', head: true })
+            .eq('org_id', orgId)
 
-      if (staffConvIds) q = q.in('conversation_id', staffConvIds) as any
       if (startDate) q = q.gte('created_at', startDate) as any
       if (endDate) q = q.lte('created_at', `${endDate}T23:59:59.999Z`) as any
       if (assignedToday) {
@@ -254,12 +237,15 @@ export async function GET(req: NextRequest) {
     // Fallback for crop filtering if direct PostgREST metadata->> count returned 0
     if (customField && customValue && /crop/i.test(customField) && total === 0) {
       try {
-        const { data: sampleRows } = await supabaseAdmin
+        let sampleQ = supabaseAdmin
           .from('leads')
-          .select('metadata, lead_score, lead_quality, lead_temperature')
+          .select(isStaffEmployee ? 'metadata, lead_score, lead_quality, lead_temperature, conversations!inner(assigned_to)' : 'metadata, lead_score, lead_quality, lead_temperature')
           .eq('org_id', orgId)
           .order('created_at', { ascending: false })
           .limit(1000)
+
+        if (isStaffEmployee) sampleQ = sampleQ.eq('conversations.assigned_to', userId)
+        const { data: sampleRows } = await sampleQ
 
         if (sampleRows && sampleRows.length > 0) {
           const matching = sampleRows.filter((r: any) => {
@@ -291,12 +277,15 @@ export async function GET(req: NextRequest) {
     // Derive accurate hot/warm counts from recent leads if direct DB query returned 0
     if ((finalHot === 0 || finalWarm === 0) && total > 0) {
       try {
-        const { data: sampleRows } = await supabaseAdmin
+        let sampleQ = supabaseAdmin
           .from('leads')
-          .select('metadata, lead_quality, lead_temperature')
+          .select(isStaffEmployee ? 'metadata, lead_quality, lead_temperature, conversations!inner(assigned_to)' : 'metadata, lead_quality, lead_temperature')
           .eq('org_id', orgId)
           .order('created_at', { ascending: false })
           .limit(500)
+
+        if (isStaffEmployee) sampleQ = sampleQ.eq('conversations.assigned_to', userId)
+        const { data: sampleRows } = await sampleQ
 
         if (sampleRows && sampleRows.length > 0) {
           let sHot = 0

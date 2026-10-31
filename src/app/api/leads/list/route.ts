@@ -87,33 +87,25 @@ export async function GET(req: NextRequest) {
     // Fetch one extra to determine hasMore without an extra count query
     const fetchLimit = limit + 1
 
-    let staffConvIds: string[] | null = null
-    if (isStaffEmployee) {
-      const { data: convs } = await supabaseAdmin
-        .from('conversations')
-        .select('id')
-        .eq('org_id', orgId)
-        .eq('assigned_to', userId)
-      staffConvIds = (convs || []).map(c => c.id)
-      if (staffConvIds.length === 0) {
-        return NextResponse.json({ data: [], hasMore: false })
-      }
-    }
-
     // ----------------------------------------------------------------
     // Safely query leads using '*' so missing schema columns never crash.
-    // Join only necessary fields from conversations for stage and assignment.
+    // Join conversations. For staff employees, use !inner join to filter
+    // directly by conversations.assigned_to without overflowing URL length.
     // ----------------------------------------------------------------
+    const convJoin = isStaffEmployee
+      ? 'conversations!inner(id, stage, name, assigned_to, updated_at)'
+      : 'conversations(id, stage, name, assigned_to, updated_at)'
+
     let query = supabaseAdmin
       .from('leads')
-      .select('*, conversations(id, stage, name, assigned_to, updated_at)')
+      .select(`*, ${convJoin}`)
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
       .range(from, from + fetchLimit - 1)
 
     // Staff employees only see leads belonging to their assigned conversations
-    if (staffConvIds) {
-      query = query.in('conversation_id', staffConvIds) as any
+    if (isStaffEmployee) {
+      query = query.eq('conversations.assigned_to', userId) as any
     }
 
     // Push lead_type / osmo_category filter to DB
@@ -205,14 +197,14 @@ export async function GET(req: NextRequest) {
       try {
         let fallbackQuery = supabaseAdmin
           .from('leads')
-          .select('*, conversations(id, stage, name, assigned_to, updated_at)')
+          .select(`*, ${convJoin}`)
           .eq('org_id', orgId)
           .order('created_at', { ascending: false })
 
         if (stage) fallbackQuery = fallbackQuery.eq('stage', stage)
         if (startDate) fallbackQuery = fallbackQuery.gte('created_at', startDate)
         if (endDate) fallbackQuery = fallbackQuery.lte('created_at', `${endDate}T23:59:59.999Z`)
-        if (staffConvIds) fallbackQuery = fallbackQuery.in('conversation_id', staffConvIds)
+        if (isStaffEmployee) fallbackQuery = fallbackQuery.eq('conversations.assigned_to', userId)
 
         const { data: fallbackData } = await fallbackQuery.limit(1000)
         if (fallbackData && fallbackData.length > 0) {
