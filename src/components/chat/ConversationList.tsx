@@ -1336,20 +1336,21 @@ function BulkBroadcastModal({
       let uploadedMediaType: string | null = null
 
       if (mediaFile) {
-        const orgId = profile?.org_id
-        if (!orgId) throw new Error('Organization not found')
+        const formData = new FormData()
+        formData.append('file', mediaFile)
 
-        const ext = mediaFile.name.split('.').pop()
-        const filename = `${orgId}/${Date.now()}-bulk.${ext}`
+        const uploadRes = await fetchWithAuth('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
 
-        const { data: uploadData, error: uploadErr } = await supabase.storage
-          .from('chat-media')
-          .upload(filename, mediaFile, { contentType: mediaFile.type, upsert: false })
+        const uploadData = await uploadRes.json().catch(() => null)
 
-        if (uploadErr) throw uploadErr
+        if (!uploadRes.ok) {
+          throw new Error(uploadData?.error || 'Failed to upload media')
+        }
 
-        const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(filename)
-        uploadedMediaUrl = urlData.publicUrl
+        uploadedMediaUrl = uploadData.url
         uploadedMediaType = mediaFile.type
       }
 

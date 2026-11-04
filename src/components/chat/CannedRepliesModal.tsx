@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, Upload, Image as ImageIcon, Video, FileText, Type, MapPin, Phone, MessageSquare, Loader2, Check, Eye } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
 
 export interface CannedReplyItem {
@@ -91,19 +91,26 @@ export default function CannedRepliesModal({
 
     setUploading(true)
     try {
-      const orgId = profile?.org_id || 'default'
-      const ext = file.name.split('.').pop()
-      const path = `${orgId}/canned-${Date.now()}.${ext}`
+      const formData = new FormData()
+      formData.append('file', file)
 
-      const { data, error } = await supabase.storage
-        .from('chat-media')
-        .upload(path, file, { contentType: file.type, upsert: true })
+      const res = await fetchWithAuth('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-      if (error) throw error
+      const data = await res.json().catch(() => null)
 
-      const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path)
-      setMediaUrl(urlData.publicUrl)
-      setFilename(file.name)
+      if (!res.ok) {
+        throw new Error(data?.error || `Upload failed with status ${res.status}`)
+      }
+
+      if (data?.url) {
+        setMediaUrl(data.url)
+        setFilename(file.name)
+      } else {
+        alert('Failed to upload media file')
+      }
     } catch (err: any) {
       console.error('File upload error:', err)
       alert(`Upload failed: ${err.message || String(err)}`)

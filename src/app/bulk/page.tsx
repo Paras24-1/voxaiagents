@@ -11,7 +11,7 @@ import {
   Trash2, FileText, BookOpen
 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
 
 interface Contact {
@@ -453,43 +453,33 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     if (!file) return
     setUploadingImage(true)
     try {
-      const orgId = profile?.org_id
-      if (!orgId) {
-        throw new Error('User organization not found')
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetchWithAuth('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(data?.error || `Upload failed with status ${res.status}`)
       }
 
-      const extension = file.name.split('.').pop() || ''
-      const baseName = file.name
-        .substring(0, file.name.lastIndexOf('.'))
-        .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace anything except alphanumeric, dash, and underscore
-      const baseFilename = `bulk-headers/${Date.now()}-${baseName}.${extension}`
-      const filename = `${orgId}/${baseFilename}`
-
-      const { data, error } = await supabase.storage
-        .from('chat-media')
-        .upload(filename, file, {
-          contentType: file.type,
-          cacheControl: '3600',
-          upsert: true,
-        })
-
-      if (error) {
-        throw error
-      }
-
-      const { data: urlData } = supabase.storage
-        .from('chat-media')
-        .getPublicUrl(filename)
-
-      if (urlData?.publicUrl) {
-        setHeaderImageUrl(urlData.publicUrl)
+      if (data?.url) {
+        setHeaderImageUrl(data.url)
       } else {
         alert('Failed to upload media file')
       }
     } catch (err: any) {
+      console.error('Image upload error:', err)
       alert(`Upload failed: ${err.message || String(err)}`)
     } finally {
       setUploadingImage(false)
+      if (imageRef.current) {
+        imageRef.current.value = ''
+      }
     }
   }
 

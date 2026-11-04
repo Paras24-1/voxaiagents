@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { 
   Search, 
   Plus, 
@@ -117,27 +117,23 @@ function ProductsContent() {
 
     try {
       setUploading(true)
-      const timestamp = Date.now()
-      const randomStr = Math.random().toString(36).substring(7)
-      const extension = file.name.split('.').pop()
-      const filename = `products/${org?.id}/${timestamp}-${randomStr}.${extension}`
+      const formData = new FormData()
+      formData.append('file', file)
 
-      const { error: uploadError } = await supabase.storage
-        .from('chat-media')
-        .upload(filename, file, {
-          contentType: file.type,
-          cacheControl: '3600',
-          upsert: false
-        })
+      const res = await fetchWithAuth('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-      if (uploadError) throw uploadError
+      const data = await res.json().catch(() => null)
 
-      const { data: urlData } = supabase.storage
-        .from('chat-media')
-        .getPublicUrl(filename)
+      if (!res.ok) {
+        throw new Error(data?.error || `Upload failed with status ${res.status}`)
+      }
 
-      setImageUrl(urlData?.publicUrl || null)
+      setImageUrl(data?.url || null)
     } catch (err: any) {
+      console.error('Product image upload error:', err)
       alert(err.message || 'Image upload failed')
     } finally {
       setUploading(false)
