@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
         try {
           const { data } = await supabaseAdmin
             .from('leads')
-            .select('metadata')
+            .select('*')
             .eq('org_id', orgId)
             .order('created_at', { ascending: false })
             .limit(1000)
@@ -55,6 +55,14 @@ export async function GET(req: NextRequest) {
           const targetNorm = cleanField.replace(/[^a-z0-9]/g, '')
 
           data?.forEach((r: any) => {
+            // Check top-level column on lead first (e.g. state, city, source, etc.)
+            if (r[cleanField] !== null && r[cleanField] !== undefined) {
+              const str = String(r[cleanField]).trim()
+              if (str && str.length < 60 && str !== 'null' && str !== 'undefined') {
+                valSet.add(str)
+              }
+            }
+
             let m = r.metadata
             if (typeof m === 'string') {
               try { m = JSON.parse(m) } catch {}
@@ -146,14 +154,23 @@ export async function GET(req: NextRequest) {
         `metadata->>Crop_Name.ilike.%${s}%`,
         `metadata->>farm_crop.ilike.%${s}%`,
         `metadata->>city.ilike.%${s}%`,
+        `metadata->>City.ilike.%${s}%`,
         `metadata->>district.ilike.%${s}%`,
-        `metadata->>tehsil.ilike.%${s}%`
+        `metadata->>District.ilike.%${s}%`,
+        `metadata->>tehsil.ilike.%${s}%`,
+        `metadata->>Tehsil.ilike.%${s}%`,
+        `metadata->>state.ilike.%${s}%`,
+        `metadata->>State.ilike.%${s}%`,
+        `metadata->>business_name.ilike.%${s}%`,
+        `metadata->>notes.ilike.%${s}%`,
+        `metadata->>lead_type.ilike.%${s}%`,
+        `metadata->>source.ilike.%${s}%`
       ]
 
       query = query.or(searchClauses.join(',')) as any
     }
 
-    // Custom tenant metadata filter (e.g. crop, city, district, etc.)
+    // Custom tenant metadata filter (e.g. crop, city, district, budget, etc.)
     if (customField && customValue) {
       const isCropField = /crop/i.test(customField)
       const valTrim = customValue.trim()
@@ -172,10 +189,19 @@ export async function GET(req: NextRequest) {
         if (cleanField) {
           const lower = cleanField.toLowerCase()
           const capitalized = cleanField.charAt(0).toUpperCase() + cleanField.slice(1)
-          const keys = Array.from(new Set([cleanField, lower, capitalized]))
-          const orClauses = keys.map(k => `metadata->>${k}.ilike.%${valTrim}%`).join(',')
+          const upper = cleanField.toUpperCase()
+          const withSpace = cleanField.replace(/_/g, ' ')
+          const withUnderscore = cleanField.replace(/\s+/g, '_')
+          const keys = Array.from(new Set([cleanField, lower, capitalized, upper, withSpace, withUnderscore]))
+          const orClauses = keys.map(k => `metadata->>${k}.ilike.%${valTrim}%`)
+          
+          // Also check direct column on leads table if applicable (e.g. state)
+          if (cleanField === 'state') {
+            orClauses.push(`state.ilike.%${valTrim}%`)
+          }
+
           try {
-            query = query.or(orClauses) as any
+            query = query.or(orClauses.join(',')) as any
           } catch {
             query = query.filter(`metadata->>${cleanField}`, 'ilike', `%${valTrim}%`) as any
           }
@@ -191,9 +217,9 @@ export async function GET(req: NextRequest) {
 
     let rows = data || []
 
-    // Production Fallback: If DB query with PostgREST metadata->> returned 0 rows for crop,
-    // fallback to broader query to fetch tenant leads and match using comprehensive crop normalization.
-    if (customField && customValue && /crop/i.test(customField) && rows.length === 0) {
+    // Universal Fallback: If DB query with PostgREST metadata->> returned 0 rows for customField,
+    // fallback to broader query to fetch tenant leads and match case-insensitively in memory.
+    if (customField && customValue && rows.length === 0) {
       try {
         let fallbackQuery = supabaseAdmin
           .from('leads')
@@ -208,19 +234,37 @@ export async function GET(req: NextRequest) {
 
         const { data: fallbackData } = await fallbackQuery.limit(1000)
         if (fallbackData && fallbackData.length > 0) {
+          const valLower = customValue.trim().toLowerCase()
+          const fieldNorm = customField.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+
           const matchedFallback = fallbackData.filter((l: any) => {
             let m = l.metadata
             if (typeof m === 'string') {
               try { m = JSON.parse(m) } catch {}
             }
-            return isCropMatch(m, customValue) || isCropMatch(l, customValue)
+            if (/crop/i.test(customField)) {
+              return isCropMatch(m, customValue) || isCropMatch(l, customValue)
+            }
+            // Check top-level column on lead first
+            if (l[customField] && String(l[customField]).toLowerCase().includes(valLower)) return true
+            if (m && typeof m === 'object') {
+              for (const [k, v] of Object.entries(m)) {
+                const kNorm = k.toLowerCase().replace(/[^a-z0-9]/g, '')
+                if (kNorm === fieldNorm || kNorm.includes(fieldNorm) || fieldNorm.includes(kNorm)) {
+                  if (v !== null && v !== undefined && String(v).toLowerCase().includes(valLower)) {
+                    return true
+                  }
+                }
+              }
+            }
+            return false
           })
           if (matchedFallback.length > 0) {
             rows = matchedFallback.slice(from, from + fetchLimit)
           }
         }
       } catch (fbErr) {
-        console.warn('[leads-list] crop fallback scan error', fbErr)
+        console.warn('[leads-list] custom field fallback scan error', fbErr)
       }
     }
 

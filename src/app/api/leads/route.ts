@@ -143,21 +143,22 @@ export async function PATCH(req: NextRequest) {
       try { parsedMeta = JSON.parse(metadata) } catch (e) {}
     }
 
-    // Preserve existing metadata by merging into existing lead metadata
-    existingMeta = {}
-    if (leadId || conversation_id || phone_number) {
-      let query = supabaseAdmin.from('leads').select('metadata, conversation_id').eq('org_id', orgId)
-      if (leadId) query = query.eq('id', leadId)
-      else if (conversation_id) query = query.eq('conversation_id', conversation_id)
-      else if (phone_number) {
-        const cleanP = phone_number.replace(/\D/g, '').slice(-10)
-        query = query.ilike('phone_number', `%${cleanP}`)
-      }
-      const { data: existingLead } = await query.maybeSingle()
-      if (existingLead?.metadata) {
-        if (typeof existingLead.metadata === 'string') {
-          try { existingMeta = JSON.parse(existingLead.metadata) } catch {}
-        } else existingMeta = existingLead.metadata
+    // If existingMeta not yet resolved, query by leadId/conversation_id/phone_number
+    if (!existingMeta || Object.keys(existingMeta).length === 0) {
+      if (leadId || conversation_id || phone_number) {
+        let metaQuery = supabaseAdmin.from('leads').select('metadata, conversation_id').eq('org_id', orgId)
+        if (leadId) metaQuery = metaQuery.eq('id', leadId)
+        else if (conversation_id) metaQuery = metaQuery.eq('conversation_id', conversation_id)
+        else if (phone_number) {
+          const cleanP = phone_number.replace(/\D/g, '').slice(-10)
+          metaQuery = metaQuery.ilike('phone_number', `%${cleanP}`)
+        }
+        const { data: leadRecord } = await metaQuery.maybeSingle()
+        if (leadRecord?.metadata) {
+          if (typeof leadRecord.metadata === 'string') {
+            try { existingMeta = JSON.parse(leadRecord.metadata) } catch {}
+          } else existingMeta = leadRecord.metadata
+        }
       }
     }
 

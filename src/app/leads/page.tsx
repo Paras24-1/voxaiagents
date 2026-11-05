@@ -353,6 +353,11 @@ function LeadsContent() {
   const [editScore, setEditScore] = useState(0)
   const [editCategory, setEditCategory] = useState('unfiltered')
   const [editState, setEditState] = useState('')
+  const [editMetadata, setEditMetadata] = useState<Record<string, any>>({})
+  const [newMetaKey, setNewMetaKey] = useState('')
+  const [newMetaVal, setNewMetaVal] = useState('')
+  const [showAddMetaField, setShowAddMetaField] = useState(false)
+  const [discoveredCustomKeys, setDiscoveredCustomKeys] = useState<string[]>([])
   const [savingLead, setSavingLead] = useState(false)
 
   // Internal Notes states
@@ -585,7 +590,8 @@ function LeadsContent() {
         lead_quality: editQuality || null,
         lead_score: editScore,
         lead_type: editCategory,
-        state: editState
+        state: editState,
+        metadata: editMetadata
       }
 
       const res = await fetch('/api/leads', {
@@ -606,10 +612,9 @@ function LeadsContent() {
         window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: editCategory, category: editCategory, stage: editStage } }))
       }
       
-      const currentMeta = typeof activeLead.metadata === 'string' ? JSON.parse(activeLead.metadata || '{}') : (activeLead.metadata || {})
-      const mergedMeta = { ...currentMeta, lead_type: editCategory, category: editCategory, state: editState }
+      const mergedMeta = { ...editMetadata, lead_type: editCategory, category: editCategory, state: editState }
       
-      const oldCat = currentMeta.category || activeLead.lead_type || 'unfiltered'
+      const oldCat = (activeLead.metadata as any)?.category || activeLead.lead_type || 'unfiltered'
       if (oldCat !== editCategory) {
         setStats(prev => ({
           ...prev,
@@ -645,6 +650,10 @@ function LeadsContent() {
     setEditScore(score)
     setEditCategory(classifyLead(lead))
     setEditState(meta.state || '')
+    setEditMetadata({ ...meta })
+    setShowAddMetaField(false)
+    setNewMetaKey('')
+    setNewMetaVal('')
 
     const targetConvId = lead.conversation_id || lead.id
     if (targetConvId) {
@@ -1080,6 +1089,34 @@ function LeadsContent() {
     })
   }, [leads, isOsmoRo, leadTypeFilter, selectedSource, selectedCustomField, customFilterValue])
 
+  // Accumulate discovered keys across pages so columns don't shift or vanish when paginating
+  useEffect(() => {
+    if (leads.length > 0) {
+      const skipKeys = [
+        'id', 'created_at', 'updated_at', 'org_id', 'assigned_to', 
+        'phone_number', 'name', 'conversation_id',
+        'followup_notes', 'followup_date', 'followup_notified',
+        'metadata', 'lead_type'
+      ]
+      const newKeys = leads.flatMap(lead => {
+        let metaOnly = (lead.metadata || {}) as Record<string, any>
+        if (typeof metaOnly === 'string') {
+          try { metaOnly = JSON.parse(metaOnly) } catch { metaOnly = {} }
+        }
+        if (typeof metaOnly !== 'object' || Array.isArray(metaOnly) || !metaOnly) return []
+        return Object.keys(metaOnly).filter(key => {
+          if (skipKeys.includes(key.toLowerCase())) return false
+          if (/^\d+$/.test(key)) return false
+          const val = metaOnly[key]
+          if (typeof val === 'object' && !Array.isArray(val)) return false
+          if (val === null || val === undefined || String(val).trim() === '') return false
+          return true
+        })
+      })
+      setDiscoveredCustomKeys(prev => Array.from(new Set([...prev, ...newKeys])))
+    }
+  }, [leads])
+
   const uniqueCustomKeys = useMemo(() => {
     const skipKeys = [
       'id', 'created_at', 'updated_at', 'org_id', 'assigned_to', 
@@ -1089,17 +1126,16 @@ function LeadsContent() {
     ]
 
     const priorityOrder = [
-      'source', 'lead_score', 'lead_quality', 'state', 'industry', 'business_intent', 
-      'business_type', 'business_name', 'contact_person', 'city', 'email', 
+      'source', 'lead_score', 'lead_quality', 'state', 'city', 'district', 'tehsil', 'crop',
+      'business_intent', 'business_type', 'business_name', 'contact_person', 'email', 
       'demo_selected', 'pricing_requested', 'consultation_ready'
     ]
 
-    const standardKeys = [
-      'source', 'lead_score', 'lead_quality', 'state', 'industry', 'business_intent'
-    ]
+    const standardKeys = ['source', 'lead_score', 'lead_quality']
 
     const rawKeys = Array.from(new Set([
       ...standardKeys,
+      ...discoveredCustomKeys,
       ...leads.flatMap(lead => {
         let metaOnly = (lead.metadata || {}) as Record<string, any>
         if (typeof metaOnly === 'string') {
@@ -1125,7 +1161,7 @@ function LeadsContent() {
       if (idxB !== -1) return 1
       return a.localeCompare(b)
     })
-  }, [leads])
+  }, [leads, discoveredCustomKeys])
 
   const filterableCustomKeys = useMemo(() => {
     const skip = [
@@ -2238,31 +2274,121 @@ function LeadsContent() {
                   </button>
                 </div>
 
-                {/* Metadata JSON Viewer */}
+                {/* Metadata Dynamic Fields (Editable) */}
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Dynamic Fields (Metadata)</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Dynamic Fields (Metadata)</h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMetaField(!showAddMetaField)}
+                      className="text-xs font-bold text-emerald-600 hover:text-emerald-500 flex items-center gap-1 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Field
+                    </button>
+                  </div>
+
+                  {showAddMetaField && (
+                    <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/60 dark:border-emerald-800/60 space-y-2">
+                      <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">Add New Field to this Lead</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="Field name (e.g. Budget, City)"
+                          value={newMetaKey}
+                          onChange={(e) => setNewMetaKey(e.target.value)}
+                          className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Value"
+                          value={newMetaVal}
+                          onChange={(e) => setNewMetaVal(e.target.value)}
+                          className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddMetaField(false)
+                            setNewMetaKey('')
+                            setNewMetaVal('')
+                          }}
+                          className="px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const trimmedKey = newMetaKey.trim().toLowerCase().replace(/\s+/g, '_')
+                            if (!trimmedKey) return
+                            setEditMetadata(prev => ({ ...prev, [trimmedKey]: newMetaVal.trim() }))
+                            setNewMetaKey('')
+                            setNewMetaVal('')
+                            setShowAddMetaField(false)
+                          }}
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   
-                  {Object.keys(activeLead.metadata || {}).length === 0 ? (
+                  {Object.keys(editMetadata || {}).length === 0 ? (
                     <p className="text-xs text-gray-500 italic p-3 bg-gray-50 dark:bg-gray-950 rounded-xl text-center border border-dashed">
-                      No custom fields found.
+                      No custom fields found. Click "Add Field" to add one.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-1 gap-3">
-                      {Object.entries(activeLead.metadata || {}).map(([key, val]) => {
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {Object.entries(editMetadata || {}).map(([key, val]) => {
                         const formattedLabel = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                        const isSystemDate = key.toLowerCase() === 'assigned_at' || key.toLowerCase() === 'created_at'
+
                         return (
                           <div 
                             key={key} 
-                            className="p-4 bg-gray-50/50 dark:bg-gray-900/50 rounded-2xl border border-gray-200/50 dark:border-gray-800/50 shadow-sm flex items-center justify-between hover:bg-white dark:hover:bg-gray-900 transition-colors"
+                            className="p-3 bg-gray-50/70 dark:bg-gray-900/60 rounded-xl border border-gray-200/60 dark:border-gray-800/60 shadow-xs flex items-center justify-between gap-3 group hover:border-emerald-500/40 transition-colors"
                           >
-                            <div>
-                              <span className="text-[10px] text-gray-400 block font-semibold">{formattedLabel}</span>
-                              <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                                {(key.toLowerCase() === 'assigned_at' || key.toLowerCase() === 'created_at') 
-                                  ? formatISTDate(String(val))
-                                  : (String(val) || <span className="text-gray-400 italic">empty</span>)}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 block font-bold uppercase tracking-wider mb-1 truncate">
+                                {formattedLabel}
                               </span>
+                              {isSystemDate ? (
+                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                                  {formatISTDate(String(val))}
+                                </span>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={val !== null && val !== undefined ? String(val) : ''}
+                                  onChange={(e) => {
+                                    const nextVal = e.target.value
+                                    setEditMetadata(prev => ({ ...prev, [key]: nextVal }))
+                                  }}
+                                  placeholder="Enter value..."
+                                  className="w-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg px-2.5 py-1 text-xs font-semibold text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                />
+                              )}
                             </div>
+                            {!isSystemDate && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditMetadata(prev => {
+                                    const next = { ...prev }
+                                    delete next[key]
+                                    return next
+                                  })
+                                }}
+                                title={`Delete ${formattedLabel}`}
+                                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 p-1 rounded-md transition-all self-end mb-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         )
                       })}
