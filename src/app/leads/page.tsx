@@ -642,8 +642,9 @@ function LeadsContent() {
     const stage = meta.stage || lead.stage || 'new';
     const quality = meta.lead_quality || (score > 50 ? 'hot' : score >= 25 ? 'warm' : 'cold');
     
-    setActiveLead({ ...lead, metadata: meta })
-    setLeadNotes(lead.notes || meta.notes || '')
+    const resolvedNotes = lead.notes || (meta as any)?.notes || (lead as any)?.conversations?.[0]?.notes || (lead as any)?.conversations?.notes || ''
+    setActiveLead({ ...lead, metadata: meta, notes: resolvedNotes })
+    setLeadNotes(resolvedNotes)
     setNotesSaved(false)
     setEditStage(stage)
     setEditQuality(quality)
@@ -692,6 +693,16 @@ function LeadsContent() {
           notes: leadNotes
         })
       })
+
+      const targetConvId = activeLead.conversation_id || (activeLead.id && activeLead.id.length > 20 ? activeLead.id : null)
+      if (targetConvId) {
+        fetch(`/api/conversations/${targetConvId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ notes: leadNotes })
+        }).catch(console.error)
+        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, notes: leadNotes } }))
+      }
 
       // Update in-memory state
       setLeads(prev => prev.map(l => (l.id === activeLead.id || (l.phone_number && activeLead.phone_number && l.phone_number === activeLead.phone_number)) ? { ...l, notes: leadNotes, metadata: { ...(l.metadata || {}), notes: leadNotes } } : l))

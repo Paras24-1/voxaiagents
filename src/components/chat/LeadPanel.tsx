@@ -505,30 +505,48 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   // Load existing notes when conversation changes
   useEffect(() => {
     if (!conversation) return
-    setNotes((conversation as any).notes || '')
+    const initialNote = (conversation as any).notes || (lead as any)?.notes || (lead?.metadata as any)?.notes || ''
+    setNotes(initialNote)
     setNotesSaved(false)
-  }, [conversation?.id, (conversation as any)?.notes])
+  }, [conversation?.id, (conversation as any)?.notes, (lead as any)?.notes, (lead?.metadata as any)?.notes])
 
   const handleSaveNotes = async () => {
     if (!conversation || savingNotes) return
     setSavingNotes(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(`/api/conversations/${conversation.id}`, {
+      const token = session?.access_token || ''
+      const headers = { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
+      // 1. Save to conversation
+      const p1 = fetch(`/api/conversations/${conversation.id}`, {
         method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-        },
+        headers,
         body: JSON.stringify({ notes })
       })
 
-      if (!res.ok) {
-        throw new Error('Failed to save notes')
-      }
+      // 2. Also save to lead
+      const p2 = fetch('/api/leads', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          conversation_id: conversation.id,
+          phone_number: conversation.phone_number,
+          notes
+        })
+      })
+
+      await Promise.all([p1, p2])
 
       // Update in-memory reference immediately
       ;(conversation as any).notes = notes
+      if (lead) {
+        ;(lead as any).notes = notes
+        if (lead.metadata) (lead.metadata as any).notes = notes
+      }
 
       // Dispatch event so conversation list and chat state retain notes in memory across tab switches
       window.dispatchEvent(new CustomEvent('update-conversation', {

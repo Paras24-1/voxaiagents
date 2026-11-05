@@ -101,8 +101,8 @@ export async function GET(req: NextRequest) {
     // directly by conversations.assigned_to without overflowing URL length.
     // ----------------------------------------------------------------
     const convJoin = isStaffEmployee
-      ? 'conversations!inner(id, stage, name, assigned_to, updated_at)'
-      : 'conversations(id, stage, name, assigned_to, updated_at)'
+      ? 'conversations!inner(id, stage, name, assigned_to, notes, updated_at)'
+      : 'conversations(id, stage, name, assigned_to, notes, updated_at)'
 
     let query = supabaseAdmin
       .from('leads')
