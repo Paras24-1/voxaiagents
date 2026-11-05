@@ -224,7 +224,7 @@ function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfi
 function LeadsContent() {
   const router = useRouter()
   const { profile, org } = useOrg()
-  const { stages, customStages, addCustomStage, deleteCustomStage } = useLeadStages()
+  const { stages, allStages, customStages, addCustomStage, deleteCustomStage, toggleStage, setDisabledStagesList } = useLeadStages()
   const [isStageModalOpen, setIsStageModalOpen] = useState(false)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isAddLeadModalOpen, setIsAddLeadModalOpen] = useState(false)
@@ -1219,8 +1219,8 @@ function LeadsContent() {
             onClick={() => setIsStageModalOpen(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm border border-emerald-400/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
           >
-            <Plus className="w-4 h-4" />
-            + Custom Stages
+            <SlidersHorizontal className="w-4 h-4" />
+            Manage Stages & Tags
           </button>
           {selectedLeadPhones.length > 0 && (
             <button
@@ -2300,9 +2300,12 @@ function LeadsContent() {
         isOpen={isStageModalOpen}
         onClose={() => setIsStageModalOpen(false)}
         stages={stages}
+        allStages={allStages}
         customStages={customStages}
         onAddStage={addCustomStage}
         onDeleteStage={deleteCustomStage}
+        onToggleStage={toggleStage}
+        onSetDisabledStagesList={setDisabledStagesList}
       />
 
       {/* Manual Create Lead Modal */}

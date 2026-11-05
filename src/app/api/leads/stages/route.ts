@@ -52,16 +52,88 @@ export async function GET(req: NextRequest) {
 
     const parsedObj = parseSettings(settings?.ai_system_prompt || null)
     const customStages = Array.isArray(parsedObj.custom_lead_stages) ? parsedObj.custom_lead_stages : []
+    const disabledStages: string[] = Array.isArray(parsedObj.disabled_stages) ? parsedObj.disabled_stages : []
 
-    const allStages = [...DEFAULT_STAGES, ...customStages]
+    const masterList = [...DEFAULT_STAGES, ...customStages].map(stage => ({
+      ...stage,
+      enabled: !disabledStages.includes(stage.name)
+    }))
+
+    const enabledStages = masterList.filter(s => s.enabled)
 
     return NextResponse.json({
       defaultStages: DEFAULT_STAGES,
       customStages,
-      stages: allStages
+      allStages: masterList,
+      stages: enabledStages,
+      disabledStages
     })
   } catch (err: any) {
     console.error('[GET /api/leads/stages error]:', err)
+    return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const orgId = await getOrgId(req)
+    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const body = await req.json()
+    const { stageName, enabled, disabledStages: newDisabledList } = body
+
+    const { data: settings } = await supabaseAdmin
+      .from('organization_settings')
+      .select('*')
+      .eq('org_id', orgId)
+      .maybeSingle()
+
+    const parsedObj = parseSettings(settings?.ai_system_prompt || null)
+    let currentDisabled: string[] = Array.isArray(parsedObj.disabled_stages) ? [...parsedObj.disabled_stages] : []
+
+    if (Array.isArray(newDisabledList)) {
+      currentDisabled = Array.from(new Set(newDisabledList.map(String)))
+    } else if (stageName !== undefined && typeof enabled === 'boolean') {
+      if (enabled) {
+        currentDisabled = currentDisabled.filter(n => n !== stageName)
+      } else {
+        if (!currentDisabled.includes(stageName)) {
+          currentDisabled.push(stageName)
+        }
+      }
+    }
+
+    parsedObj.disabled_stages = currentDisabled
+    const newSystemPromptStr = JSON.stringify(parsedObj)
+
+    if (settings) {
+      await supabaseAdmin
+        .from('organization_settings')
+        .update({ ai_system_prompt: newSystemPromptStr })
+        .eq('org_id', orgId)
+    } else {
+      await supabaseAdmin
+        .from('organization_settings')
+        .insert({ org_id: orgId, ai_system_prompt: newSystemPromptStr })
+    }
+
+    const customStages = Array.isArray(parsedObj.custom_lead_stages) ? parsedObj.custom_lead_stages : []
+    const masterList = [...DEFAULT_STAGES, ...customStages].map(stage => ({
+      ...stage,
+      enabled: !currentDisabled.includes(stage.name)
+    }))
+
+    const enabledStages = masterList.filter(s => s.enabled)
+
+    return NextResponse.json({
+      success: true,
+      allStages: masterList,
+      stages: enabledStages,
+      customStages,
+      disabledStages: currentDisabled
+    })
+  } catch (err: any) {
+    console.error('[PATCH /api/leads/stages error]:', err)
     return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
   }
 }
@@ -88,6 +160,7 @@ export async function POST(req: NextRequest) {
 
     const parsedObj = parseSettings(settings?.ai_system_prompt || null)
     const existingCustom: any[] = Array.isArray(parsedObj.custom_lead_stages) ? parsedObj.custom_lead_stages : []
+    let currentDisabled: string[] = Array.isArray(parsedObj.disabled_stages) ? [...parsedObj.disabled_stages] : []
 
     // Check if stage already exists (in defaults or custom)
     const existsInDefault = DEFAULT_STAGES.some(s => s.name === stageName)
@@ -110,7 +183,11 @@ export async function POST(req: NextRequest) {
     }
 
     const updatedCustom = [...existingCustom, newStage]
+    // Ensure new stage is enabled (not disabled)
+    currentDisabled = currentDisabled.filter(n => n !== stageName)
+
     parsedObj.custom_lead_stages = updatedCustom
+    parsedObj.disabled_stages = currentDisabled
 
     const newSystemPromptStr = JSON.stringify(parsedObj)
 
@@ -125,13 +202,20 @@ export async function POST(req: NextRequest) {
         .insert({ org_id: orgId, ai_system_prompt: newSystemPromptStr })
     }
 
-    const allStages = [...DEFAULT_STAGES, ...updatedCustom]
+    const masterList = [...DEFAULT_STAGES, ...updatedCustom].map(stage => ({
+      ...stage,
+      enabled: !currentDisabled.includes(stage.name)
+    }))
+
+    const enabledStages = masterList.filter(s => s.enabled)
 
     return NextResponse.json({
       success: true,
       newStage,
       customStages: updatedCustom,
-      stages: allStages
+      allStages: masterList,
+      stages: enabledStages,
+      disabledStages: currentDisabled
     })
   } catch (err: any) {
     console.error('[POST /api/leads/stages error]:', err)
@@ -159,21 +243,32 @@ export async function DELETE(req: NextRequest) {
 
     const parsedObj = parseSettings(settings.ai_system_prompt)
     const existingCustom: any[] = Array.isArray(parsedObj.custom_lead_stages) ? parsedObj.custom_lead_stages : []
+    let currentDisabled: string[] = Array.isArray(parsedObj.disabled_stages) ? [...parsedObj.disabled_stages] : []
 
     const updatedCustom = existingCustom.filter(s => s.name !== name)
+    currentDisabled = currentDisabled.filter(n => n !== name)
+
     parsedObj.custom_lead_stages = updatedCustom
+    parsedObj.disabled_stages = currentDisabled
 
     await supabaseAdmin
       .from('organization_settings')
       .update({ ai_system_prompt: JSON.stringify(parsedObj) })
       .eq('org_id', orgId)
 
-    const allStages = [...DEFAULT_STAGES, ...updatedCustom]
+    const masterList = [...DEFAULT_STAGES, ...updatedCustom].map(stage => ({
+      ...stage,
+      enabled: !currentDisabled.includes(stage.name)
+    }))
+
+    const enabledStages = masterList.filter(s => s.enabled)
 
     return NextResponse.json({
       success: true,
       customStages: updatedCustom,
-      stages: allStages
+      allStages: masterList,
+      stages: enabledStages,
+      disabledStages: currentDisabled
     })
   } catch (err: any) {
     console.error('[DELETE /api/leads/stages error]:', err)

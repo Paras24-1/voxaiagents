@@ -9,31 +9,34 @@ export interface LeadStage {
   label: string
   color: string
   isCustom?: boolean
+  enabled?: boolean
 }
 
 export const DEFAULT_STAGES: LeadStage[] = [
-  { id: 'new', name: 'new', label: 'New Lead', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
-  { id: 'interested', name: 'interested', label: 'Interested', color: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/50' },
-  { id: 'booking', name: 'booking', label: 'Booking', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/50' },
-  { id: 'confirmed', name: 'confirmed', label: 'Confirmed', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50' },
-  { id: 'cancelled', name: 'cancelled', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/50' },
-  { id: 'completed', name: 'completed', label: 'Completed', color: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50' },
-  { id: 'followup', name: 'followup', label: 'Followup', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200/50' },
-  { id: 'not_interested', name: 'not_interested', label: 'Not Interested', color: 'bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200/50' },
-  { id: 'call_done', name: 'call_done', label: 'Call Done', color: 'bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200/50' },
-  { id: 'low_budget', name: 'low_budget', label: 'Low Budget', color: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/50' },
-  { id: 'hot_customer', name: 'hot_customer', label: 'Hot Customer', color: 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200/50' },
-  { id: 'not_connected', name: 'not_connected', label: 'Not Connected', color: 'bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300' },
-  { id: 'joined', name: 'joined', label: 'Joined', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200' },
-  { id: 'not_joined', name: 'not_joined', label: 'Not Joined', color: 'bg-red-100 text-red-800 dark:bg-red-900/80 dark:text-red-200' },
-  { id: 'contact_save', name: 'contact_save', label: 'Contact Save', color: 'bg-lime-100 text-lime-800 dark:bg-lime-900/80 dark:text-lime-200' },
-  { id: 'contact_not_save', name: 'contact_not_save', label: 'Contact Not Save', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/80 dark:text-yellow-200' },
-  { id: 'unknown', name: 'unknown', label: 'Unknown', color: 'bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-400' }
+  { id: 'new', name: 'new', label: 'New Lead', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', enabled: true },
+  { id: 'interested', name: 'interested', label: 'Interested', color: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/50', enabled: true },
+  { id: 'booking', name: 'booking', label: 'Booking', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/50', enabled: true },
+  { id: 'confirmed', name: 'confirmed', label: 'Confirmed', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50', enabled: true },
+  { id: 'cancelled', name: 'cancelled', label: 'Cancelled', color: 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/50', enabled: true },
+  { id: 'completed', name: 'completed', label: 'Completed', color: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50', enabled: true },
+  { id: 'followup', name: 'followup', label: 'Followup', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200/50', enabled: true },
+  { id: 'not_interested', name: 'not_interested', label: 'Not Interested', color: 'bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200/50', enabled: true },
+  { id: 'call_done', name: 'call_done', label: 'Call Done', color: 'bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200/50', enabled: true },
+  { id: 'low_budget', name: 'low_budget', label: 'Low Budget', color: 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/50', enabled: true },
+  { id: 'hot_customer', name: 'hot_customer', label: 'Hot Customer', color: 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200/50', enabled: true },
+  { id: 'not_connected', name: 'not_connected', label: 'Not Connected', color: 'bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-300', enabled: true },
+  { id: 'joined', name: 'joined', label: 'Joined', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200', enabled: true },
+  { id: 'not_joined', name: 'not_joined', label: 'Not Joined', color: 'bg-red-100 text-red-800 dark:bg-red-900/80 dark:text-red-200', enabled: true },
+  { id: 'contact_save', name: 'contact_save', label: 'Contact Save', color: 'bg-lime-100 text-lime-800 dark:bg-lime-900/80 dark:text-lime-200', enabled: true },
+  { id: 'contact_not_save', name: 'contact_not_save', label: 'Contact Not Save', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/80 dark:text-yellow-200', enabled: true },
+  { id: 'unknown', name: 'unknown', label: 'Unknown', color: 'bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-400', enabled: true }
 ]
 
-// Singleton module cache to deduplicate API calls across 1000s of components
+// Singleton module cache to deduplicate API calls across components
 let globalStages: LeadStage[] = DEFAULT_STAGES
+let globalAllStages: LeadStage[] = DEFAULT_STAGES
 let globalCustomStages: LeadStage[] = []
+let globalDisabledStages: string[] = []
 let globalLoading = true
 let fetchInFlight: Promise<any> | null = null
 let hasAuthListener = false
@@ -59,8 +62,10 @@ async function sharedFetchStages(force = false) {
 
       if (res.ok) {
         const data = await res.json()
-        globalStages = data.stages && data.stages.length > 0 ? data.stages : DEFAULT_STAGES
+        globalStages = Array.isArray(data.stages) && data.stages.length > 0 ? data.stages : DEFAULT_STAGES
+        globalAllStages = Array.isArray(data.allStages) ? data.allStages : globalStages
         globalCustomStages = data.customStages || []
+        globalDisabledStages = data.disabledStages || []
         globalLoading = false
         hasFetchedSuccessfully = true
         notifyListeners()
@@ -80,13 +85,17 @@ async function sharedFetchStages(force = false) {
 
 export function useLeadStages() {
   const [stages, setStages] = useState<LeadStage[]>(globalStages)
+  const [allStages, setAllStages] = useState<LeadStage[]>(globalAllStages)
   const [customStages, setCustomStages] = useState<LeadStage[]>(globalCustomStages)
+  const [disabledStages, setDisabledStages] = useState<string[]>(globalDisabledStages)
   const [loading, setLoading] = useState(globalLoading)
 
   useEffect(() => {
     const handleChange = () => {
       setStages(globalStages)
+      setAllStages(globalAllStages)
       setCustomStages(globalCustomStages)
+      setDisabledStages(globalDisabledStages)
       setLoading(globalLoading)
     }
 
@@ -107,6 +116,70 @@ export function useLeadStages() {
     }
   }, [])
 
+  // Toggle stage ON or OFF for current organization
+  const toggleStage = async (stageName: string, enabled: boolean) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) throw new Error('Not authenticated')
+
+    // Optimistic local update
+    globalAllStages = globalAllStages.map(s => s.name === stageName ? { ...s, enabled } : s)
+    globalStages = globalAllStages.filter(s => s.enabled)
+    globalDisabledStages = enabled 
+      ? globalDisabledStages.filter(n => n !== stageName)
+      : [...globalDisabledStages, stageName]
+    notifyListeners()
+
+    try {
+      const res = await fetch('/api/leads/stages', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ stageName, enabled })
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to update stage visibility')
+
+      globalStages = data.stages || []
+      globalAllStages = data.allStages || []
+      globalCustomStages = data.customStages || []
+      globalDisabledStages = data.disabledStages || []
+      notifyListeners()
+    } catch (err) {
+      // Revert on error
+      sharedFetchStages(true)
+      throw err
+    }
+  }
+
+  // Set entire list of disabled stages at once (e.g. "Standard Only" or "Enable All")
+  const setDisabledStagesList = async (newDisabledList: string[]) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) throw new Error('Not authenticated')
+
+    const res = await fetch('/api/leads/stages', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ disabledStages: newDisabledList })
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to update stages')
+
+    globalStages = data.stages || []
+    globalAllStages = data.allStages || []
+    globalCustomStages = data.customStages || []
+    globalDisabledStages = data.disabledStages || []
+    notifyListeners()
+  }
+
   const addCustomStage = async (label: string, color?: string) => {
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token
@@ -125,7 +198,9 @@ export function useLeadStages() {
     if (!res.ok) throw new Error(data.error || 'Failed to add custom stage')
 
     globalStages = data.stages || []
+    globalAllStages = data.allStages || []
     globalCustomStages = data.customStages || []
+    globalDisabledStages = data.disabledStages || []
     notifyListeners()
     return data.newStage
   }
@@ -148,15 +223,21 @@ export function useLeadStages() {
     if (!res.ok) throw new Error(data.error || 'Failed to delete custom stage')
 
     globalStages = data.stages || []
+    globalAllStages = data.allStages || []
     globalCustomStages = data.customStages || []
+    globalDisabledStages = data.disabledStages || []
     notifyListeners()
   }
 
   return {
     stages,
+    allStages,
     customStages,
+    disabledStages,
     loading,
     refreshStages: () => sharedFetchStages(true),
+    toggleStage,
+    setDisabledStagesList,
     addCustomStage,
     deleteCustomStage
   }
