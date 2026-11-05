@@ -50,6 +50,8 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+import FollowupNotifier from '@/components/FollowupNotifier'
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -65,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <OrgProvider>
             {children}
+            <FollowupNotifier />
           </OrgProvider>
         </ThemeProvider>
       </body>

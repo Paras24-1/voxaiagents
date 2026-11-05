@@ -308,7 +308,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (targetConvId) {
-      if (updates.name || updates.stage || targetLeadType) {
+      if (updates.name || updates.stage || targetLeadType || updates.notes !== undefined) {
         const { data: convData } = await supabaseAdmin
           .from('conversations')
           .select('metadata')
@@ -327,7 +327,8 @@ export async function PATCH(req: NextRequest) {
           .update({
             ...(updates.name  ? { name: updates.name }   : {}),
             ...(updates.stage ? { stage: updates.stage } : {}),
-            ...(targetLeadType ? { metadata: convMeta } : {})
+            ...(targetLeadType ? { metadata: convMeta } : {}),
+            ...(updates.notes !== undefined ? { notes: updates.notes } : {})
           })
           .eq('id', targetConvId)
           .eq('org_id', orgId)

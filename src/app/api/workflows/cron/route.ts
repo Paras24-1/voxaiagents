@@ -150,6 +150,11 @@ export async function GET(req: NextRequest) {
           continue
         }
 
+        if (lead.followup_notes && !lead.followup_notes.startsWith('[Automated')) {
+          // Staff has set a manual follow-up reminder — do not trigger bot auto-message
+          continue
+        }
+
         // Fetch org settings for WhatsApp API credentials
         const { data: orgSettings } = await supabaseAdmin
           .from('organization_settings')

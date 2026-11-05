@@ -25,7 +25,11 @@ import {
   Clock,
   UserCheck,
   UserPlus,
-  SlidersHorizontal
+  SlidersHorizontal,
+  StickyNote,
+  Save,
+  CheckCircle,
+  Edit2
 } from 'lucide-react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
@@ -129,6 +133,82 @@ function formatISTDate(dateStr: string | null | undefined): string {
   } catch {
     return String(dateStr)
   }
+}
+
+const getLocalDateString = (d: Date) => {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getLocalTimeString = (d: Date) => {
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+const formatFollowupDate = (dateStr?: string | null) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return String(dateStr)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const isTomorrow = d.toDateString() === tomorrow.toDateString()
+
+  const timePart = d.toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  })
+
+  if (isToday) return `Today at ${timePart}`
+  if (isTomorrow) return `Tomorrow at ${timePart}`
+
+  const datePart = d.toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short'
+  })
+  return `${datePart} at ${timePart}`
+}
+
+const getPresets = () => {
+  const now = new Date()
+
+  const in1h = new Date(now)
+  in1h.setHours(now.getHours() + 1, 0, 0, 0)
+
+  const in3h = new Date(now)
+  in3h.setHours(now.getHours() + 3, 0, 0, 0)
+
+  const tom10 = new Date(now)
+  tom10.setDate(tom10.getDate() + 1)
+  tom10.setHours(10, 0, 0, 0)
+
+  const tom4 = new Date(now)
+  tom4.setDate(tom4.getDate() + 1)
+  tom4.setHours(16, 0, 0, 0)
+
+  const in2d = new Date(now)
+  in2d.setDate(in2d.getDate() + 2)
+  in2d.setHours(11, 0, 0, 0)
+
+  const nextWeek = new Date(now)
+  nextWeek.setDate(nextWeek.getDate() + 7)
+  nextWeek.setHours(10, 0, 0, 0)
+
+  return [
+    { label: 'In 1 Hour', sublabel: in1h.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }), date: in1h },
+    { label: 'In 3 Hours', sublabel: in3h.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }), date: in3h },
+    { label: 'Tomorrow 10 AM', sublabel: '10:00 AM', date: tom10 },
+    { label: 'Tomorrow 4 PM', sublabel: '04:00 PM', date: tom4 },
+    { label: 'In 2 Days', sublabel: in2d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }), date: in2d },
+    { label: 'Next Week', sublabel: nextWeek.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }), date: nextWeek }
+  ]
 }
 
 function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered' {
@@ -274,6 +354,29 @@ function LeadsContent() {
   const [editCategory, setEditCategory] = useState('unfiltered')
   const [editState, setEditState] = useState('')
   const [savingLead, setSavingLead] = useState(false)
+
+  // Internal Notes states
+  const [leadNotes, setLeadNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [notesSaved, setNotesSaved] = useState(false)
+
+  // Follow-up modal states
+  const [showFollowupModal, setShowFollowupModal] = useState(false)
+  const [targetLeadForFollowup, setTargetLeadForFollowup] = useState<Lead | null>(null)
+  const [modalDate, setModalDate] = useState<Date | null>(null)
+  const [modalNotes, setModalNotes] = useState('')
+  const [customMode, setCustomMode] = useState(false)
+  const [customDateVal, setCustomDateVal] = useState('')
+  const [customTimeVal, setCustomTimeVal] = useState('')
+  const [savingFollowup, setSavingFollowup] = useState(false)
+
+  // Complete / Mark Done modal states
+  const [showMarkDoneModal, setShowMarkDoneModal] = useState(false)
+  const [targetLeadForDone, setTargetLeadForDone] = useState<Lead | null>(null)
+  const [doneActivityType, setDoneActivityType] = useState('followup_call')
+  const [doneActivityDesc, setDoneActivityDesc] = useState('Followup via Call')
+  const [doneActivityNotes, setDoneActivityNotes] = useState('')
+  const [savingDoneActivity, setSavingDoneActivity] = useState(false)
 
   // Stats loaded from server
   const typeCounts = {
@@ -535,6 +638,8 @@ function LeadsContent() {
     const quality = meta.lead_quality || (score > 50 ? 'hot' : score >= 25 ? 'warm' : 'cold');
     
     setActiveLead({ ...lead, metadata: meta })
+    setLeadNotes(lead.notes || meta.notes || '')
+    setNotesSaved(false)
     setEditStage(stage)
     setEditQuality(quality)
     setEditScore(score)
@@ -553,6 +658,211 @@ function LeadsContent() {
           body: JSON.stringify({ unread_count: 0 })
         }).catch(() => {})
       })
+    }
+  }
+
+  // Save Internal Notes
+  const handleSaveNotes = async () => {
+    if (!activeLead || savingNotes) return
+    setSavingNotes(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
+      await fetch('/api/leads', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          id: activeLead.id,
+          conversation_id: activeLead.conversation_id,
+          phone_number: activeLead.phone_number,
+          notes: leadNotes
+        })
+      })
+
+      // Update in-memory state
+      setLeads(prev => prev.map(l => (l.id === activeLead.id || (l.phone_number && activeLead.phone_number && l.phone_number === activeLead.phone_number)) ? { ...l, notes: leadNotes, metadata: { ...(l.metadata || {}), notes: leadNotes } } : l))
+      setActiveLead(prev => prev ? { ...prev, notes: leadNotes, metadata: { ...(prev.metadata || {}), notes: leadNotes } } : null)
+
+      setNotesSaved(true)
+      setTimeout(() => setNotesSaved(false), 2000)
+    } catch (err) {
+      console.error('Failed to save notes:', err)
+    } finally {
+      setSavingNotes(false)
+    }
+  }
+
+  // Open Follow-up Modal for any lead (from table row or drawer)
+  const openFollowupModal = (lead: Lead) => {
+    setTargetLeadForFollowup(lead)
+    if (lead.followup_date) {
+      const existing = new Date(lead.followup_date)
+      setModalDate(existing)
+      setModalNotes(lead.followup_notes || '')
+      setCustomMode(true)
+      setCustomDateVal(getLocalDateString(existing))
+      setCustomTimeVal(getLocalTimeString(existing))
+    } else {
+      const now = new Date()
+      const defaultDate = new Date(now)
+      defaultDate.setHours(now.getHours() + 2, 0, 0, 0)
+      setModalDate(defaultDate)
+      setModalNotes('')
+      setCustomMode(false)
+      setCustomDateVal(getLocalDateString(defaultDate))
+      setCustomTimeVal(getLocalTimeString(defaultDate))
+    }
+    setShowFollowupModal(true)
+  }
+
+  const updateCustomDateTime = (dateStr: string, timeStr: string) => {
+    if (!dateStr || !timeStr) return
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const [hour, min] = timeStr.split(':').map(Number)
+    const d = new Date(year, month - 1, day, hour, min, 0, 0)
+    setModalDate(d)
+  }
+
+  // Save Follow-up Reminder
+  const handleSaveFollowup = async () => {
+    if (!targetLeadForFollowup || !modalDate) return
+    setSavingFollowup(true)
+    try {
+      const isoString = modalDate.toISOString()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
+      await fetch('/api/leads', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          id: targetLeadForFollowup.id,
+          conversation_id: targetLeadForFollowup.conversation_id,
+          phone_number: targetLeadForFollowup.phone_number,
+          followup_date: isoString,
+          followup_notes: modalNotes,
+          followup_notified: false
+        })
+      })
+
+      // Update in-memory state
+      setLeads(prev => prev.map(l => (l.id === targetLeadForFollowup.id || (l.phone_number && targetLeadForFollowup.phone_number && l.phone_number === targetLeadForFollowup.phone_number)) ? { ...l, followup_date: isoString, followup_notes: modalNotes, followup_notified: false } : l))
+      if (activeLead && (activeLead.id === targetLeadForFollowup.id || (activeLead.phone_number && targetLeadForFollowup.phone_number && activeLead.phone_number === targetLeadForFollowup.phone_number))) {
+        setActiveLead(prev => prev ? { ...prev, followup_date: isoString, followup_notes: modalNotes, followup_notified: false } : null)
+      }
+
+      // Notify other components & global notifier
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('followup-updated'))
+      }
+
+      setShowFollowupModal(false)
+    } catch (err) {
+      console.error('Failed to save follow-up:', err)
+    } finally {
+      setSavingFollowup(false)
+    }
+  }
+
+  // Clear / Cancel Follow-up
+  const handleClearFollowup = async (lead: Lead) => {
+    if (!window.confirm('Are you sure you want to cancel this follow-up reminder?')) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
+      await fetch('/api/leads', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          id: lead.id,
+          conversation_id: lead.conversation_id,
+          phone_number: lead.phone_number,
+          followup_date: null,
+          followup_notes: null,
+          followup_notified: false
+        })
+      })
+
+      setLeads(prev => prev.map(l => (l.id === lead.id || (l.phone_number && lead.phone_number && l.phone_number === lead.phone_number)) ? { ...l, followup_date: null, followup_notes: null, followup_notified: false } : l))
+      if (activeLead && (activeLead.id === lead.id || (activeLead.phone_number && lead.phone_number && activeLead.phone_number === lead.phone_number))) {
+        setActiveLead(prev => prev ? { ...prev, followup_date: null, followup_notes: null, followup_notified: false } : null)
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('followup-updated'))
+      }
+    } catch (err) {
+      console.error('Failed to clear follow-up:', err)
+    }
+  }
+
+  // Complete Follow-up / Mark Done
+  const handleMarkFollowupDone = async () => {
+    if (!targetLeadForDone) return
+    setSavingDoneActivity(true)
+    try {
+      // 1. Log to /api/lead-activities
+      await fetch('/api/lead-activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: targetLeadForDone.id,
+          activity_type: doneActivityType,
+          description: doneActivityDesc,
+          notes: doneActivityNotes.trim() || targetLeadForDone.followup_notes
+        })
+      })
+
+      // 2. Clear followup in leads table
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || ''
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
+      await fetch('/api/leads', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          id: targetLeadForDone.id,
+          conversation_id: targetLeadForDone.conversation_id,
+          phone_number: targetLeadForDone.phone_number,
+          followup_date: null,
+          followup_notes: null,
+          followup_notified: false
+        })
+      })
+
+      setLeads(prev => prev.map(l => (l.id === targetLeadForDone.id || (l.phone_number && targetLeadForDone.phone_number && l.phone_number === targetLeadForDone.phone_number)) ? { ...l, followup_date: null, followup_notes: null, followup_notified: false } : l))
+      if (activeLead && (activeLead.id === targetLeadForDone.id || (activeLead.phone_number && targetLeadForDone.phone_number && activeLead.phone_number === targetLeadForDone.phone_number))) {
+        setActiveLead(prev => prev ? { ...prev, followup_date: null, followup_notes: null, followup_notified: false } : null)
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('followup-updated'))
+      }
+
+      setShowMarkDoneModal(false)
+      setDoneActivityNotes('')
+    } catch (err) {
+      console.error('Failed to mark followup done:', err)
+    } finally {
+      setSavingDoneActivity(false)
     }
   }
 
@@ -1374,9 +1684,44 @@ function LeadsContent() {
                                       </span>
                                     )}
                                   </div>
-                                  {rawFollowup && (
-                                    <div className="text-cyan-700 dark:text-cyan-300 text-[10px] font-bold mt-1 bg-cyan-50 dark:bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-800/60 inline-block truncate max-w-[200px]">
-                                      📌 {rawFollowup}
+                                  {/* Follow-up Reminder Pill */}
+                                  {lead.followup_date ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        openFollowupModal(lead)
+                                      }}
+                                      className="inline-flex items-center gap-1.5 text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-all cursor-pointer shadow-2xs mt-1 max-w-[220px] truncate"
+                                      title={lead.followup_notes ? `Follow-up Note: ${lead.followup_notes}` : 'Click to edit follow-up reminder'}
+                                    >
+                                      <Clock className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                      <span className="truncate">{formatFollowupDate(lead.followup_date)}</span>
+                                      {lead.followup_notes && <span className="text-emerald-500 font-normal">· 📝</span>}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        openFollowupModal(lead)
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 mt-1 transition-opacity cursor-pointer"
+                                      title="Schedule Follow-up Reminder"
+                                    >
+                                      <Calendar className="w-3 h-3" />
+                                      <span>+ Followup</span>
+                                    </button>
+                                  )}
+
+                                  {/* Internal Notes Preview */}
+                                  {lead.notes && (
+                                    <div 
+                                      className="text-[10px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/60 inline-flex items-center gap-1 truncate max-w-[220px] mt-1 font-medium"
+                                      title={`Internal Note: ${lead.notes}`}
+                                    >
+                                      <StickyNote className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                      <span className="truncate">{lead.notes}</span>
                                     </div>
                                   )}
                                 </div>
@@ -1699,6 +2044,119 @@ function LeadsContent() {
                   </div>
                 </div>
 
+                {/* Follow-up Reminder Section (Chat Section equivalent) */}
+                <div className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center border border-emerald-100/10">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white">Follow-up Reminder</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openFollowupModal(activeLead)}
+                      className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                    >
+                      {activeLead.followup_date ? 'Edit' : 'Set Followup'}
+                    </button>
+                  </div>
+
+                  {activeLead.followup_date ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-850/40 p-2.5 rounded-xl border border-gray-200 dark:border-gray-800">
+                        <Clock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
+                          {formatFollowupDate(activeLead.followup_date)}
+                        </span>
+                      </div>
+                      {activeLead.followup_notes && (
+                        <div className="text-xs text-gray-650 dark:text-gray-300 bg-gray-50 dark:bg-gray-850/40 p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 leading-relaxed font-medium">
+                          <p className="text-[9px] uppercase font-extrabold text-gray-400 tracking-wider mb-1">Follow-up Notes</p>
+                          <p className="whitespace-pre-wrap">{activeLead.followup_notes}</p>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTargetLeadForDone(activeLead)
+                            setDoneActivityType('followup_call')
+                            setDoneActivityDesc('Followup via Call')
+                            setDoneActivityNotes(activeLead.followup_notes || '')
+                            setShowMarkDoneModal(true)
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Mark Done
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleClearFollowup(activeLead)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 border border-dashed border-red-200 dark:border-red-900/60 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 bg-gray-50/50 dark:bg-gray-900/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-800">
+                      <p className="text-xs text-gray-500 mb-2">No active follow-up reminder</p>
+                      <button
+                        type="button"
+                        onClick={() => openFollowupModal(activeLead)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-900 rounded-xl text-xs font-bold transition-colors border border-emerald-100/10 shadow-sm cursor-pointer"
+                      >
+                        <Calendar className="w-3 h-3" />
+                        Schedule Reminder
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Internal Notes Section (Chat Section equivalent) */}
+                <div className="p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center border border-amber-100/10">
+                        <StickyNote className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white">Internal Notes</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSaveNotes}
+                      disabled={savingNotes}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer ${
+                        notesSaved
+                          ? 'bg-emerald-50 border border-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                          : 'bg-gray-50 border border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 hover:bg-emerald-50 hover:text-emerald-700'
+                      }`}
+                    >
+                      {savingNotes ? (
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Save className="w-3 h-3" />
+                      )}
+                      {notesSaved ? 'Saved!' : 'Save'}
+                    </button>
+                  </div>
+                  <textarea
+                    value={leadNotes}
+                    onChange={e => setLeadNotes(e.target.value)}
+                    onBlur={() => {
+                      if (leadNotes !== (activeLead.notes || (activeLead.metadata as any)?.notes || '')) {
+                        handleSaveNotes()
+                      }
+                    }}
+                    placeholder="Add internal operator notes about this lead..."
+                    rows={4}
+                    className="w-full text-xs text-gray-750 dark:text-gray-300 bg-gray-50/70 dark:bg-gray-800 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 border border-gray-200 dark:border-gray-750 leading-relaxed font-medium"
+                  />
+                </div>
+
                 {/* Edit Section */}
                 <div className="space-y-5 p-5 bg-white dark:bg-gray-900 rounded-3xl border border-gray-200/80 dark:border-gray-800/80 shadow-xl shadow-gray-200/20 dark:shadow-black/40">
                   <h4 className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">CRM Management</h4>
@@ -1909,6 +2367,251 @@ function LeadsContent() {
             >
               <X className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+      {/* Set Followup Modal */}
+      {showFollowupModal && targetLeadForFollowup && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0" onClick={() => setShowFollowupModal(false)} />
+          
+          <div className="relative bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-2xl max-w-md w-full overflow-y-auto max-h-[90vh] z-10 flex flex-col space-y-4 animate-scale-up">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-gray-150 dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">Set Follow-up Date</h4>
+                  <p className="text-[10px] text-gray-500 font-medium truncate max-w-[220px]">
+                    {targetLeadForFollowup.name || targetLeadForFollowup.phone_number}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowFollowupModal(false)}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Current Chosen Date Preview */}
+            {modalDate && (
+              <div className="flex items-center justify-between bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 p-2.5 rounded-xl text-xs">
+                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Scheduled for</span>
+                <span className="font-extrabold text-emerald-700 dark:text-emerald-300">
+                  {formatFollowupDate(modalDate.toISOString())}
+                </span>
+              </div>
+            )}
+
+            {/* Presets Grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {getPresets().map((preset, idx) => {
+                const isSelected = modalDate && Math.abs(modalDate.getTime() - preset.date.getTime()) < 1000 * 60;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setModalDate(preset.date)
+                      setCustomMode(false)
+                    }}
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
+                      isSelected && !customMode
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-bold shadow-sm'
+                        : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-750'
+                    }`}
+                  >
+                    <span className="text-xs font-bold">{preset.label}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 font-semibold">{preset.sublabel}</span>
+                  </button>
+                )
+              })}
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomMode(true)
+                  if (!modalDate) setModalDate(new Date())
+                }}
+                className={`col-span-2 flex items-center justify-center gap-2 p-3 rounded-2xl border text-center transition-all cursor-pointer ${
+                  customMode
+                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-bold shadow-sm'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-750'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-xs font-bold">Pick Custom Date & Time</span>
+              </button>
+            </div>
+
+            {/* Custom Inputs */}
+            {customMode && (
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-bold mb-1 uppercase tracking-wider">Date</label>
+                  <input
+                    type="date"
+                    value={customDateVal}
+                    onChange={(e) => {
+                      setCustomDateVal(e.target.value)
+                      updateCustomDateTime(e.target.value, customTimeVal)
+                    }}
+                    className="w-full text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-bold mb-1 uppercase tracking-wider">Time</label>
+                  <input
+                    type="time"
+                    value={customTimeVal}
+                    onChange={(e) => {
+                      setCustomTimeVal(e.target.value)
+                      updateCustomDateTime(customDateVal, e.target.value)
+                    }}
+                    className="w-full text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Follow-up Notes */}
+            <div className="flex flex-col space-y-1">
+              <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Add Notes</label>
+              <textarea
+                value={modalNotes}
+                onChange={(e) => setModalNotes(e.target.value)}
+                placeholder="Enter notes about this follow-up..."
+                rows={3}
+                className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 font-medium leading-relaxed"
+              />
+            </div>
+
+            {/* Save Buttons */}
+            <div className="flex gap-2 pt-2 border-t border-gray-150 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setShowFollowupModal(false)}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveFollowup}
+                disabled={savingFollowup || !modalDate}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white rounded-xl font-bold text-xs transition-colors shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+              >
+                {savingFollowup ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                Save Follow-up
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Followup / Mark Done Modal */}
+      {showMarkDoneModal && targetLeadForDone && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="absolute inset-0" onClick={() => setShowMarkDoneModal(false)} />
+          
+          <div className="relative bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6 shadow-2xl max-w-md w-full overflow-y-auto max-h-[90vh] z-10 flex flex-col space-y-4 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-150 dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-gray-900 dark:text-white tracking-tight">Complete Followup</h4>
+                  <p className="text-[10px] text-gray-500 font-medium truncate max-w-[220px]">
+                    {targetLeadForDone.name || targetLeadForDone.phone_number}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowMarkDoneModal(false)}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Marking this reminder as done will log it to the lead activity timeline and clear the active reminder.
+            </p>
+
+            {/* Type selector */}
+            <div className="space-y-1">
+              <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Channel</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { type: 'followup_call', label: 'Call', desc: 'Followup via Call' },
+                  { type: 'followup_whatsapp', label: 'WhatsApp', desc: 'Followup via WhatsApp' }
+                ].map((item) => (
+                  <button
+                    key={item.type}
+                    type="button"
+                    onClick={() => {
+                      setDoneActivityType(item.type)
+                      setDoneActivityDesc(item.desc)
+                    }}
+                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      doneActivityType === item.type
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-500 dark:text-emerald-400 font-bold'
+                        : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <span className="text-xs font-bold">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes Textarea */}
+            <div className="flex flex-col space-y-1">
+              <label className="block text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Summary / Notes</label>
+              <textarea
+                value={doneActivityNotes}
+                onChange={(e) => setDoneActivityNotes(e.target.value)}
+                placeholder="Enter outcome or notes about this follow-up..."
+                rows={3}
+                className="w-full text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder-gray-400 font-medium leading-relaxed"
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-2 pt-2 border-t border-gray-150 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setShowMarkDoneModal(false)}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleMarkFollowupDone}
+                disabled={savingDoneActivity}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {savingDoneActivity ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-3.5 h-3.5" />
+                )}
+                Complete Follow-up
+              </button>
+            </div>
           </div>
         </div>
       )}
