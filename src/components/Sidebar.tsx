@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useOrg } from '@/contexts/OrgContext'
@@ -14,11 +15,16 @@ import {
 } from 'lucide-react'
 
 export default function Sidebar() {
+  const [mounted, setMounted] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [privacyUrl, setPrivacyUrl] = useState('/privacy-policy.html')
   const [unreadCount, setUnreadCount] = useState<number>(0)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hostname.includes('10xyourbusiness')) {
@@ -169,19 +175,20 @@ export default function Sidebar() {
   return (
     <>
       {/* Top Bar Navigation Trigger: Hamburger Menu + Logged in User Profile Badge */}
-      <div className="flex items-center gap-2.5 self-start shrink-0">
+      <div className="flex items-center gap-2 self-center shrink-0">
         <button
           onClick={toggleSidebar}
-          className="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 border border-slate-700/80 hover:border-emerald-500/50 transition-all shadow-md shrink-0 flex items-center gap-2 group active:scale-95"
+          className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 border border-slate-700/80 hover:border-emerald-500/50 transition-all shadow-md shrink-0 flex items-center justify-center active:scale-95"
           title="Open navigation menu"
+          aria-label="Open navigation menu"
         >
-          <Menu className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+          <Menu className="w-5 h-5 text-emerald-400" />
         </button>
 
         {profile && (
           <div 
             onClick={toggleSidebar}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-100 shadow-md cursor-pointer hover:bg-slate-800 transition-all select-none"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-100 shadow-md cursor-pointer hover:bg-slate-800 transition-all select-none"
             title={`Logged in as ${profile.name || profile.email} (${profile.role})`}
           >
             <div className="w-6 h-6 rounded-full bg-emerald-500 text-white font-extrabold text-[11px] flex items-center justify-center uppercase shadow-2xs shrink-0">
@@ -199,20 +206,22 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* Slide-out Sidebar Drawer Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9998] transition-opacity"
-          onClick={closeSidebar}
-        />
-      )}
+      {/* Slide-out Sidebar Drawer Overlay & Panel via Portal */}
+      {mounted && createPortal(
+        <>
+          <div 
+            className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-[99998] transition-opacity duration-300 ${
+              isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            }`}
+            onClick={closeSidebar}
+          />
 
-      {/* Sidebar Panel */}
-      <div className={`
-        fixed top-0 left-0 h-screen w-64 bg-slate-900 border-r border-slate-800 text-slate-100 z-[9999]
-        transform transition-transform duration-300 ease-in-out flex flex-col justify-between shadow-2xl overflow-hidden
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+          <div className={`
+            fixed top-0 left-0 h-[100dvh] w-72 max-w-[85vw] bg-slate-900 border-r border-slate-800 text-slate-100 z-[99999]
+            transform transition-transform duration-300 ease-out flex flex-col justify-between shadow-2xl overflow-hidden
+            pt-safe pb-safe
+            ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}>
         
         {/* Top Header inside Drawer */}
         <div className="p-4 border-b border-slate-800 bg-emerald-600 text-white shrink-0">
@@ -332,7 +341,10 @@ export default function Sidebar() {
           </button>
         </div>
 
-      </div>
+          </div>
+        </>,
+        document.body
+      )}
 
       {/* Shared Modals */}
       {showAdmin && (

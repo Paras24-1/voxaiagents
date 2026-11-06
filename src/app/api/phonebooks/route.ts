@@ -38,7 +38,9 @@ export async function GET(req: NextRequest) {
         const isAuto = Boolean(isOsmo && pb.name && (
           pb.name.toLowerCase().includes('dealer') ||
           pb.name.toLowerCase().includes('customer') ||
-          pb.name.toLowerCase().includes('osmo')
+          pb.name.toLowerCase().includes('osmo') ||
+          pb.name.toLowerCase().includes('technician') ||
+          pb.name.toLowerCase().includes('unfiltered')
         ))
 
         return {

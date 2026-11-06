@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile & Android Native Safe Area Insets */
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), 0px);
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
+}
+
+html, body {
+  background-color: #0B0F19;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overflow-y-auto, .overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
 .vox-landing-theme {
   --bg: #F8F9FC;
   --surface: #FFFFFF;

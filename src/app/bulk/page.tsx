@@ -620,11 +620,12 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                 Tap a category below to broadcast WhatsApp templates directly to segregated leads:
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
                 {(() => {
                   const osmoPb = phonebooks.find(p => p.name.toLowerCase().includes('osmo'))
                   const dealerPb = phonebooks.find(p => p.name.toLowerCase().includes('dealer') && !p.name.toLowerCase().includes('osmo'))
                   const customerPb = phonebooks.find(p => p.name.toLowerCase().includes('customer'))
+                  const technicianPb = phonebooks.find(p => p.name.toLowerCase().includes('technician'))
                   const unfilteredPb = phonebooks.find(p => p.name.toLowerCase().includes('unfiltered'))
                   
                   return [
@@ -654,6 +655,15 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                       count: customerPb?.contact_count || 0,
                       activeBorder: 'border-teal-500 bg-teal-50/50 dark:bg-teal-950/30',
                       badge: 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300'
+                    },
+                    {
+                      key: 'technician',
+                      name: 'Technicians',
+                      pb: technicianPb,
+                      desc: 'RO Technicians & Mechanics',
+                      count: technicianPb?.contact_count || 0,
+                      activeBorder: 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/30',
+                      badge: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                     },
                     {
                       key: 'unfiltered',
@@ -1667,7 +1677,7 @@ function PhonebooksTab() {
 
         <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
           {phonebooks.map((pb) => {
-            const isAuto = pb.is_auto_synced || (isOsmoRo && (pb.name.toLowerCase().includes('osmo') || pb.name.toLowerCase().includes('dealer') || pb.name.toLowerCase().includes('customer') || pb.name.toLowerCase().includes('unfiltered')))
+            const isAuto = pb.is_auto_synced || (isOsmoRo && (pb.name.toLowerCase().includes('osmo') || pb.name.toLowerCase().includes('dealer') || pb.name.toLowerCase().includes('customer') || pb.name.toLowerCase().includes('technician') || pb.name.toLowerCase().includes('unfiltered')))
             return (
               <div
                 key={pb.id}

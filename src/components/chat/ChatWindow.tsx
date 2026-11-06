@@ -654,13 +654,13 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
   return (
     <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 min-h-0">
       {/* Header */}
-      <div className="px-5 py-3.5 border-b border-white/10 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl flex items-center justify-between shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-10">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-white text-xs font-black shadow-md shadow-emerald-500/20 border border-white/30 dark:border-white/10 select-none">
+      <div className="px-3 sm:px-5 py-2 sm:py-3.5 border-b border-gray-200/50 dark:border-gray-800/80 bg-white dark:bg-gray-900 flex items-center justify-between shrink-0 shadow-xs z-10 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1">
+          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-white text-xs font-black shadow-md shadow-emerald-500/20 border border-white/30 dark:border-white/10 select-none shrink-0">
             {(conversation.name || conversation.phone_number || 'U').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
           </div>
-          <div>
-            <h2 className="text-sm font-extrabold text-gray-900 dark:text-white leading-tight flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white leading-tight flex items-center gap-1.5 flex-wrap">
               {isEditingName ? (
                 <div className="flex items-center gap-1.5">
                   <input
@@ -762,15 +762,15 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Stage Selector */}
-          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all shadow-2xs select-none ${currentStageColorClass}`}>
-            <Tag className="w-3.5 h-3.5 opacity-80" />
+          <div className={`flex items-center gap-1 px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-xl transition-all shadow-2xs select-none ${currentStageColorClass}`}>
+            <Tag className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-80" />
             <select
               value={stage}
               onChange={(e) => handleStageChange(e.target.value)}
               disabled={savingStage}
-              className="text-[10px] uppercase font-bold tracking-wider px-0.5 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 text-inherit"
+              className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-0.5 bg-transparent border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 text-inherit max-w-[85px] sm:max-w-none truncate"
             >
               {stages.map(s => (
                 <option key={s.id || s.name} value={s.name} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -783,7 +783,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
           {/* AI Toggle */}
           <button
             onClick={toggleAI}
-            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-200 shadow-sm border flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-wider transition-all duration-200 shadow-sm border flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0 ${
               conversation.ai_mode 
                 ? 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600 shadow-emerald-500/20' 
                 : 'bg-amber-500 text-white border-amber-400 hover:bg-amber-600 shadow-amber-500/20'
@@ -791,13 +791,13 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
           >
             {conversation.ai_mode ? (
               <>
-                <Bot className="w-3.5 h-3.5" />
-                <span>AI Active</span>
+                <Bot className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>AI</span>
               </>
             ) : (
               <>
-                <User className="w-3.5 h-3.5" />
-                <span>Human Takeover</span>
+                <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span>Manual</span>
               </>
             )}
           </button>

@@ -747,6 +747,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                     <option value="osmo_dealer">🟢 Osmo Dealer</option>
                     <option value="dealer">🔵 Dealer</option>
                     <option value="customer">🟠 Customer</option>
+                    <option value="technician">🔧 Technician</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-emerald-100 dark:bg-emerald-900/60 rounded flex items-center justify-center pointer-events-none transition-all">
                     {savingCategoryStatus === 'saving' ? (

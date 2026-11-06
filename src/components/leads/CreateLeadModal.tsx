@@ -20,6 +20,7 @@ const CATEGORY_OPTIONS = [
   { value: 'dealer', label: 'Dealer' },
   { value: 'customer', label: 'Customer' },
   { value: 'osmo_dealer', label: 'Osmo Dealer' },
+  { value: 'technician', label: 'Technician' },
   { value: 'hot', label: 'Hot Lead' },
   { value: 'warm', label: 'Warm Lead' },
   { value: 'cold', label: 'Cold Lead' },

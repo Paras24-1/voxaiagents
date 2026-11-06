@@ -161,11 +161,11 @@ function ChatsPageContent() {
   if (!user) return null
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
+    <div className="h-[100dvh] flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
 
       {/* Top bar */}
-      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 px-6 py-4 shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.1)] z-10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200/50 dark:border-gray-800/50 px-3 sm:px-6 py-2.5 sm:py-3.5 shrink-0 z-10 flex items-center justify-between gap-2 shadow-xs">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Sidebar />
           {mobileView !== 'list' && (
             <button
@@ -176,28 +176,29 @@ function ChatsPageContent() {
                     : 'list'
                 )
               }
-              className="p-2 rounded-xl bg-gray-50 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 md:hidden transition-colors"
+              className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 md:hidden transition-all shrink-0 active:scale-95"
+              title="Back"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
           )}
           
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-emerald-500 shrink-0" />
-            <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
+            <h1 className="text-xs sm:text-base font-extrabold text-gray-900 dark:text-white tracking-tight truncate">
               {mobileView === 'list' && (org?.name || 'Inbox Chats')}
-              {mobileView === 'chat' && (selected?.name || 'Chat')}
+              {mobileView === 'chat' && (selected?.name || selected?.phone_number || 'Chat')}
               {mobileView === 'lead' && 'Lead Info'}
             </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Lead info button on mobile */}
           {mobileView === 'chat' && selected && (
             <button
               onClick={() => setMobileView('lead')}
-              className="p-2 rounded-xl bg-gray-50 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 md:hidden transition-colors"
+              className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 md:hidden transition-colors shrink-0"
               title="View lead info"
             >
               <Info className="w-4 h-4" />
@@ -206,12 +207,13 @@ function ChatsPageContent() {
 
           <button
             onClick={() => setTheme(dark ? 'light' : 'dark')}
-            className="p-2 rounded-xl bg-gray-50 dark:bg-gray-850 hover:bg-gray-150 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-150 dark:border-gray-700/50 transition-colors"
+            className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition-colors shrink-0"
+            title="Toggle theme"
           >
             {dark ? (
-              <Sun className="w-4 h-4" />
+              <Sun className="w-4 h-4 text-amber-400" />
             ) : (
-              <Moon className="w-4 h-4" />
+              <Moon className="w-4 h-4 text-blue-400" />
             )}
           </button>
         </div>
@@ -280,7 +282,7 @@ function ChatsPageContent() {
 
       {/* MOBILE: Bottom nav */}
       {selected && (
-        <div className="md:hidden flex border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shrink-0">
+        <div className="md:hidden flex border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shrink-0 pb-safe">
 
           <button
             onClick={() =>

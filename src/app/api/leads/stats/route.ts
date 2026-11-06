@@ -210,6 +210,7 @@ export async function GET(req: NextRequest) {
       { count: osmoDealerCount },
       { count: dealerCount },
       { count: customerCount },
+      { count: technicianCount },
       { count: unfilteredCount },
       { count: followupCount },
       hotCount,
@@ -219,6 +220,7 @@ export async function GET(req: NextRequest) {
       buildCount(q => q.eq('osmo_category', 'osmo_dealer')),
       buildCount(q => q.eq('osmo_category', 'dealer')),
       buildCount(q => q.eq('osmo_category', 'customer')),
+      buildCount(q => q.eq('osmo_category', 'technician')),
       buildCount(q => q.or('osmo_category.eq.unfiltered,osmo_category.is.null')),
       buildCount(q => q.not('followup_date', 'is', null)),
       getHotCount(),
@@ -229,7 +231,8 @@ export async function GET(req: NextRequest) {
     const osmo_dealer = osmoDealerCount || 0
     const dealer = dealerCount || 0
     const customer = customerCount || 0
-    const unfiltered = unfilteredCount ?? Math.max(0, total - (osmo_dealer + dealer + customer))
+    const technician = technicianCount || 0
+    const unfiltered = unfilteredCount ?? Math.max(0, total - (osmo_dealer + dealer + customer + technician))
 
     let finalHot = hotCount || 0
     let finalWarm = warmCount || 0
@@ -350,6 +353,7 @@ export async function GET(req: NextRequest) {
       osmo_dealer,
       dealer,
       customer,
+      technician,
       unfiltered,
       hot: finalHot,
       warm: finalWarm,

@@ -35,10 +35,15 @@ export default function ChatPanel({
   onClearChat,
   children
 }: ChatPanelProps) {
-  const endRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
   }, [messages, isLoading])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -49,7 +54,7 @@ export default function ChatPanel({
   }
 
   return (
-    <div className="flex flex-col h-[580px] rounded-2xl overflow-hidden bg-slate-900/50 backdrop-blur-2xl border border-slate-800/80 relative shadow-2xl">
+    <div className="flex flex-col h-[calc(100dvh-230px)] min-h-[440px] max-h-[720px] rounded-2xl overflow-hidden bg-slate-900/90 border border-slate-800/80 relative shadow-2xl">
       {/* Top Panel Bar */}
       <div className="px-5 py-3.5 bg-slate-950/80 border-b border-slate-800/80 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -74,7 +79,7 @@ export default function ChatPanel({
       </div>
 
       {/* Messages Feed Area */}
-      <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-4">
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => (
             <MessageBubble 
@@ -99,11 +104,10 @@ export default function ChatPanel({
             </div>
           </motion.div>
         )}
-        <div ref={endRef} className="h-2" />
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-2xl shrink-0 space-y-3">
+      <div className="p-4 border-t border-slate-800/80 bg-slate-950/90 backdrop-blur-2xl shrink-0 space-y-3 pb-safe">
         {children}
         
         <div className="flex items-end gap-2.5 relative">

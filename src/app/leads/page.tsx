@@ -211,11 +211,11 @@ const getPresets = () => {
   ]
 }
 
-function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered' {
-  if (lead.osmo_category && ['osmo_dealer', 'dealer', 'customer', 'unfiltered'].includes(lead.osmo_category)) {
+function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'technician' | 'unfiltered' {
+  if (lead.osmo_category && ['osmo_dealer', 'dealer', 'customer', 'technician', 'unfiltered'].includes(lead.osmo_category)) {
     return lead.osmo_category as any
   }
-  if (lead.lead_type && ['osmo_dealer', 'dealer', 'customer', 'unfiltered'].includes(lead.lead_type)) {
+  if (lead.lead_type && ['osmo_dealer', 'dealer', 'customer', 'technician', 'unfiltered'].includes(lead.lead_type)) {
     return lead.lead_type as any
   }
   return classifyOsmoContact(lead)
@@ -250,7 +250,7 @@ function LeadsContent() {
   const [loadingMore, setLoadingMore] = useState(false)
 
   // Stats
-  const [stats, setStats] = useState({ total: 0, unfiltered: 0, osmo_dealer: 0, dealer: 0, customer: 0, hot: 0, warm: 0, followups: 0 })
+  const [stats, setStats] = useState({ total: 0, unfiltered: 0, osmo_dealer: 0, dealer: 0, customer: 0, technician: 0, hot: 0, warm: 0, followups: 0 })
   
   // Filters
   const [search, setSearch] = useState('')
@@ -389,6 +389,7 @@ function LeadsContent() {
     osmo_dealer: stats.osmo_dealer,
     dealer: stats.dealer,
     customer: stats.customer,
+    technician: stats.technician || 0,
   }
 
   const fetchStats = async (headers: any, params: URLSearchParams) => {
@@ -1490,12 +1491,13 @@ function LeadsContent() {
 
           {/* Quick Tap Category Tabs (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
           {isOsmoRo && (
-            <div className="grid grid-cols-4 gap-3 p-2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-white dark:border-gray-800/50 shadow-sm transition-all">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-white dark:border-gray-800/50 shadow-sm transition-all">
               {[
                 { id: 'unfiltered', label: 'Unfiltered', count: typeCounts.unfiltered, activeStyle: 'bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-md shadow-slate-500/30' },
                 { id: 'osmo_dealer', label: 'Osmo Dealer', count: typeCounts.osmo_dealer, activeStyle: 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/30' },
                 { id: 'dealer', label: 'Dealer', count: typeCounts.dealer, activeStyle: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/30' },
                 { id: 'customer', label: 'Customer', count: typeCounts.customer, activeStyle: 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md shadow-teal-500/30' },
+                { id: 'technician', label: 'Technician', count: typeCounts.technician, activeStyle: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/30' },
               ].map((tab) => {
                 const active = leadTypeFilter === tab.id
                 return (
@@ -1669,6 +1671,7 @@ function LeadsContent() {
                                             classifyLead(lead) === 'osmo_dealer' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200 border-purple-300 dark:border-purple-700' :
                                             classifyLead(lead) === 'dealer' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 border-amber-300 dark:border-amber-700' :
                                             classifyLead(lead) === 'customer' ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200 border-teal-300 dark:border-teal-700' :
+                                            classifyLead(lead) === 'technician' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 border-blue-300 dark:border-blue-700' :
                                             'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700'
                                           }`}
                                           title="Change Category"
@@ -1677,6 +1680,7 @@ function LeadsContent() {
                                           <option value="osmo_dealer">Osmo Dealer</option>
                                           <option value="dealer">Dealer</option>
                                           <option value="customer">Customer</option>
+                                          <option value="technician">Technician</option>
                                         </select>
                                         <ChevronDown className="w-2.5 h-2.5 absolute right-1 pointer-events-none opacity-60" />
                                       </div>
@@ -2252,6 +2256,7 @@ function LeadsContent() {
                             <option value="osmo_dealer">🟣 Osmo Dealer</option>
                             <option value="dealer">🟠 Dealer / Retailer</option>
                             <option value="customer">🟢 Customer</option>
+                            <option value="technician">🔵 Technician</option>
                           </select>
                         </div>
                         <div>

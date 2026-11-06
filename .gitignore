@@ -35,5 +35,9 @@ Thumbs.db
 scratch/
 .temp/
 *.log
-__pycache__/
+# Android builds
+*.apk
+*.aab
+android/.gradle/
+android/app/build/
 

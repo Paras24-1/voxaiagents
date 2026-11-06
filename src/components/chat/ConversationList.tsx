@@ -506,7 +506,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
         {/* Premium Animated Osmo RO Tabs */}
         {isOsmo && (
           <div className="flex bg-gray-900/5 dark:bg-black/20 p-1.5 rounded-2xl mb-4 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 shadow-inner overflow-x-auto scrollbar-hide gap-1">
-            {['unfiltered', 'osmo_dealer', 'dealer', 'customer'].map(tab => {
+            {['unfiltered', 'osmo_dealer', 'dealer', 'customer', 'technician'].map(tab => {
               const tabKey = tab.toLowerCase()
               const count = categoryStats?.[tabKey] ?? conversations.filter(c => extractOsmoCategory(c) === tabKey).length
               const isActive = osmoTab === tab

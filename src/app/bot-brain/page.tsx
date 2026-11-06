@@ -176,23 +176,23 @@ export default function BotBrainPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#020617] text-slate-100 relative selection:bg-purple-500/30 font-sans">
+    <div className="min-h-[100dvh] flex flex-col bg-[#020617] text-slate-100 relative selection:bg-purple-500/30 font-sans pb-safe">
       {/* Background Animated Gradient Meshes */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="absolute top-[30%] right-[20%] w-[30%] h-[30%] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
       {/* Top Header Banner */}
-      <header className="sticky top-0 z-50 w-full px-6 py-3.5 border-b border-slate-800/80 bg-[#020617]/90 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-xl">
-        <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-50 w-full px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-slate-800/80 bg-[#020617] flex items-center justify-between shrink-0 shadow-xl gap-2 pt-safe">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Sidebar />
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 text-purple-400 border border-purple-500/30 shadow-inner">
-              <Brain className="w-5 h-5" />
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 text-purple-400 border border-purple-500/30 shadow-inner shrink-0">
+              <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                Bot Brain Intelligence Hub
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xs sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 truncate">
+                <span className="truncate">Bot Brain</span>
                 <StatusBadge status={saveStatus} />
               </h1>
               <p className="text-[11px] text-slate-400 font-medium hidden sm:block">Configure System Prompt, test live responses, and fine-tune AI logic</p>
@@ -201,33 +201,34 @@ export default function BotBrainPage() {
         </div>
 
         {/* Action Controls Header */}
-        <div className="flex items-center gap-3">
-          {/* Active Model Selector */}
-          <ModelSelect
-            value={aiModelName}
-            onChange={setAiModelName}
-          />
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="hidden xs:block sm:block">
+            <ModelSelect
+              value={aiModelName}
+              onChange={setAiModelName}
+            />
+          </div>
 
           {/* Save Button */}
           <button
             onClick={() => handleSaveSettings()}
             disabled={saveStatus === 'saving'}
-            className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+            className="px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold rounded-xl text-[11px] sm:text-xs flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shrink-0"
           >
             {saveStatus === 'saving' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : saveStatus === 'updated' ? (
-              <Check className="w-4 h-4" />
+              <Check className="w-3.5 h-3.5" />
             ) : (
-              <Save className="w-4 h-4" />
+              <Save className="w-3.5 h-3.5" />
             )}
-            <span>{saveStatus === 'updated' ? 'Settings Saved' : 'Save Changes'}</span>
+            <span>{saveStatus === 'updated' ? 'Saved' : 'Save'}</span>
           </button>
         </div>
       </header>
 
       {/* Main Workspace */}
-      <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto w-full relative z-10 space-y-6">
+      <div className="flex-1 p-3 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full relative z-10 space-y-4 sm:space-y-6">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center h-[500px] text-slate-400 space-y-4">
@@ -235,14 +236,14 @@ export default function BotBrainPage() {
             <span className="text-sm font-medium tracking-wide">Initializing Bot Brain Studio...</span>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Top Workspace Navigation Tabs */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
-              <div className="flex items-center gap-2 p-1 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-4 pb-2 border-b border-slate-800/80">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-900/80 border border-slate-800 rounded-xl sm:rounded-2xl w-full sm:w-auto">
                 {/* Tab 1: AI Builder */}
                 <button
                   onClick={() => setActiveTab('builder')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'builder'
                       ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
@@ -255,19 +256,19 @@ export default function BotBrainPage() {
                 {/* Tab 2: Advanced Raw Editor */}
                 <button
                   onClick={() => setActiveTab('advanced')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  className={`flex-1 sm:flex-initial px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                     activeTab === 'advanced'
                       ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-500/25'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                   }`}
                 >
                   <Code2 className="w-3.5 h-3.5" />
-                  <span>Advanced Technical Editor</span>
+                  <span>Advanced Editor</span>
                 </button>
               </div>
 
               {/* Engine Mode Badge */}
-              <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
+              <div className="flex items-center justify-between sm:justify-start gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Engine Mode:</span>
                 <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
                   Hybrid n8n

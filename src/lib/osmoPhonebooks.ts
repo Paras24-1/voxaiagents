@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase'
 
-export type OsmoCategoryKey = 'osmo_dealer' | 'dealer' | 'customer' | 'unfiltered'
+export type OsmoCategoryKey = 'osmo_dealer' | 'dealer' | 'customer' | 'technician' | 'unfiltered'
 
 export const OSMO_PHONEBOOK_DEFINITIONS: Record<OsmoCategoryKey, { name: string; label: string; description: string }> = {
   osmo_dealer: {
@@ -11,12 +11,17 @@ export const OSMO_PHONEBOOK_DEFINITIONS: Record<OsmoCategoryKey, { name: string;
   dealer: {
     name: 'Dealers',
     label: 'Dealers',
-    description: 'Auto-segregated general RO dealers, retailers, traders & technicians'
+    description: 'Auto-segregated general RO dealers, retailers, traders & distributors'
   },
   customer: {
     name: 'Customers',
     label: 'Customers',
     description: 'Auto-segregated inbound customer leads, buyers & residential inquiries'
+  },
+  technician: {
+    name: 'Technicians',
+    label: 'Technicians',
+    description: 'Auto-segregated RO technicians, mechanics, service engineers & fitters'
   },
   unfiltered: {
     name: 'Unfiltered Leads',
@@ -37,10 +42,17 @@ export function cleanPhone(raw: any): string {
 const OSMO_DEALER_FAST_KEYS = new Set(['osmo_dealer', 'osmo dealer', 'osmo_deler'])
 const DEALER_FAST_KEYS = new Set(['dealer', 'deler', 'distributor', 'retailer'])
 const CUSTOMER_FAST_KEYS = new Set(['customer', 'consumer', 'client', 'end_user'])
+const TECHNICIAN_FAST_KEYS = new Set(['technician', 'technisian', 'technitian', 'mechanic', 'fitter', 'service_engineer', 'service engineer'])
+
+const TECHNICIAN_KEYWORDS = [
+  'technician', 'technisian', 'technitian', 'mechanic', 'fitter',
+  'service engineer', 'service technician', 'repairman', 'installer',
+  'fitting boy', 'ro technician', 'technician hai', 'technician hu'
+]
 
 const DEALER_KEYWORDS = [
   'dealer', 'deler', 'delar', 'dealers', 'dealership', 'distributor', 'distributer', 'distributorship',
-  'wholesaler', 'wholesale', 'retailer', 'reseller', 'technician', 'mechanic', 'fitter',
+  'wholesaler', 'wholesale', 'retailer', 'reseller',
   'trader', 'traders', 'trading', 'enterprise', 'enterprises', 'agency', 'agencies',
   'ro care', 'aqua care', 'water solution', 'water solutions', 'water tech', 'water purifier shop',
   'spare parts', 'spares', 'bulk order', 'dealer price', 'dealer rate', 'wholesale price', 'wholesale rate',
@@ -62,6 +74,7 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
   if (item.lead_type) {
     const lt = String(item.lead_type).trim().toLowerCase()
     if (OSMO_DEALER_FAST_KEYS.has(lt)) return 'osmo_dealer'
+    if (TECHNICIAN_FAST_KEYS.has(lt)) return 'technician'
     if (DEALER_FAST_KEYS.has(lt)) return 'dealer'
     if (CUSTOMER_FAST_KEYS.has(lt)) return 'customer'
     if (lt === 'unfiltered') return 'unfiltered'
@@ -94,6 +107,7 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
 
   if (explicitType) {
     if (OSMO_DEALER_FAST_KEYS.has(explicitType)) return 'osmo_dealer'
+    if (TECHNICIAN_FAST_KEYS.has(explicitType)) return 'technician'
     if (DEALER_FAST_KEYS.has(explicitType)) return 'dealer'
     if (CUSTOMER_FAST_KEYS.has(explicitType)) return 'customer'
     if (explicitType === 'unfiltered') return 'unfiltered'
@@ -173,7 +187,16 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
 
   if (isOsmoDealer) return 'osmo_dealer'
 
-  // 2. Dealer / Retailer / Technician / B2B match
+  // 2. Technician / Mechanic / Fitter match
+  const isTechnician =
+    typeFields.some(t => TECHNICIAN_KEYWORDS.some(k => t.includes(k))) ||
+    nameFields.some(n => TECHNICIAN_KEYWORDS.some(k => n.includes(k))) ||
+    notesAndMessages.some(m => TECHNICIAN_KEYWORDS.some(k => m.includes(k))) ||
+    TECHNICIAN_KEYWORDS.some(k => allText.includes(k))
+
+  if (isTechnician) return 'technician'
+
+  // 3. Dealer / Retailer / B2B match
   const isDealer =
     typeFields.some(t => DEALER_KEYWORDS.some(k => t.includes(k))) ||
     nameFields.some(n => DEALER_KEYWORDS.some(k => n.includes(k))) ||
@@ -306,6 +329,8 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       category = 'osmo_dealer'
     } else if (explicitCat === 'dealer') {
       category = 'dealer'
+    } else if (explicitCat === 'technician') {
+      category = 'technician'
     } else if (explicitCat === 'customer') {
       category = 'customer'
     } else if (explicitCat === 'unfiltered') {
@@ -354,6 +379,8 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       category = 'osmo_dealer'
     } else if (explicitCat === 'dealer') {
       category = 'dealer'
+    } else if (explicitCat === 'technician') {
+      category = 'technician'
     } else if (explicitCat === 'customer') {
       category = 'customer'
     } else if (explicitCat === 'unfiltered') {
@@ -395,13 +422,13 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
 }
 
 /**
- * Ensures the 3 auto-segregated phonebooks exist for Osmo RO,
+ * Ensures the auto-segregated phonebooks exist for Osmo RO,
  * synchronizes all current conversations & CRM leads into their respective phonebooks,
  * and returns the phonebook records with updated live contact counts.
  */
 export async function syncOsmoPhonebooks(orgId: string) {
   try {
-    // 1. Ensure the 3 phonebook records exist in DB
+    // 1. Ensure the phonebook records exist in DB
     const { data: existingPhonebooks, error: pbFetchErr } = await supabaseAdmin
       .from('phonebooks')
       .select('*')
@@ -413,6 +440,7 @@ export async function syncOsmoPhonebooks(orgId: string) {
       osmo_dealer: null,
       dealer: null,
       customer: null,
+      technician: null,
       unfiltered: null
     }
 
@@ -449,6 +477,7 @@ export async function syncOsmoPhonebooks(orgId: string) {
       osmo_dealer: new Map(),
       dealer: new Map(),
       customer: new Map(),
+      technician: new Map(),
       unfiltered: new Map()
     };
 

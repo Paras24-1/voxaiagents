@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VOX AI</string>
+    <string name="title_activity_main">VOX AI</string>
+    <string name="package_name">com.voxai.dashboard</string>
+    <string name="custom_url_scheme">com.voxai.dashboard</string>
+</resources>

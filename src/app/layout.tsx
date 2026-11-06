@@ -1,7 +1,17 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { ThemeProvider } from 'next-themes'
 import OrgProvider from '@/contexts/OrgContext'
 import './globals.css'
+import CapacitorBridge from '@/components/CapacitorBridge'
+
+export const viewport: Viewport = {
+  themeColor: '#0b0f19',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+}
 
 import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -46,6 +56,13 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     icons: {
       icon,
+      apple: '/favicon.png',
+    },
+    manifest: '/manifest.json',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: 'VOX AI',
     },
   }
 }
@@ -63,11 +80,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased bg-[#F8F9FC] text-[#0B0F19]">
+      <body className="font-sans antialiased bg-[#0B0F19] text-gray-900 dark:text-gray-100 min-h-[100dvh] overscroll-none">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <OrgProvider>
             {children}
             <FollowupNotifier />
+            <CapacitorBridge />
           </OrgProvider>
         </ThemeProvider>
       </body>
