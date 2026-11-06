@@ -309,7 +309,8 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (targetConvId) {
-      if (updates.name || updates.stage || targetLeadType || updates.notes !== undefined) {
+      const hasLocationUpdate = updates.state !== undefined || updates.district !== undefined || updates.pincode !== undefined || body.state !== undefined || body.district !== undefined || body.pincode !== undefined
+      if (updates.name || updates.stage || targetLeadType || updates.notes !== undefined || hasLocationUpdate) {
         const { data: convData } = await supabaseAdmin
           .from('conversations')
           .select('metadata')
@@ -322,13 +323,22 @@ export async function PATCH(req: NextRequest) {
         if (targetLeadType) {
           convMeta = { ...convMeta, category: targetLeadType, lead_type: targetLeadType }
         }
+        if (updates.state !== undefined || body.state !== undefined) {
+          convMeta.state = updates.state ?? body.state
+        }
+        if (updates.district !== undefined || body.district !== undefined) {
+          convMeta.district = updates.district ?? body.district
+        }
+        if (updates.pincode !== undefined || body.pincode !== undefined) {
+          convMeta.pincode = updates.pincode ?? body.pincode
+        }
 
         await supabaseAdmin
           .from('conversations')
           .update({
             ...(updates.name  ? { name: updates.name }   : {}),
             ...(updates.stage ? { stage: updates.stage } : {}),
-            ...(targetLeadType ? { metadata: convMeta } : {}),
+            metadata: convMeta,
             ...(updates.notes !== undefined ? { notes: updates.notes } : {})
           })
           .eq('id', targetConvId)

@@ -353,6 +353,8 @@ function LeadsContent() {
   const [editScore, setEditScore] = useState(0)
   const [editCategory, setEditCategory] = useState('unfiltered')
   const [editState, setEditState] = useState('')
+  const [editDistrict, setEditDistrict] = useState('')
+  const [editPincode, setEditPincode] = useState('')
   const [editMetadata, setEditMetadata] = useState<Record<string, any>>({})
   const [newMetaKey, setNewMetaKey] = useState('')
   const [newMetaVal, setNewMetaVal] = useState('')
@@ -592,7 +594,14 @@ function LeadsContent() {
         lead_score: editScore,
         lead_type: editCategory,
         state: editState,
-        metadata: editMetadata
+        district: editDistrict,
+        pincode: editPincode,
+        metadata: {
+          ...editMetadata,
+          state: editState,
+          district: editDistrict,
+          pincode: editPincode,
+        }
       }
 
       const res = await fetch('/api/leads', {
@@ -608,12 +617,12 @@ function LeadsContent() {
         fetch(`/api/conversations/${targetConvId}`, {
           method: 'PATCH',
           headers,
-          body: JSON.stringify({ lead_type: editCategory, stage: editStage })
+          body: JSON.stringify({ lead_type: editCategory, stage: editStage, state: editState, district: editDistrict, pincode: editPincode })
         }).catch(console.error)
         window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: editCategory, category: editCategory, stage: editStage } }))
       }
       
-      const mergedMeta = { ...editMetadata, lead_type: editCategory, category: editCategory, state: editState }
+      const mergedMeta = { ...editMetadata, lead_type: editCategory, category: editCategory, state: editState, district: editDistrict, pincode: editPincode }
       
       const oldCat = (activeLead.metadata as any)?.category || activeLead.lead_type || 'unfiltered'
       if (oldCat !== editCategory) {
@@ -651,7 +660,9 @@ function LeadsContent() {
     setEditQuality(quality)
     setEditScore(score)
     setEditCategory(classifyLead(lead))
-    setEditState(meta.state || '')
+    setEditState(meta.state || meta.State || '')
+    setEditDistrict(meta.district || meta.District || '')
+    setEditPincode(meta.pincode || meta.Pincode || meta.pin_code || meta.Pin_Code || '')
     setEditMetadata({ ...meta })
     setShowAddMetaField(false)
     setNewMetaKey('')
@@ -1138,12 +1149,14 @@ function LeadsContent() {
     ]
 
     const priorityOrder = [
-      'source', 'lead_score', 'lead_quality', 'state', 'city', 'district', 'tehsil', 'crop',
+      'source', 'lead_score', 'lead_quality', 'state', 'district', 'pincode', 'city', 'tehsil', 'crop',
       'business_intent', 'business_type', 'business_name', 'contact_person', 'email', 
       'demo_selected', 'pricing_requested', 'consultation_ready'
     ]
 
-    const standardKeys = ['source', 'lead_score', 'lead_quality']
+    const standardKeys = isOsmoRo 
+      ? ['source', 'lead_score', 'lead_quality', 'state', 'district', 'pincode']
+      : ['source', 'lead_score', 'lead_quality']
 
     const rawKeys = Array.from(new Set([
       ...standardKeys,
@@ -1173,7 +1186,7 @@ function LeadsContent() {
       if (idxB !== -1) return 1
       return a.localeCompare(b)
     })
-  }, [leads, discoveredCustomKeys])
+  }, [leads, discoveredCustomKeys, isOsmoRo])
 
   const filterableCustomKeys = useMemo(() => {
     const skip = [
@@ -1187,6 +1200,8 @@ function LeadsContent() {
     // Only give crop filter to agricultural organizations (like Innoveg)
     const tenantDefaults = isInnoveg 
       ? ['crop', 'city', 'district', 'tehsil'] 
+      : isOsmoRo
+      ? ['district', 'pincode', 'city', 'state']
       : ['city', 'district', 'state']
 
     const combined = Array.from(new Set([...tenantDefaults, ...uniqueCustomKeys]))
@@ -1197,7 +1212,7 @@ function LeadsContent() {
       if (!isInnoveg && lower.includes('crop')) return false
       return true
     })
-  }, [uniqueCustomKeys, isInnoveg])
+  }, [uniqueCustomKeys, isInnoveg, isOsmoRo])
 
   const getHeaderLabelWithIcon = (key: string) => {
     const lower = key.toLowerCase()
@@ -1887,9 +1902,20 @@ function LeadsContent() {
                                 );
                               }
 
-                              // 4. Stage or State
-                              if (lowerKey === 'stage' || lowerKey === 'state') {
-                                const sVal = String(val || allCustomData.state || allCustomData.stage || 'new').toLowerCase();
+                              // 4. State
+                              if (lowerKey === 'state') {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5 bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 border border-purple-200 dark:border-purple-800/60 font-bold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
+                                      <MapPin className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                                      {displayVal}
+                                    </span>
+                                  </td>
+                                );
+                              }
+
+                              if (lowerKey === 'stage') {
+                                const sVal = String(val || allCustomData.stage || 'new').toLowerCase();
                                 const matched = stages.find(st => st.name === sVal || st.name.toLowerCase() === sVal || st.id === sVal || st.label.toLowerCase() === sVal);
                                 const badgeColor = matched?.color || STAGE_COLORS[sVal] || 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50';
                                 const badgeLabel = matched?.label || sVal.replace(/_/g, ' ');
@@ -1915,23 +1941,35 @@ function LeadsContent() {
                                 );
                               }
 
-                              // 6. Location Fields (Tehsil, District, Village, City, Location, Pincode)
-                              if (lowerKey.includes('tehsil') || lowerKey.includes('village') || lowerKey.includes('location') || lowerKey.includes('pincode')) {
+                              // 6. Pincode
+                              if (lowerKey.includes('pincode') || lowerKey.includes('pin_code')) {
                                 return (
                                   <td key={key} className="px-6 py-4 whitespace-nowrap">
-                                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800/60 font-bold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
-                                      <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                    <span className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200 border border-blue-200 dark:border-blue-800/60 font-mono font-bold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
+                                      <span className="text-xs">📮</span>
                                       {displayVal}
                                     </span>
                                   </td>
                                 );
                               }
 
+                              // 7. Location Fields (District, City, Tehsil, Village, Location)
                               if (lowerKey.includes('district') || lowerKey.includes('city')) {
                                 return (
                                   <td key={key} className="px-6 py-4 whitespace-nowrap">
                                     <span className="inline-flex items-center gap-1.5 bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 border border-teal-200 dark:border-teal-800/60 font-bold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
                                       <span className="text-xs">🏙️</span>
+                                      {displayVal}
+                                    </span>
+                                  </td>
+                                );
+                              }
+
+                              if (lowerKey.includes('tehsil') || lowerKey.includes('village') || lowerKey.includes('location')) {
+                                return (
+                                  <td key={key} className="px-6 py-4 whitespace-nowrap">
+                                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800/60 font-bold text-xs px-2.5 py-1 rounded-lg shadow-2xs">
+                                      <MapPin className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                       {displayVal}
                                     </span>
                                   </td>
@@ -2271,6 +2309,27 @@ function LeadsContent() {
                               <option key={s} value={s}>{s}</option>
                             ))}
                           </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 block mb-1">District</label>
+                          <input
+                            type="text"
+                            value={editDistrict}
+                            placeholder="Enter district (e.g. Ludhiana)"
+                            onChange={(e) => setEditDistrict(e.target.value)}
+                            className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm focus:outline-none font-semibold text-gray-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 block mb-1">Pincode</label>
+                          <input
+                            type="text"
+                            value={editPincode}
+                            placeholder="e.g. 141001"
+                            maxLength={6}
+                            onChange={(e) => setEditPincode(e.target.value)}
+                            className="w-full border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-3 py-2 rounded-lg text-sm font-mono focus:outline-none font-semibold text-gray-900 dark:text-white"
+                          />
                         </div>
                       </>
                     )}

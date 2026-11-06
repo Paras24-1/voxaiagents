@@ -36,20 +36,35 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
   const [leadState, setLeadState] = useState<string>('')
   const [savingState, setSavingState] = useState(false)
+  const [leadDistrict, setLeadDistrict] = useState<string>('')
+  const [savingDistrict, setSavingDistrict] = useState(false)
+  const [leadPincode, setLeadPincode] = useState<string>('')
+  const [savingPincode, setSavingPincode] = useState(false)
   const [savingCategoryStatus, setSavingCategoryStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
   const [categoryError, setCategoryError] = useState<string | null>(null)
   const [showCategoryToast, setShowCategoryToast] = useState(false)
 
-  // Sync leadState from metadata when conversation/lead changes
+  // Sync leadState, leadDistrict, and leadPincode from metadata when conversation/lead changes
   useEffect(() => {
     const meta = (lead || conversation)?.metadata
     let stateVal = ''
+    let districtVal = ''
+    let pincodeVal = ''
     if (typeof meta === 'string') {
-      try { stateVal = JSON.parse(meta).state || '' } catch(e) {}
+      try {
+        const parsed = JSON.parse(meta)
+        stateVal = parsed.state || parsed.State || ''
+        districtVal = parsed.district || parsed.District || ''
+        pincodeVal = parsed.pincode || parsed.Pincode || parsed.pin_code || parsed.Pin_Code || ''
+      } catch(e) {}
     } else if (meta && typeof meta === 'object') {
-      stateVal = (meta as any).state || ''
+      stateVal = (meta as any).state || (meta as any).State || ''
+      districtVal = (meta as any).district || (meta as any).District || ''
+      pincodeVal = (meta as any).pincode || (meta as any).Pincode || (meta as any).pin_code || (meta as any).Pin_Code || ''
     }
     setLeadState(stateVal)
+    setLeadDistrict(districtVal)
+    setLeadPincode(pincodeVal)
   }, [conversation?.id, lead?.id, (conversation as any)?.metadata, lead?.metadata])
 
   const handleStateSave = async (newState: string) => {
@@ -98,6 +113,102 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
       console.error('Failed to change state:', err)
     } finally {
       setSavingState(false)
+    }
+  }
+
+  const handleDistrictSave = async (newDistrict: string) => {
+    if (!conversation && !lead) return
+    setSavingDistrict(true)
+
+    if (conversation) {
+      if (conversation.metadata && typeof conversation.metadata === 'object') {
+        conversation.metadata.district = newDistrict
+      } else {
+        conversation.metadata = { district: newDistrict }
+      }
+    }
+
+    if (lead) {
+      const currentMeta = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {})
+      onLeadUpdate({
+        metadata: {
+          ...currentMeta,
+          district: newDistrict
+        }
+      })
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const convId = conversation?.id || lead?.conversation_id
+      const token = session?.access_token || ''
+      const authHeader: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
+      await fetch(`/api/leads`, {
+        method: 'PATCH',
+        headers: authHeader,
+        body: JSON.stringify({
+          id: lead?.id,
+          conversation_id: convId,
+          phone_number: lead?.phone_number || conversation?.phone_number,
+          district: newDistrict
+        })
+      })
+    } catch (err) {
+      console.error('Failed to change district:', err)
+    } finally {
+      setSavingDistrict(false)
+    }
+  }
+
+  const handlePincodeSave = async (newPincode: string) => {
+    if (!conversation && !lead) return
+    setSavingPincode(true)
+
+    if (conversation) {
+      if (conversation.metadata && typeof conversation.metadata === 'object') {
+        conversation.metadata.pincode = newPincode
+      } else {
+        conversation.metadata = { pincode: newPincode }
+      }
+    }
+
+    if (lead) {
+      const currentMeta = typeof lead.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead.metadata || {})
+      onLeadUpdate({
+        metadata: {
+          ...currentMeta,
+          pincode: newPincode
+        }
+      })
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const convId = conversation?.id || lead?.conversation_id
+      const token = session?.access_token || ''
+      const authHeader: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+
+      await fetch(`/api/leads`, {
+        method: 'PATCH',
+        headers: authHeader,
+        body: JSON.stringify({
+          id: lead?.id,
+          conversation_id: convId,
+          phone_number: lead?.phone_number || conversation?.phone_number,
+          pincode: newPincode
+        })
+      })
+    } catch (err) {
+      console.error('Failed to change pincode:', err)
+    } finally {
+      setSavingPincode(false)
     }
   }
 
@@ -774,9 +885,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
               <InfoCard icon={Target} label="Source API Number" value={conversation.receiver_phone_number} />
             )}
             <InfoCard icon={User} label="Name" value={data.Name} />
-            {/* Geographic State Card (Osmo RO only) */}
+            {/* Geographic Location Card: State, District, Pincode (Osmo RO only) */}
             {isOsmoRo ? (
-              <div className="p-3 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 hover:shadow-sm transition-all duration-200 space-y-2">
+              <div className="p-3.5 bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-xl border border-gray-150 dark:border-gray-800/80 hover:border-emerald-500/30 hover:shadow-sm transition-all duration-200 space-y-3">
+                {/* State */}
                 <div className="flex justify-between items-center text-xs">
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-emerald-500 border border-gray-150 dark:border-gray-700/55 shadow-inner shrink-0">
@@ -792,12 +904,63 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                         handleStateSave(e.target.value)
                       }}
                       disabled={savingState}
-                      className="w-28 text-[10px] uppercase font-bold tracking-wider px-2 py-1.5 rounded-lg border bg-gray-50 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                      className="w-32 text-[10px] uppercase font-bold tracking-wider px-2 py-1.5 rounded-lg border bg-gray-50 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 dark:bg-gray-800 dark:text-white dark:border-gray-700"
                     >
                       <option value="">SELECT</option>
                       {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     {savingState && <RefreshCw className="w-3 h-3 animate-spin text-emerald-500 shrink-0" />}
+                  </div>
+                </div>
+
+                {/* District */}
+                <div className="flex justify-between items-center text-xs pt-2 border-t border-gray-100 dark:border-gray-800/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-950/40 flex items-center justify-center text-teal-600 dark:text-teal-400 border border-teal-200/50 dark:border-teal-800/50 shadow-inner shrink-0">
+                      <span className="text-[11px]">🏙️</span>
+                    </div>
+                    <span className="font-bold text-gray-500 dark:text-gray-400">District</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={leadDistrict}
+                      placeholder="e.g. Ludhiana"
+                      onChange={(e) => setLeadDistrict(e.target.value)}
+                      onBlur={() => handleDistrictSave(leadDistrict)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleDistrictSave(leadDistrict)
+                      }}
+                      disabled={savingDistrict}
+                      className="w-32 text-[11px] font-bold px-2 py-1 rounded-lg border bg-gray-50 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                    />
+                    {savingDistrict && <RefreshCw className="w-3 h-3 animate-spin text-emerald-500 shrink-0" />}
+                  </div>
+                </div>
+
+                {/* Pincode */}
+                <div className="flex justify-between items-center text-xs pt-2 border-t border-gray-100 dark:border-gray-800/60">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/50 shadow-inner shrink-0">
+                      <span className="text-[11px]">📮</span>
+                    </div>
+                    <span className="font-bold text-gray-500 dark:text-gray-400">Pincode</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={leadPincode}
+                      placeholder="e.g. 141001"
+                      maxLength={6}
+                      onChange={(e) => setLeadPincode(e.target.value)}
+                      onBlur={() => handlePincodeSave(leadPincode)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handlePincodeSave(leadPincode)
+                      }}
+                      disabled={savingPincode}
+                      className="w-32 text-[11px] font-mono font-bold px-2 py-1 rounded-lg border bg-gray-50 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                    />
+                    {savingPincode && <RefreshCw className="w-3 h-3 animate-spin text-emerald-500 shrink-0" />}
                   </div>
                 </div>
               </div>
@@ -851,7 +1014,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
                 'lead_quality', 'lead_score', 'callback_ready', 'conversation_summary', 
                 'followup_date', 'followup_notes', 'followup_notified', 'id', 'conversation_id', 'stage',
                 'lead_type', 'category', 'user_type', 'Lead_Type', 'lead_temperature',
-                'notes', 'Notes', 'Stage'
+                'notes', 'Notes', 'Stage',
+                ...(isOsmoRo ? ['state', 'State', 'district', 'District', 'pincode', 'Pincode', 'pin_code', 'Pin_Code', 'osmo_category'] : [])
               ]
               if (standardKeys.includes(key) || value === null || value === undefined || value === '') return null
               if (typeof value === 'object') return null
