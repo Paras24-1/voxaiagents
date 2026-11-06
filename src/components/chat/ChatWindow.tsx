@@ -653,8 +653,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 min-h-0">
-      {/* Header */}
-      <div className="px-3 sm:px-5 py-2 sm:py-3.5 border-b border-gray-200/50 dark:border-gray-800/80 bg-white dark:bg-gray-900 flex items-center justify-between shrink-0 shadow-xs z-10 gap-2">
+      <div className="px-3 md:px-5 py-2.5 md:py-3.5 border-b border-white/10 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl flex items-center justify-between shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-10 gap-2">
         <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1">
           <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-white text-xs font-black shadow-md shadow-emerald-500/20 border border-white/30 dark:border-white/10 select-none shrink-0">
             {(conversation.name || conversation.phone_number || 'U').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}

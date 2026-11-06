@@ -80,7 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased bg-[#0B0F19] text-gray-900 dark:text-gray-100 min-h-[100dvh] overscroll-none">
+      <body className="font-sans antialiased bg-[#F8F9FC] text-[#0B0F19]">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <OrgProvider>
             {children}

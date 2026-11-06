@@ -176,7 +176,7 @@ export default function BotBrainPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[#020617] text-slate-100 relative selection:bg-purple-500/30 font-sans pb-safe">
+    <div className="fixed inset-0 overflow-y-auto flex flex-col bg-[#020617] text-slate-100 selection:bg-purple-500/30 font-sans pb-safe">
       {/* Background Animated Gradient Meshes */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-purple-600/15 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none z-0" />

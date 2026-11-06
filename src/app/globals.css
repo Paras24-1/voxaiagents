@@ -16,8 +16,7 @@
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
 }
 
-html, body {
-  background-color: #0B0F19;
+html {
   -webkit-tap-highlight-color: transparent;
 }
 

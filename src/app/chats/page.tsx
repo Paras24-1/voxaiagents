@@ -163,8 +163,7 @@ function ChatsPageContent() {
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
 
-      {/* Top bar */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200/50 dark:border-gray-800/50 px-3 sm:px-6 py-2.5 sm:py-3.5 shrink-0 z-10 flex items-center justify-between gap-2 shadow-xs">
+      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 px-3 md:px-6 py-2.5 md:py-4 shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.1)] z-10 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Sidebar />
           {mobileView !== 'list' && (
