@@ -48,14 +48,14 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-955">
+    <div className="h-[100dvh] pb-safe flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-955">
       {/* Top Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0 shadow-sm z-10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 pt-safe px-3 md:px-6 py-3 md:py-4 shrink-0 shadow-sm z-10 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 md:gap-4 min-w-0">
           <Sidebar />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <ShoppingBag className="w-5 h-5 text-emerald-500 shrink-0" />
-            <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">
+            <h1 className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white tracking-tight truncate">
               Order Status Automation
             </h1>
           </div>
@@ -63,7 +63,7 @@ export default function OrdersPage() {
       </header>
 
       {/* Main Container */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-3 md:p-6">
         {org?.has_orders_crm ? (
           <OrdersDashboardContent />
         ) : (

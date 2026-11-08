@@ -210,15 +210,15 @@ function ProductsContent() {
   )
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
+    <div className="h-[100dvh] pb-safe flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
       
       {/* Top Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0 shadow-sm z-10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 pt-safe px-3 md:px-6 py-3 md:py-4 shrink-0 shadow-sm z-10 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 md:gap-4 min-w-0">
           <Sidebar />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Package className="w-5 h-5 text-emerald-500 shrink-0" />
-            <h1 className="text-base font-extrabold text-gray-900 dark:text-white tracking-tight">
+            <h1 className="text-sm md:text-base font-extrabold text-gray-900 dark:text-white tracking-tight truncate">
               Products Catalog
             </h1>
           </div>
@@ -226,15 +226,16 @@ function ProductsContent() {
 
         <button
           onClick={openAddDrawer}
-          className="flex items-center gap-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all shrink-0"
+          className="flex items-center gap-1.5 md:gap-2 py-1.5 md:py-2 px-2.5 md:px-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          Add Product
+          <span className="hidden sm:inline">Add Product</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-6 space-y-6">
+      <main className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6">
         
         {/* Search Bar */}
         <div className="max-w-md relative select-none">

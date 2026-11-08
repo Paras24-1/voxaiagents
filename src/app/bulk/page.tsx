@@ -176,31 +176,31 @@ export default function BulkMessagingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-y-auto">
-      <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 px-6 py-4 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <div className="min-h-[100dvh] pb-safe bg-gray-50 dark:bg-gray-900 overflow-y-auto">
+      <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 pt-safe px-3 md:px-6 py-3 md:py-4 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
             <Sidebar />
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Bulk Messaging</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Send WhatsApp template messages to multiple contacts</p>
+            <div className="min-w-0">
+              <h1 className="text-base md:text-xl font-bold text-gray-900 dark:text-white truncate">Bulk Messaging</h1>
+              <p className="hidden md:block text-sm text-gray-500 mt-0.5">Send WhatsApp template messages to multiple contacts</p>
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setTab('phonebooks')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'phonebooks' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
-              <BookOpen className="w-4 h-4" />Phonebooks
+          <div className="flex gap-1.5 md:gap-2 flex-wrap shrink-0">
+            <button onClick={() => setTab('phonebooks')} className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 md:gap-1.5 ${tab === 'phonebooks' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+              <BookOpen className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Phonebooks</span>
             </button>
-            <button onClick={() => setTab('new')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'new' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
-              <Plus className="w-4 h-4" />New Campaign
+            <button onClick={() => setTab('new')} className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 md:gap-1.5 ${tab === 'new' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+              <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" /><span>New</span><span className="hidden sm:inline">&nbsp;Campaign</span>
             </button>
-            <button onClick={() => setTab('history')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'history' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
-              <BarChart2 className="w-4 h-4" />Campaign History
+            <button onClick={() => setTab('history')} className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 md:gap-1.5 ${tab === 'history' ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+              <BarChart2 className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden sm:inline">Campaign History</span><span className="sm:hidden">History</span>
             </button>
           </div>
         </div>
       </div>
   
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard icon={<MessageSquare className="w-5 h-5 text-blue-500" />}  label="Total Campaigns" value={stats.total} />
           <StatCard icon={<RefreshCw    className="w-5 h-5 text-amber-500" />}  label="Active"          value={stats.sending} />

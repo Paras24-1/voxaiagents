@@ -259,18 +259,18 @@ function AnalyticsContent() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shrink-0 shadow-sm">
-        <div className="flex items-center gap-4">
+    <div className="h-[100dvh] pb-safe flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 pt-safe px-3 md:px-6 py-3 md:py-4 shrink-0 shadow-sm">
+        <div className="flex items-center gap-2.5 md:gap-4 min-w-0">
           <Sidebar />
-          <div>
-            <h1 className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">Analytics Dashboard</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{org?.name} — Pipeline efficiency & agent performance</p>
+          <div className="min-w-0">
+            <h1 className="text-base md:text-xl font-extrabold text-gray-900 dark:text-white tracking-tight truncate">Analytics Dashboard</h1>
+            <p className="hidden md:block text-sm text-gray-500 dark:text-gray-400">{org?.name} — Pipeline efficiency & agent performance</p>
           </div>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-8">
+      <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-8">
         {/* Row 1: Quick Metric Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard 

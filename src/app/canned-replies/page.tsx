@@ -84,34 +84,38 @@ export default function CannedRepliesPage() {
   )
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="h-[100dvh] pb-safe flex flex-col bg-slate-950 text-slate-100 overflow-hidden">
       {/* Top Header */}
-      <header className="px-8 py-5 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex items-center justify-between shrink-0 z-10">
-        <div className="flex items-center gap-4">
+      <header className="px-3 md:px-8 py-3 md:py-5 pt-safe border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex items-center justify-between shrink-0 z-10">
+        <div className="flex items-center gap-2.5 md:gap-4 min-w-0">
           <Sidebar />
-          <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            <MessageSquare className="w-6 h-6" />
+          <div className="hidden sm:flex p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+            <MessageSquare className="w-5 h-5 md:w-6 md:h-6" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Canned Replies & Shortcuts</h1>
-            <p className="text-xs text-slate-400">Manage quick `/` shortcuts for your team to send instant replies to leads</p>
+          <div className="min-w-0">
+            <h1 className="text-sm md:text-xl font-bold text-white tracking-tight truncate">
+              <span className="hidden sm:inline">Canned Replies & Shortcuts</span>
+              <span className="sm:hidden">Canned Replies</span>
+            </h1>
+            <p className="hidden md:block text-xs text-slate-400">Manage quick `/` shortcuts for your team to send instant replies to leads</p>
           </div>
         </div>
 
-          <button
-            onClick={() => {
-              setEditingItem(null)
-              setIsModalOpen(true)
-            }}
-            className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Canned Reply</span>
-          </button>
-        </header>
+        <button
+          onClick={() => {
+            setEditingItem(null)
+            setIsModalOpen(true)
+          }}
+          className="px-3 md:px-4 py-2 md:py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 md:gap-2 shadow-lg shadow-emerald-500/20 transition-all shrink-0 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Create Canned Reply</span>
+          <span className="sm:hidden">+ Reply</span>
+        </button>
+      </header>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-6">
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6">
           
           {/* Search Bar */}
           <div className="max-w-md relative">

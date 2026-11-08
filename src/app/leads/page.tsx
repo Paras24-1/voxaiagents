@@ -1248,67 +1248,72 @@ function LeadsContent() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 overflow-hidden text-gray-900 dark:text-gray-100">
+    <div className="h-[100dvh] pb-safe flex flex-col bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 overflow-hidden text-gray-900 dark:text-gray-100">
       
       {/* Header Banner */}
-      <header className="h-16 shrink-0 flex items-center justify-between px-6 z-50 bg-white/70 dark:bg-gray-950/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm transition-all">
-        <div className="flex items-center gap-3">
+      <header className="min-h-14 md:h-16 pt-safe shrink-0 flex items-center justify-between px-3 md:px-6 py-2 md:py-0 z-50 bg-white/70 dark:bg-gray-950/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm transition-all">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <Sidebar />
-          <span className="text-gray-900 dark:text-white font-bold text-lg flex items-center gap-2 tracking-tight">
-            <MessageSquare className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            Lead CRM Portal
+          <span className="text-gray-900 dark:text-white font-bold text-sm md:text-lg flex items-center gap-1.5 md:gap-2 tracking-tight truncate">
+            <MessageSquare className="w-4 h-4 md:w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="hidden sm:inline">Lead CRM Portal</span>
+            <span className="sm:hidden">Leads</span>
           </span>
-          <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-900/30 border border-emerald-200/50 dark:border-emerald-800/50 rounded-full px-2.5 py-0.5 ml-2 tracking-wider">
+          <span className="hidden sm:inline-flex text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-900/30 border border-emerald-200/50 dark:border-emerald-800/50 rounded-full px-2.5 py-0.5 ml-2 tracking-wider truncate max-w-[120px]">
             {org?.name || 'Tenant System'}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
           <button
             onClick={() => setIsAddLeadModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm border border-emerald-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+            className="flex items-center gap-1 md:gap-1.5 px-2.5 md:px-4 py-1.5 md:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm border border-emerald-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
           >
-            <UserPlus className="w-4 h-4" />
-            + Add Lead
+            <UserPlus className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden xs:inline">+ Add Lead</span>
+            <span className="xs:hidden">+ Add</span>
           </button>
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-sm border border-blue-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+            className="flex items-center gap-1 md:gap-1.5 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-sm border border-blue-500/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+            title="Import Leads"
           >
-            <UploadCloud className="w-4 h-4" />
-            Import Leads
+            <UploadCloud className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden md:inline">Import Leads</span>
           </button>
           <button
             onClick={() => setIsStageModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm border border-emerald-400/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm border border-emerald-400/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
           >
             <SlidersHorizontal className="w-4 h-4" />
-            Manage Stages & Tags
+            <span className="hidden lg:inline">Manage Stages & Tags</span>
           </button>
           {selectedLeadPhones.length > 0 && (
             <button
               onClick={() => handleDownloadCSV(true)}
               disabled={isExporting}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm border border-emerald-400/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+              className="flex items-center gap-1 md:gap-1.5 px-2.5 md:px-3.5 py-1.5 md:py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl shadow-sm border border-emerald-400/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
             >
-              {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Export Selected ({selectedLeadPhones.length})
+              {isExporting ? <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" /> : <Download className="w-3.5 h-3.5 md:w-4 md:h-4" />}
+              <span className="hidden sm:inline">Export Selected ({selectedLeadPhones.length})</span>
+              <span className="sm:hidden">({selectedLeadPhones.length})</span>
             </button>
           )}
           <button
             onClick={() => handleDownloadCSV(false)}
             disabled={isExporting || (totalLeads === 0 && leads.length === 0)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-800/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            className="flex items-center gap-1 md:gap-1.5 px-2.5 md:px-4 py-1.5 md:py-2 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs font-bold rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-800/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+            title="Export CSV"
           >
-            {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {selectedLeadPhones.length > 0 ? `Export All Filtered (${totalLeads.toLocaleString()})` : `Export CSV (${totalLeads.toLocaleString()})`}
+            {isExporting ? <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" /> : <Download className="w-3.5 h-3.5 md:w-4 md:h-4" />}
+            <span className="hidden md:inline">{selectedLeadPhones.length > 0 ? `Export All Filtered (${totalLeads.toLocaleString()})` : `Export CSV (${totalLeads.toLocaleString()})`}</span>
           </button>
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden relative z-0">
-        <div className="flex-1 flex flex-col p-6 overflow-y-auto space-y-6">
+        <div className="flex-1 flex flex-col p-3 md:p-6 overflow-y-auto space-y-4 md:space-y-6">
           
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
@@ -1584,7 +1589,7 @@ function LeadsContent() {
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
                     <thead className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 text-[11px] font-black tracking-wider text-left uppercase sticky top-0 z-20 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-2xs">
                       <tr>
-                        <th className="px-3 py-4 whitespace-nowrap sticky left-0 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 w-10 text-center">
+                        <th className="px-3 py-4 whitespace-nowrap md:sticky md:left-0 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 w-10 text-center">
                           <input
                             type="checkbox"
                             checked={displayedLeads.length > 0 && displayedLeads.every(l => selectedLeadPhones.includes(l.phone_number))}
@@ -1598,7 +1603,7 @@ function LeadsContent() {
                             className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
                           />
                         </th>
-                        <th className="px-6 py-4 whitespace-nowrap sticky left-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.08)] dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.08)] font-black text-slate-900 dark:text-white">
+                        <th className="px-6 py-4 whitespace-nowrap md:sticky md:left-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 md:shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.08)] md:dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.08)] font-black text-slate-900 dark:text-white">
                           <span className="inline-flex items-center gap-1.5">
                             <User className="w-4 h-4 text-emerald-500" />
                             Lead Contact
@@ -1615,7 +1620,7 @@ function LeadsContent() {
                             Date Added
                           </span>
                         </th>
-                        <th className="px-6 py-4 text-right whitespace-nowrap sticky right-0 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 shadow-[inset_1px_0_0_0_rgba(0,0,0,0.08)] dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.08)] font-black text-slate-900 dark:text-white">
+                        <th className="px-6 py-4 text-right whitespace-nowrap md:sticky md:right-0 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 md:shadow-[inset_1px_0_0_0_rgba(0,0,0,0.08)] md:dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.08)] font-black text-slate-900 dark:text-white">
                           Actions
                         </th>
                       </tr>
@@ -1658,7 +1663,7 @@ function LeadsContent() {
                             }`}
                             onClick={() => handleViewLead(lead)}
                           >
-                            <td className="px-3 py-4 whitespace-nowrap sticky left-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 text-center" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-3 py-4 whitespace-nowrap md:sticky md:left-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 text-center" onClick={(e) => e.stopPropagation()}>
                               <input
                                 type="checkbox"
                                 checked={selectedLeadPhones.includes(lead.phone_number)}
@@ -1669,7 +1674,7 @@ function LeadsContent() {
                                 className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
                               />
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap sticky left-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.06)] dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
+                            <td className="px-6 py-4 whitespace-nowrap md:sticky md:left-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 md:shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.06)] md:dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0 ring-2 ring-emerald-500/20">
                                   {(displayName || 'U').charAt(0).toUpperCase()}
@@ -2030,7 +2035,7 @@ function LeadsContent() {
                                 {formatISTDate(lead.created_at)}
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-xs sticky right-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 shadow-[inset_1px_0_0_0_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.06)]" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-xs md:sticky md:right-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 md:shadow-[inset_1px_0_0_0_rgba(0,0,0,0.06)] md:dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.06)]" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-end gap-2">
                                 <button
                                   onClick={() => {

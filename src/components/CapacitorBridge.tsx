@@ -33,19 +33,6 @@ export default function CapacitorBridge() {
           console.warn('App backButton listener not available:', e)
         }
 
-        // 3. Register for Push Notifications (if permission granted or requested)
-        try {
-          const { PushNotifications } = await import('@capacitor/push-notifications')
-          const permStatus = await PushNotifications.checkPermissions()
-          if (permStatus.receive === 'prompt') {
-            await PushNotifications.requestPermissions()
-          }
-          if (permStatus.receive === 'granted') {
-            await PushNotifications.register()
-          }
-        } catch (e) {
-          console.warn('PushNotifications plugin not configured yet:', e)
-        }
       } catch (err) {
         console.error('Failed to initialize Capacitor bridge:', err)
       }

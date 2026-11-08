@@ -81,36 +81,38 @@ export default function TemplatesPage() {
   }, [templates, search, selectedCategory, selectedStatus])
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="h-[100dvh] pb-safe flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
       {/* Top Header Navigation Bar */}
-      <header className="h-16 shrink-0 flex items-center justify-between px-6 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800 shadow-sm">
-        <div className="flex items-center gap-4">
+      <header className="min-h-14 md:h-16 pt-safe shrink-0 flex items-center justify-between px-3 md:px-6 py-2 md:py-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800 shadow-sm">
+        <div className="flex items-center gap-2.5 md:gap-4 min-w-0">
           <Sidebar />
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
               <Sparkles className="w-4 h-4" />
             </span>
-            <span className="text-base font-extrabold text-white tracking-tight">
-              Meta WhatsApp Templates
+            <span className="text-sm md:text-base font-extrabold text-white tracking-tight truncate">
+              <span className="hidden sm:inline">Meta WhatsApp Templates</span>
+              <span className="sm:hidden">Templates</span>
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           <button
             onClick={fetchTemplates}
             disabled={loading}
-            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 rounded-xl transition-all shadow-sm active:scale-95"
+            className="p-2 md:p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 rounded-xl transition-all shadow-sm active:scale-95"
             title="Refresh Templates"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 md:w-4 md:h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95"
+            className="px-2.5 md:px-4 py-1.5 md:py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-xs sm:text-sm flex items-center gap-1.5 md:gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95 shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Create Meta Template</span>
+            <Plus className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[3]" />
+            <span className="hidden sm:inline">Create Meta Template</span>
+            <span className="sm:hidden">+ Create</span>
           </button>
         </div>
       </header>
