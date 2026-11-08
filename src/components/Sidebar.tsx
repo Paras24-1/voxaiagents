@@ -24,6 +24,14 @@ export default function Sidebar() {
 
   useEffect(() => {
     setMounted(true)
+    const handleOpen = () => setIsOpen(true)
+    const handleClose = () => setIsOpen(false)
+    window.addEventListener('open-sidebar', handleOpen)
+    window.addEventListener('close-sidebar', handleClose)
+    return () => {
+      window.removeEventListener('open-sidebar', handleOpen)
+      window.removeEventListener('close-sidebar', handleClose)
+    }
   }, [])
 
   useEffect(() => {

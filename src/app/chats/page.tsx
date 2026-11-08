@@ -157,13 +157,26 @@ function ChatsPageContent() {
     )
   }
 
+  // Hide bottom nav while inside active chat to maximize keyboard and input space
+  useEffect(() => {
+    if (mobileView === 'chat') {
+      document.body.classList.add('hide-bottom-nav')
+    } else {
+      document.body.classList.remove('hide-bottom-nav')
+    }
+    return () => {
+      document.body.classList.remove('hide-bottom-nav')
+    }
+  }, [mobileView])
+
   // Prevent rendering before redirect
   if (!user) return null
 
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
 
-      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 px-3 md:px-6 py-2.5 md:py-4 shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.1)] z-10 flex items-center justify-between gap-2">
+      {/* Header: Hidden on mobile when inside an active chat (ChatWindow displays the single native header) */}
+      <header className={`bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 pt-safe px-3 md:px-6 py-2.5 md:py-4 shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.1)] z-10 ${mobileView === 'chat' ? 'hidden md:flex' : 'flex'} items-center justify-between gap-2`}>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Sidebar />
           {mobileView !== 'list' && (
@@ -227,7 +240,7 @@ function ChatsPageContent() {
             flex flex-col overflow-hidden border-r border-gray-200/50 dark:border-gray-800/50
             ${mobileView === 'list' ? 'flex' : 'hidden'}
             md:flex md:w-80 md:shrink-0
-            w-full
+            w-full pb-16 md:pb-0
           `}
         >
           <ConversationList
@@ -247,6 +260,8 @@ function ChatsPageContent() {
         >
           <ChatWindow
             conversation={selected}
+            onBack={() => setMobileView('list')}
+            onViewLead={() => setMobileView('lead')}
             onAIToggle={(id, mode) => {
               if (selected?.id === id) {
                 setSelected(prev =>
@@ -268,7 +283,7 @@ function ChatsPageContent() {
             flex flex-col overflow-hidden border-l border-gray-200/50 dark:border-gray-800/50
             ${mobileView === 'lead' ? 'flex' : 'hidden'}
             md:flex md:w-80 md:shrink-0
-            w-full
+            w-full pb-16 md:pb-0
           `}
         >
           <LeadPanel

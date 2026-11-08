@@ -450,7 +450,7 @@ function FollowupsContent() {
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-3 md:p-6 max-w-7xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto p-3 md:p-6 pb-24 md:pb-6 max-w-7xl mx-auto w-full">
         
         {/* Top Controls Box */}
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 mb-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">

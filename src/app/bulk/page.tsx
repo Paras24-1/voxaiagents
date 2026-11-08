@@ -200,7 +200,7 @@ export default function BulkMessagingPage() {
         </div>
       </div>
   
-      <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
+      <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6 pb-24 md:pb-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard icon={<MessageSquare className="w-5 h-5 text-blue-500" />}  label="Total Campaigns" value={stats.total} />
           <StatCard icon={<RefreshCw    className="w-5 h-5 text-amber-500" />}  label="Active"          value={stats.sending} />

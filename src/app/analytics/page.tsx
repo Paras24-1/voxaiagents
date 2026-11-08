@@ -270,7 +270,7 @@ function AnalyticsContent() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-8">
+      <div className="flex-1 overflow-y-auto p-3 md:p-6 pb-24 md:pb-8 space-y-4 md:space-y-8">
         {/* Row 1: Quick Metric Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard 

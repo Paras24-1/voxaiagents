@@ -235,7 +235,7 @@ function ProductsContent() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6">
+      <main className="flex-1 overflow-y-auto p-3 md:p-6 pb-24 md:pb-6 space-y-4 md:space-y-6">
         
         {/* Search Bar */}
         <div className="max-w-md relative select-none">

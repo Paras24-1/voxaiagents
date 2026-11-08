@@ -24,6 +24,10 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
+body.hide-bottom-nav nav[aria-label="Mobile Navigation Bar"] {
+  display: none !important;
+}
+
 .vox-landing-theme {
   --bg: #F8F9FC;
   --surface: #FFFFFF;

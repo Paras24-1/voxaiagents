@@ -1313,10 +1313,10 @@ function LeadsContent() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden relative z-0">
-        <div className="flex-1 flex flex-col p-3 md:p-6 overflow-y-auto space-y-4 md:space-y-6">
+        <div className="flex-1 flex flex-col p-3 md:p-6 pb-20 md:pb-6 overflow-y-auto space-y-3.5 md:space-y-6">
           
           {/* Quick Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-5">
             <MetricCard label="Total CRM Leads" value={totalLeads} bgGradient="from-blue-500 to-indigo-600" shadowColor="shadow-blue-500/20" icon={<User className="w-5 h-5 text-blue-100" />} />
             <MetricCard label="Hot Status Leads" value={hotLeads} bgGradient="from-rose-500 to-red-600" shadowColor="shadow-rose-500/20" icon={<TrendingUp className="w-5 h-5 text-rose-100" />} />
             <MetricCard label="Warm Status Leads" value={warmLeads} bgGradient="from-amber-400 to-orange-500" shadowColor="shadow-amber-500/20" icon={<AlertCircle className="w-5 h-5 text-amber-100" />} />

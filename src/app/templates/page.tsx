@@ -118,7 +118,7 @@ export default function TemplatesPage() {
       </header>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 sm:pb-8 space-y-6">
           
           {/* Top Banner Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-xl bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/30">

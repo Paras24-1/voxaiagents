@@ -115,7 +115,7 @@ export default function CannedRepliesPage() {
       </header>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 md:space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 space-y-4 md:space-y-6">
           
           {/* Search Bar */}
           <div className="max-w-md relative">

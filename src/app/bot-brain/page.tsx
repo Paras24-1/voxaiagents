@@ -228,7 +228,7 @@ export default function BotBrainPage() {
       </header>
 
       {/* Main Workspace */}
-      <div className="flex-1 p-3 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full relative z-10 space-y-4 sm:space-y-6">
+      <div className="flex-1 p-3 sm:p-6 lg:p-8 pb-24 md:pb-8 max-w-[1400px] mx-auto w-full relative z-10 space-y-4 sm:space-y-6">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center h-[500px] text-slate-400 space-y-4">

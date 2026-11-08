@@ -68,6 +68,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import FollowupNotifier from '@/components/FollowupNotifier'
+import MobileBottomNav from '@/components/MobileBottomNav'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -86,6 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
             <FollowupNotifier />
             <CapacitorBridge />
+            <MobileBottomNav />
           </OrgProvider>
         </ThemeProvider>
       </body>

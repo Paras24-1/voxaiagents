@@ -7,7 +7,7 @@ import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
 import { useLeadStages } from '@/hooks/useLeadStages'
 import { formatDistanceToNow } from 'date-fns'
-import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle, Trash2, Clock, AlertCircle, Share2, Pencil } from 'lucide-react'
+import { Send, Bot, User, Loader2, Paperclip, X, Tag, MessageSquare, Check, CheckCheck, Mic, Square, FileText, MapPin, Video, Image as ImageIcon, Headphones, User as UserIcon, Sparkles, ChevronUp, MessageCircle, Trash2, Clock, AlertCircle, Share2, Pencil, ArrowLeft, Info } from 'lucide-react'
 import TemplatePickerModal from '@/components/chat/TemplatePickerModal'
 import LocationPickerModal from '@/components/chat/LocationPickerModal'
 import { CannedReplyItem } from '@/components/chat/CannedRepliesModal'
@@ -36,9 +36,11 @@ function formatMessageDateSeparator(dateString: string): string {
 interface Props {
   conversation: Conversation | null
   onAIToggle: (id: string, mode: boolean) => void
+  onBack?: () => void
+  onViewLead?: () => void
 }
 
-export default function ChatWindow({ conversation, onAIToggle }: Props) {
+export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLead }: Props) {
   const { profile, org } = useOrg()
   const { stages } = useLeadStages()
   const [input, setInput] = useState('')
@@ -653,8 +655,17 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
 
   return (
     <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 min-h-0">
-      <div className="px-3 md:px-5 py-2.5 md:py-3.5 border-b border-white/10 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl flex items-center justify-between shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-10 gap-2">
-        <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1">
+      <div className="pt-safe px-2.5 md:px-5 py-2 md:py-3.5 border-b border-white/10 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl flex items-center justify-between shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-10 gap-1.5 md:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-3.5 min-w-0 flex-1">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-1.5 -ml-1 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 md:hidden transition-all shrink-0 active:scale-95 cursor-pointer"
+              title="Back to chat list"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
           <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-white text-xs font-black shadow-md shadow-emerald-500/20 border border-white/30 dark:border-white/10 select-none shrink-0">
             {(conversation.name || conversation.phone_number || 'U').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
           </div>
@@ -800,6 +811,16 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
               </>
             )}
           </button>
+
+          {onViewLead && (
+            <button
+              onClick={onViewLead}
+              className="p-1.5 sm:p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-500 border border-gray-200/60 dark:border-gray-700/60 md:hidden transition-colors shrink-0 cursor-pointer"
+              title="View Lead Details"
+            >
+              <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -1161,7 +1182,7 @@ export default function ChatWindow({ conversation, onAIToggle }: Props) {
       )}
 
       {/* Input Section */}
-      <div className="relative px-5 py-4 bg-white/40 dark:bg-gray-950/40 backdrop-blur-xl shrink-0 z-10 border-t border-white/20 dark:border-gray-800/50">
+      <div className="relative px-3 sm:px-5 py-2.5 sm:py-4 pb-safe bg-white/40 dark:bg-gray-950/40 backdrop-blur-xl shrink-0 z-10 border-t border-white/20 dark:border-gray-800/50">
         
         {/* Hidden File Inputs */}
         <input
