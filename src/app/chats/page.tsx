@@ -148,6 +148,22 @@ function ChatsPageContent() {
     [selected?.id]
   )
 
+  // Hide bottom nav while inside active chat to maximize keyboard and input space
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (mobileView === 'chat') {
+        document.body.classList.add('hide-bottom-nav')
+      } else {
+        document.body.classList.remove('hide-bottom-nav')
+      }
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('hide-bottom-nav')
+      }
+    }
+  }, [mobileView])
+
   // Loading screen
   if (loading) {
     return (
@@ -156,18 +172,6 @@ function ChatsPageContent() {
       </div>
     )
   }
-
-  // Hide bottom nav while inside active chat to maximize keyboard and input space
-  useEffect(() => {
-    if (mobileView === 'chat') {
-      document.body.classList.add('hide-bottom-nav')
-    } else {
-      document.body.classList.remove('hide-bottom-nav')
-    }
-    return () => {
-      document.body.classList.remove('hide-bottom-nav')
-    }
-  }, [mobileView])
 
   // Prevent rendering before redirect
   if (!user) return null

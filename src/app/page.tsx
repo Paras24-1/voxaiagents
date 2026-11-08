@@ -203,8 +203,8 @@ export default function LandingPage() {
   // Direct app detection: Inside native mobile app, NEVER show the landing page!
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const isNative = (window as any).Capacitor?.isNativePlatform?.() || 
-                       (window as any).Capacitor?.getPlatform?.() !== 'web' ||
+      const isNative = Boolean((window as any).Capacitor?.isNativePlatform?.()) || 
+                       (Boolean((window as any).Capacitor) && (window as any).Capacitor?.getPlatform?.() !== 'web') ||
                        navigator.userAgent.includes('Capacitor') ||
                        window.location.search.includes('app=true')
       if (isNative) {

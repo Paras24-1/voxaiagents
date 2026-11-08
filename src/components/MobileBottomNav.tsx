@@ -56,8 +56,8 @@ export default function MobileBottomNav() {
     return () => clearInterval(interval)
   }, [profile?.org_id])
 
-  // Don't render if user not logged in or on auth pages
-  if (!user || pathname === '/login' || pathname === '/register' || pathname === '/') {
+  // Don't render if user not logged in or on auth pages, or if pathname is not yet resolved
+  if (!user || !pathname || pathname === '/login' || pathname === '/register' || pathname === '/') {
     return null
   }
 
@@ -75,28 +75,28 @@ export default function MobileBottomNav() {
       href: '/chats',
       icon: MessageSquare,
       badge: unreadCount > 0 ? unreadCount : null,
-      isActive: pathname.startsWith('/chats')
+      isActive: Boolean(pathname?.startsWith('/chats'))
     },
     {
       name: 'Leads',
       href: '/leads',
       icon: Users,
       badge: null,
-      isActive: pathname.startsWith('/leads')
+      isActive: Boolean(pathname?.startsWith('/leads'))
     },
     {
       name: 'Bot Brain',
       href: '/bot-brain',
       icon: Brain,
       badge: null,
-      isActive: pathname.startsWith('/bot-brain')
+      isActive: Boolean(pathname?.startsWith('/bot-brain'))
     },
     {
       name: 'Broadcast',
       href: '/bulk',
       icon: Send,
       badge: null,
-      isActive: pathname.startsWith('/bulk')
+      isActive: Boolean(pathname?.startsWith('/bulk'))
     },
     {
       name: 'Menu',
