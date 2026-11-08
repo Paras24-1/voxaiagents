@@ -198,6 +198,21 @@ const faqItems = [
 export default function LandingPage() {
   const { user } = useOrg()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isAppRedirecting, setIsAppRedirecting] = useState(false)
+
+  // Direct app detection: Inside native mobile app, NEVER show the landing page!
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isNative = (window as any).Capacitor?.isNativePlatform?.() || 
+                       (window as any).Capacitor?.getPlatform?.() !== 'web' ||
+                       navigator.userAgent.includes('Capacitor') ||
+                       window.location.search.includes('app=true')
+      if (isNative) {
+        setIsAppRedirecting(true)
+        window.location.replace('/dashboard')
+      }
+    }
+  }, [])
 
   // Real Inbound Call Audio Player State
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -532,6 +547,14 @@ export default function LandingPage() {
     }, 4500)
     return () => clearInterval(timer)
   }, [])
+
+  if (isAppRedirecting) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-950 text-white">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="vox-landing-theme min-h-screen bg-[#F8F9FC] text-slate-900 selection:bg-slate-200 selection:text-slate-900 font-sans antialiased relative overflow-x-hidden text-[17px] sm:text-[18px]">

@@ -107,21 +107,56 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
         return
       }
 
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'Failed to fetch profile')
+      let json: any = null
+      if (res.ok) {
+        json = await res.json()
+      } else {
+        console.warn('[OrgContext] /api/me returned', res.status, '- attempting direct Supabase query fallback')
+        const { data: directProfile } = await supabase
+          .from('users')
+          .select('*, organization:organizations(*)')
+          .eq('id', userId)
+          .maybeSingle()
 
-      setProfile(json.profile)
-      setOrg(json.org)
+        if (directProfile) {
+          const orgData = (directProfile as any).organization || null
+          delete (directProfile as any).organization
+          json = { profile: directProfile, org: orgData }
+        }
+      }
+
+      if (json?.profile) {
+        setProfile(json.profile)
+        setOrg(json.org)
+      }
     } catch (err) {
       console.error('[OrgContext] Error:', err)
+      // Direct emergency fallback query
+      try {
+        const { data: directProfile } = await supabase
+          .from('users')
+          .select('*, organization:organizations(*)')
+          .eq('id', userId)
+          .maybeSingle()
+        if (directProfile) {
+          const orgData = (directProfile as any).organization || null
+          delete (directProfile as any).organization
+          setProfile(directProfile)
+          setOrg(orgData)
+        }
+      } catch {}
     } finally {
       setLoading(false)
     }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    if (data.user) {
+      setUser(data.user)
+      fetchProfileAndOrg(data.user.id)
+    }
   }
 
   const signOut = async () => {

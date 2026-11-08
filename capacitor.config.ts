@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-const serverUrl = process.env.CAPACITOR_SERVER_URL || 'https://www.voxaiagents.com';
+const serverUrl = process.env.CAPACITOR_SERVER_URL || 'https://www.voxaiagents.com/dashboard';
 
 const config: CapacitorConfig = {
   appId: 'com.voxai.dashboard',

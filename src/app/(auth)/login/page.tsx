@@ -16,9 +16,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.push('/dashboard')
+      window.location.replace('/dashboard')
     }
-  }, [user, router])
+  }, [user])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,7 +26,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signIn(email, password)
-      router.push('/dashboard')
+      window.location.replace('/dashboard')
     } catch (err: any) {
       setError(err.message || 'Invalid email or password')
       setLoading(false)
