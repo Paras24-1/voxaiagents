@@ -758,12 +758,12 @@ const ConversationItem = React.memo(function ConversationItem({
 
   return (
     <div
-      className={`group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-all duration-200 rounded-2xl border ${
+      className={`group relative flex items-center gap-3 px-3.5 py-3 cursor-pointer transition-colors duration-150 rounded-xl border ${
         isChecked
-          ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500/40 shadow-sm'
+          ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500/40'
           : isSelected
-          ? 'bg-gradient-to-br from-emerald-50/90 to-teal-50/50 dark:from-emerald-900/20 dark:to-teal-900/10 border-emerald-500/30 dark:border-emerald-500/30 shadow-md shadow-emerald-500/5 ring-1 ring-emerald-500/20 backdrop-blur-sm'
-          : 'bg-white/70 dark:bg-gray-900/50 border-transparent dark:border-transparent hover:bg-white dark:hover:bg-gray-900 border-gray-100 hover:border-gray-200 dark:hover:border-gray-800 hover:shadow-sm'
+          ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30'
+          : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-850 hover:bg-gray-50 dark:hover:bg-gray-800/60'
       }`}
       onClick={onClick}
     >
@@ -774,7 +774,7 @@ const ConversationItem = React.memo(function ConversationItem({
             e.stopPropagation()
             onToggleCheck?.()
           }}
-          className="shrink-0 pt-3 text-gray-400 hover:text-emerald-500 focus:outline-none select-none cursor-pointer"
+          className="shrink-0 text-gray-400 hover:text-emerald-500 focus:outline-none select-none cursor-pointer"
         >
           {isChecked ? (
             <CheckSquare className="w-5 h-5 text-emerald-500 fill-emerald-500/10" />
@@ -784,44 +784,53 @@ const ConversationItem = React.memo(function ConversationItem({
         </button>
       )}
 
-      {/* Avatar with dynamic AI/Manual Mode Indicator */}
+      {/* WhatsApp-Style Circular Avatar with status badge */}
       <div className="relative shrink-0 select-none">
-        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${isSelected ? 'from-emerald-500 to-teal-600 shadow-emerald-500/20' : 'from-emerald-400 to-teal-500'} flex items-center justify-center text-white text-xs font-black shadow-md border border-white/20 dark:border-gray-800 transition-all duration-300 group-hover:scale-105`}>
+        <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${isSelected ? 'from-emerald-500 to-teal-600 ring-2 ring-emerald-500/30' : 'from-emerald-500 to-teal-600'} flex items-center justify-center text-white text-xs font-black shadow-xs border border-white/20 dark:border-gray-800`}>
           {initials}
         </div>
         <span
-          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-gray-950 shadow-xs ${
-            conv.ai_mode ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-900 ${
+            conv.ai_mode ? 'bg-emerald-500' : 'bg-amber-500'
           }`}
           title={conv.ai_mode ? 'AI Assistant active' : 'Manual takeover active'}
         />
       </div>
 
-      {/* Main Details */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-0.5">
+      {/* Main Details (WhatsApp-Style) */}
+      <div className="flex-1 min-w-0 pr-1">
+        <div className="flex items-center gap-1.5">
           <span className={`text-sm font-bold truncate transition-colors ${isSelected ? 'text-emerald-900 dark:text-emerald-200' : 'text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400'}`}>
             {conv.name || conv.phone_number}
           </span>
-          <span className={`text-[10px] font-semibold shrink-0 ml-2 transition-colors ${isSelected ? 'text-emerald-600/80 dark:text-emerald-400/80' : 'text-gray-400 group-hover:text-gray-500'}`}>{timeAgo}</span>
+          {conv.platform === 'instagram' && (
+            <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-md uppercase bg-pink-100 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300 shrink-0">
+              IG
+            </span>
+          )}
         </div>
-        <p className="text-[11px] text-gray-400 dark:text-gray-500 font-mono truncate mb-1 opacity-80">
-          {conv.phone_number}
-        </p>
-        <p className={`text-xs truncate leading-relaxed transition-colors ${isSelected ? 'text-gray-700 dark:text-gray-200 font-medium' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
+
+        {/* Message preview */}
+        <p className={`text-xs truncate mt-0.5 leading-snug transition-colors ${
+          (conv.unread_count || 0) > 0 
+            ? 'text-gray-900 dark:text-white font-semibold' 
+            : isSelected 
+            ? 'text-gray-700 dark:text-gray-300 font-medium' 
+            : 'text-gray-500 dark:text-gray-400'
+        }`}>
           {(() => {
             const msg = conv.last_message || ''
-            if (msg === '[Received image]' || msg.includes('image')) return '📷 Image attachment'
-            if (msg === '[Received audio]' || msg.includes('audio')) return '🎵 Audio message'
-            if (msg === '[Received video]' || msg.includes('video')) return '🎥 Video attachment'
-            if (msg === '[Received document]' || msg.includes('document')) return '📄 Document file'
+            if (msg === '[Received image]' || msg.includes('image')) return '📷 Photo'
+            if (msg === '[Received audio]' || msg.includes('audio')) return '🎤 Voice message'
+            if (msg === '[Received video]' || msg.includes('video')) return '🎥 Video'
+            if (msg === '[Received document]' || msg.includes('document')) return '📄 Document'
             if (msg === '[Message]') return '💬 Message'
             return msg || 'No messages yet'
           })()}
         </p>
 
-        {/* Badges Container */}
-        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+        {/* Clean Compact Badges Row */}
+        <div className="flex items-center gap-1.5 mt-1.5 overflow-hidden">
           {(() => {
             const convStageVal = conv.stage || 'new'
             const matchedStage = stages.find(s => 
@@ -833,165 +842,63 @@ const ConversationItem = React.memo(function ConversationItem({
             const badgeColor = matchedStage?.color || STAGE_COLORS[convStageVal as Stage] || STAGE_COLORS.new
             const badgeLabel = matchedStage?.label || convStageVal.replace(/_/g, ' ')
             return (
-              <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${badgeColor}`}>
+              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider shrink-0 ${badgeColor}`}>
                 {badgeLabel}
               </span>
             )
           })()}
 
-          {/* Osmo Category Badge (Premium) */}
-          {isOsmo && (
-            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 ${
-              extractOsmoCategory(conv) === 'unfiltered'
-                ? 'bg-gray-100 text-gray-500 border border-gray-200/60 dark:bg-gray-800/80 dark:text-gray-400 dark:border-gray-700/50'
-                : 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border border-emerald-200/60 dark:from-emerald-950/80 dark:to-teal-950/80 dark:text-emerald-300 dark:border-emerald-800/50 shadow-sm shadow-emerald-500/5'
-            }`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${extractOsmoCategory(conv) === 'unfiltered' ? 'bg-gray-400' : 'bg-emerald-500'}`} />
-              {extractOsmoCategory(conv).replace('_', ' ')}
-            </span>
-          )}
-
-          {/* Lead Source Badge Tag */}
-          {(() => {
-            const leadObj = Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead || {}
-            const meta = typeof leadObj?.metadata === 'object' ? leadObj.metadata : (typeof (conv as any).metadata === 'object' ? (conv as any).metadata : {})
-            const src = String(leadObj?.source || meta?.source || (conv as any).source || '').toLowerCase()
-            if (!src) return null
-
-            if (src.includes('bulk_import') || src.includes('bulk') || src.includes('import')) {
-              return (
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 flex items-center gap-1">
-                  📥 Bulk Import
-                </span>
-              )
-            }
-            if (src.includes('inbound') || src.includes('whatsapp')) {
-              return (
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1">
-                  💬 Inbound
-                </span>
-              )
-            }
-            if (src.includes('google_maps') || src.includes('scraper')) {
-              return (
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800/60 flex items-center gap-1">
-                  🗺️ Scraper
-                </span>
-              )
-            }
-            if (src.includes('manual')) {
-              return (
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 flex items-center gap-1">
-                  ✏️ Manual
-                </span>
-              )
-            }
-            return (
-              <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 capitalize">
-                📌 {src}
-              </span>
-            )
-          })()}
-
-          {/* Platform Badge */}
-          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-            conv.platform === 'instagram'
-              ? 'bg-pink-100 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300 border border-pink-200/50'
-              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50'
-          }`}>
-            {conv.platform || 'whatsapp'}
-          </span>
-
-          {/* Receiver Phone Badge (for Multi-WABA / Multi-Line orgs) */}
-          {conv.receiver_phone_number && (
-            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md tracking-wider bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 border border-purple-200/50">
-              📞 {conv.receiver_phone_number}
-            </span>
-          )}
-
-          {/* 24h Window Status Badge */}
-          {(() => {
-            const leadObj = Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || conv.lead || {}
-            const meta = typeof leadObj?.metadata === 'object' ? leadObj.metadata : (typeof (conv as any).metadata === 'object' ? (conv as any).metadata : {})
-            const src = String(leadObj?.source || meta?.source || (conv as any).source || '').toLowerCase()
-            const isBulkImport = src.includes('bulk_import') || src.includes('bulk') || src.includes('import')
-
-            const hasIncoming = !!conv.last_incoming_message_at
-            const is24hActive = hasIncoming && (Date.now() - new Date(conv.last_incoming_message_at!).getTime() <= 24 * 60 * 60 * 1000)
-
-            if (is24hActive) {
-              return (
-                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  24h Open
-                </span>
-              )
-            }
-
-            if (isBulkImport && !hasIncoming) {
-              return (
-                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  Template Required
-                </span>
-              )
-            }
-
-            return (
-              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 border border-red-200/40">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                24h Expired
-              </span>
-            )
-          })()}
-
-          {/* Blocked Badge */}
-          {conv.is_blocked && (
-            <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300 border border-red-200/50 flex items-center gap-1">
-              <Ban className="w-2.5 h-2.5" /> Blocked
-            </span>
-          )}
-          
-          {/* Assignment Badge */}
           {assignedEmployee && (
-            <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200/50">
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200/50 truncate shrink-0">
               👤 {assignedEmployee.name.split(' ')[0]}
             </span>
           )}
-          {!assignedEmployee && isAdmin && (
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
-              Unassigned
+
+          {conv.last_incoming_message_at && (Date.now() - new Date(conv.last_incoming_message_at).getTime() <= 24 * 60 * 60 * 1000) && (
+            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              24h
             </span>
           )}
         </div>
       </div>
 
-      {/* Actions (Pure CSS hover opacity to prevent re-render shivering) */}
-      <div className="flex items-center gap-1 shrink-0 select-none opacity-0 group-hover:opacity-100 transition-opacity">
-        {isAdmin && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onOpenAssign(); }}
-            className="p-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100/30"
-            title="Assign to employee"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-          </button>
-        )}
-        <button
-          onClick={onDelete}
-          className="p-1 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-500 hover:bg-red-100 transition-colors border border-red-100/30"
-          title="Delete conversation"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      {/* Right Column: Time & Unread Badge (Never overlaps name or text) */}
+      <div className="shrink-0 flex flex-col items-end justify-between self-stretch py-0.5 select-none min-w-[50px]">
+        <span className={`text-[11px] font-medium transition-colors ${
+          (conv.unread_count || 0) > 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-gray-400 dark:text-gray-500'
+        }`}>
+          {timeAgo}
+        </span>
 
-      {/* Unread count badge */}
-      {((conv.unread_count || 0) > 0 || (conv as any).unread) && !isSelected && (
-        <div className="absolute top-3 right-3 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black shadow-md shadow-emerald-500/30">
-          {conv.unread_count && conv.unread_count > 0 ? conv.unread_count : '1'}
+        <div className="mt-auto flex items-center gap-1">
+          {/* Actions for Desktop Hover */}
+          <div className="hidden group-hover:flex items-center gap-1">
+            {isAdmin && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onOpenAssign(); }}
+                className="p-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100/30 cursor-pointer"
+                title="Assign to employee"
+              >
+                <UserPlus className="w-3 h-3" />
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              className="p-1 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-500 hover:bg-red-100 transition-colors border border-red-100/30 cursor-pointer"
+              title="Delete conversation"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+
+          {((conv.unread_count || 0) > 0 || (conv as any).unread) && !isSelected && (
+            <div className="flex items-center justify-center min-w-[18px] h-4.5 px-1 rounded-full bg-emerald-500 text-white text-[10px] font-black shadow-xs">
+              {conv.unread_count && conv.unread_count > 0 ? conv.unread_count : '1'}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 })

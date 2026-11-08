@@ -57,7 +57,8 @@ export default function MobileBottomNav() {
   }, [profile?.org_id])
 
   // Don't render if user not logged in or on auth pages, or if pathname is not yet resolved
-  if (!user || !pathname || pathname === '/login' || pathname === '/register' || pathname === '/') {
+  // User explicitly requested: In Chats section, do NOT show the bottom menu on phone!
+  if (!user || !pathname || pathname === '/login' || pathname === '/register' || pathname === '/' || pathname.startsWith('/chats')) {
     return null
   }
 

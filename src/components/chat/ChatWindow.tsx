@@ -666,59 +666,68 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-white text-xs font-black shadow-md shadow-emerald-500/20 border border-white/30 dark:border-white/10 select-none shrink-0">
-            {(conversation.name || conversation.phone_number || 'U').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white leading-tight flex items-center gap-1.5 flex-wrap">
-              {isEditingName ? (
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    value={editingNameValue}
-                    onChange={(e) => setEditingNameValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        handleSaveName()
-                      } else if (e.key === 'Escape') {
-                        setIsEditingName(false)
-                      }
-                    }}
-                    autoFocus
-                    className="px-2 py-0.5 text-xs font-bold bg-white dark:bg-gray-800 border border-emerald-500 rounded-lg text-gray-900 dark:text-white focus:outline-none shadow-xs"
-                  />
-                  <button
-                    onClick={handleSaveName}
-                    disabled={savingName}
-                    className="p-1 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white transition-colors disabled:opacity-50 cursor-pointer"
-                    title="Save name"
-                  >
-                    {savingName ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                  </button>
-                  <button
-                    onClick={() => setIsEditingName(false)}
-                    className="p-1 rounded-md bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
-                    title="Cancel"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 group/name">
-                  <span>{conversation.name}</span>
-                  <button
-                    onClick={() => {
-                      setEditingNameValue(conversation.name || '')
-                      setIsEditingName(true)
-                    }}
-                    className="p-1 rounded-md opacity-0 group-hover/name:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-emerald-500 transition-all cursor-pointer"
-                    title="Rename lead"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
+          {/* Contact Profile Header: Clickable to view lead info like WhatsApp */}
+          <div
+            onClick={() => {
+              if (onViewLead) onViewLead()
+            }}
+            className={`flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1 ${onViewLead ? 'cursor-pointer active:opacity-75' : ''}`}
+            title={onViewLead ? 'View contact profile' : undefined}
+          >
+            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-white text-xs font-black shadow-md shadow-emerald-500/20 border border-white/30 dark:border-white/10 select-none shrink-0">
+              {(conversation.name || conversation.phone_number || 'U').split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xs sm:text-sm font-extrabold text-gray-900 dark:text-white leading-tight flex items-center gap-1.5 flex-wrap">
+                {isEditingName ? (
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      value={editingNameValue}
+                      onChange={(e) => setEditingNameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleSaveName()
+                        } else if (e.key === 'Escape') {
+                          setIsEditingName(false)
+                        }
+                      }}
+                      autoFocus
+                      className="px-2 py-0.5 text-xs font-bold bg-white dark:bg-gray-800 border border-emerald-500 rounded-lg text-gray-900 dark:text-white focus:outline-none shadow-xs"
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      disabled={savingName}
+                      className="p-1 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white transition-colors disabled:opacity-50 cursor-pointer"
+                      title="Save name"
+                    >
+                      {savingName ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                    </button>
+                    <button
+                      onClick={() => setIsEditingName(false)}
+                      className="p-1 rounded-md bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
+                      title="Cancel"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 group/name">
+                    <span className="truncate hover:underline">{conversation.name}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingNameValue(conversation.name || '')
+                        setIsEditingName(true)
+                      }}
+                      className="p-1 rounded-md opacity-0 group-hover/name:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-emerald-500 transition-all cursor-pointer"
+                      title="Rename lead"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
                 conversation.platform === 'instagram'
                   ? 'bg-pink-100 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300 border border-pink-200/50'
@@ -771,8 +780,9 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
             <p className="text-[11px] text-gray-400 dark:text-gray-500 font-mono mt-0.5">{conversation.phone_number}</p>
           </div>
         </div>
+      </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           {/* Stage Selector */}
           <div className={`flex items-center gap-1 px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-xl transition-all shadow-2xs select-none ${currentStageColorClass}`}>
             <Tag className="w-3 h-3 sm:w-3.5 sm:h-3.5 opacity-80" />
@@ -811,16 +821,6 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
               </>
             )}
           </button>
-
-          {onViewLead && (
-            <button
-              onClick={onViewLead}
-              className="p-1.5 sm:p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-emerald-500 border border-gray-200/60 dark:border-gray-700/60 md:hidden transition-colors shrink-0 cursor-pointer"
-              title="View Lead Details"
-            >
-              <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-          )}
         </div>
       </div>
 

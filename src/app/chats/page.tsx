@@ -244,7 +244,7 @@ function ChatsPageContent() {
             flex flex-col overflow-hidden border-r border-gray-200/50 dark:border-gray-800/50
             ${mobileView === 'list' ? 'flex' : 'hidden'}
             md:flex md:w-80 md:shrink-0
-            w-full pb-16 md:pb-0
+            w-full pb-safe md:pb-0
           `}
         >
           <ConversationList
@@ -287,7 +287,7 @@ function ChatsPageContent() {
             flex flex-col overflow-hidden border-l border-gray-200/50 dark:border-gray-800/50
             ${mobileView === 'lead' ? 'flex' : 'hidden'}
             md:flex md:w-80 md:shrink-0
-            w-full pb-16 md:pb-0
+            w-full pb-safe md:pb-0
           `}
         >
           <LeadPanel
