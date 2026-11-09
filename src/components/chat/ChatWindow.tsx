@@ -78,6 +78,7 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
   const fileInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   
   // Modals & Menus State
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false)
@@ -828,6 +829,7 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
 
       {/* Messages: WhatsApp Style Background */}
       <div 
+        ref={messagesContainerRef}
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-3 bg-[#efeae2]/60 dark:bg-[#0b141a] touch-pan-y"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
@@ -1156,7 +1158,7 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
           </div>
         )}
 
-        <div ref={bottomRef} />
+        <div ref={bottomRef} aria-hidden="true" style={{ height: 1, flexShrink: 0 }} />
       </div>
 
       {/* Image Preview */}

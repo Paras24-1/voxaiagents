@@ -468,8 +468,8 @@ export function useMessages(conversationId: string | null) {
               return [...prev, newMsg]
             })
             setTimeout(() => {
-              if (bottomRef.current?.parentElement) {
-                bottomRef.current.parentElement.scrollTop = bottomRef.current.parentElement.scrollHeight
+              if (bottomRef.current) {
+                bottomRef.current.scrollIntoView({ block: 'end' })
               }
             }, 50)
             if (newMsg.direction === 'incoming') {
@@ -501,8 +501,8 @@ export function useMessages(conversationId: string | null) {
 
   // Auto-scroll when messages update
   useEffect(() => {
-    if (bottomRef.current?.parentElement) {
-      bottomRef.current.parentElement.scrollTop = bottomRef.current.parentElement.scrollHeight
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ block: 'end' })
     }
   }, [messages.length])
 

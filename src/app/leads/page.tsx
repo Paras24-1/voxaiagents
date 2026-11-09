@@ -2236,7 +2236,7 @@ function LeadsContent() {
 
         {/* Lead details Drawer (Opens on Right side) */}
         {activeLead && (
-          <div className="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-md z-30 flex justify-end transition-opacity duration-300">
+          <div className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-md z-[200] flex justify-end transition-opacity duration-300">
             {/* Click outside to close */}
             <div className="flex-1 cursor-pointer" onClick={() => setActiveLead(null)} />
             
