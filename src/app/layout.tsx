@@ -15,6 +15,8 @@ export const viewport: Viewport = {
 
 import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase'
+import FollowupNotifier from '@/components/FollowupNotifier'
+import MobileBottomNav from '@/components/MobileBottomNav'
 
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers()
@@ -67,9 +69,6 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-import FollowupNotifier from '@/components/FollowupNotifier'
-import MobileBottomNav from '@/components/MobileBottomNav'
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -81,7 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased bg-[#F8F9FC] text-[#0B0F19]">
+      <body className="font-sans antialiased bg-gray-50 dark:bg-slate-950 text-[#0B0F19] dark:text-slate-100">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <OrgProvider>
             {children}

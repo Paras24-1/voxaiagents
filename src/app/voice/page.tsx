@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar'
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase } from '@/lib/supabaseClient'
 import WebRTCCallModal from '@/components/WebRTCCallModal'
+import VoiceAgentsTab from '@/components/voice/VoiceAgentsTab'
 import { 
   PhoneCall, 
   Activity, 
@@ -464,6 +465,16 @@ function VoiceDashboardContent() {
               Overview & Logs
             </button>
             <button
+              onClick={() => setActiveTab('agents')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 flex items-center gap-1.5 ${
+                activeTab === 'agents'
+                  ? 'bg-gray-50 dark:bg-gray-800 text-emerald-500 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-205'
+              }`}
+            >
+              <Mic className="w-3.5 h-3.5" /> Voice Agents
+            </button>
+            <button
               onClick={() => setActiveTab('campaigns')}
               className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
                 activeTab === 'campaigns'
@@ -509,6 +520,8 @@ function VoiceDashboardContent() {
           fetchDashboardData={fetchDashboardData}
           handleExportCSV={handleExportCSV}
         />
+      ) : activeTab === 'agents' ? (
+        <VoiceAgentsTab />
       ) : activeTab === 'campaigns' ? (
         <VoiceCampaignsTab />
       ) : (

@@ -468,7 +468,9 @@ export function useMessages(conversationId: string | null) {
               return [...prev, newMsg]
             })
             setTimeout(() => {
-              bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+              if (bottomRef.current?.parentElement) {
+                bottomRef.current.parentElement.scrollTop = bottomRef.current.parentElement.scrollHeight
+              }
             }, 50)
             if (newMsg.direction === 'incoming') {
               window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: conversationId, unread_count: 0 } }))
@@ -499,7 +501,9 @@ export function useMessages(conversationId: string | null) {
 
   // Auto-scroll when messages update
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (bottomRef.current?.parentElement) {
+      bottomRef.current.parentElement.scrollTop = bottomRef.current.parentElement.scrollHeight
+    }
   }, [messages.length])
 
   return { messages, loading, bottomRef, refetch: fetchMessages, addOptimisticMessage, reconcileOptimisticMessage, removeMessageFromState }

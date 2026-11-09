@@ -110,7 +110,7 @@ export default function CannedRepliesPage() {
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Create Canned Reply</span>
-          <span className="sm:hidden">+ Reply</span>
+          <span className="sm:hidden">Reply</span>
         </button>
       </header>
 

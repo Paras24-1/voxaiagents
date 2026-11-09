@@ -179,8 +179,8 @@ function ChatsPageContent() {
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
 
-      {/* Header: Hidden on mobile when inside an active chat (ChatWindow displays the single native header) */}
-      <header className={`bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 pt-safe px-3 md:px-6 py-2.5 md:py-4 shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.1)] z-10 ${mobileView === 'chat' ? 'hidden md:flex' : 'flex'} items-center justify-between gap-2`}>
+      {/* Header: Hidden on mobile when inside an active chat or lead panel (Child components display their own native headers) */}
+      <header className={`bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 pt-safe px-3 md:px-6 py-2.5 md:py-4 shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.1)] z-10 ${mobileView === 'list' ? 'flex' : 'hidden md:flex'} items-center justify-between gap-2`}>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           <Sidebar />
           {mobileView !== 'list' && (
@@ -236,7 +236,7 @@ function ChatsPageContent() {
       </header>
 
       {/* Main layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
 
         {/* LEFT: Conversation list */}
         <div
@@ -257,7 +257,7 @@ function ChatsPageContent() {
         {/* CENTER: Chat window */}
         <div
           className={`
-            flex-1 flex flex-col overflow-hidden min-w-0
+            flex-1 flex flex-col overflow-hidden min-w-0 min-h-0 h-full
             ${mobileView === 'chat' ? 'flex' : 'hidden'}
             md:flex
           `}
@@ -284,7 +284,7 @@ function ChatsPageContent() {
         {/* RIGHT: Lead panel */}
         <div
           className={`
-            flex flex-col overflow-hidden border-l border-gray-200/50 dark:border-gray-800/50
+            flex flex-col overflow-hidden border-l border-gray-200/50 dark:border-gray-800/50 min-h-0 h-full
             ${mobileView === 'lead' ? 'flex' : 'hidden'}
             md:flex md:w-80 md:shrink-0
             w-full pb-safe md:pb-0

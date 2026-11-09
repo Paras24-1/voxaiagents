@@ -48,6 +48,9 @@ export default function TemplatePickerModal({
 
   useEffect(() => {
     if (isOpen) {
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        setSelectedTemplate(null)
+      }
       fetchTemplates()
     }
   }, [isOpen])
@@ -69,8 +72,11 @@ export default function TemplatePickerModal({
       const data = await res.json()
       if (Array.isArray(data)) {
         setTemplates(data)
-        if (data.length > 0) {
+        // Only auto-select on desktop; on mobile keep null so user can choose from the template list
+        if (data.length > 0 && typeof window !== 'undefined' && window.innerWidth >= 768) {
           handleSelectTemplate(data[0])
+        } else {
+          setSelectedTemplate(null)
         }
       } else {
         throw new Error('Invalid response format')

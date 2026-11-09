@@ -112,7 +112,7 @@ export default function TemplatesPage() {
           >
             <Plus className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[3]" />
             <span className="hidden sm:inline">Create Meta Template</span>
-            <span className="sm:hidden">+ Create</span>
+            <span className="sm:hidden">Create</span>
           </button>
         </div>
       </header>
@@ -168,15 +168,15 @@ export default function TemplatesPage() {
               />
             </div>
 
-            {/* Filter Pills */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-semibold text-slate-400">
-                <span className="px-2.5 py-1 text-slate-500 uppercase text-[10px]">Category:</span>
+            {/* Filter Pills: Horizontal scrollable on mobile to prevent overlapping / breaking */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full hide-scrollbar shrink-0">
+              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-semibold text-slate-400 shrink-0 whitespace-nowrap">
+                <span className="px-2 py-0.5 text-slate-500 uppercase text-[10px]">Category:</span>
                 {['ALL', 'MARKETING', 'UTILITY', 'AUTHENTICATION'].map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1 rounded-lg transition-all ${
+                    className={`px-2.5 py-1 rounded-lg transition-all text-xs ${
                       selectedCategory === cat
                         ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30'
                         : 'hover:text-white'
@@ -187,13 +187,13 @@ export default function TemplatesPage() {
                 ))}
               </div>
 
-              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-semibold text-slate-400">
-                <span className="px-2.5 py-1 text-slate-500 uppercase text-[10px]">Status:</span>
+              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-semibold text-slate-400 shrink-0 whitespace-nowrap">
+                <span className="px-2 py-0.5 text-slate-500 uppercase text-[10px]">Status:</span>
                 {['ALL', 'APPROVED', 'PENDING'].map((st) => (
                   <button
                     key={st}
                     onClick={() => setSelectedStatus(st)}
-                    className={`px-3 py-1 rounded-lg transition-all ${
+                    className={`px-2.5 py-1 rounded-lg transition-all text-xs ${
                       selectedStatus === st
                         ? 'bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30'
                         : 'hover:text-white'

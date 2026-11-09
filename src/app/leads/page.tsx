@@ -1586,7 +1586,7 @@ function LeadsContent() {
                       </button>
                     </div>
                   )}
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 hidden md:table">
                     <thead className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-800 dark:text-slate-100 text-[11px] font-black tracking-wider text-left uppercase sticky top-0 z-20 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-2xs">
                       <tr>
                         <th className="px-3 py-4 whitespace-nowrap md:sticky md:left-0 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 w-10 text-center">
@@ -2062,6 +2062,153 @@ function LeadsContent() {
                       })}
                     </tbody>
                   </table>
+
+                  {/* Native Mobile Cards Layout (Designed strictly for phones, 0 lag, full responsiveness) */}
+                  <div className="md:hidden flex flex-col space-y-3 p-2">
+                    {displayedLeads.map((lead) => {
+                      let meta = (lead.metadata || {}) as Record<string, any>;
+                      if (typeof meta === 'string') {
+                        try { meta = JSON.parse(meta) } catch (e) { meta = {} }
+                      }
+
+                      const allCustomData = { ...lead, ...meta } as Record<string, any>;
+
+                      const metaScore = Number(allCustomData.lead_score) || 0;
+                      if (metaScore > 50) {
+                        allCustomData.lead_temperature = 'HOT';
+                        allCustomData.lead_quality = 'HOT';
+                      } else if (metaScore >= 25) {
+                        allCustomData.lead_temperature = 'WARM';
+                        allCustomData.lead_quality = 'WARM';
+                      } else {
+                        allCustomData.lead_temperature = 'COLD';
+                        allCustomData.lead_quality = 'COLD';
+                      }
+
+                      const displayName = lead.name || (lead as any).customer_name || allCustomData.Name || allCustomData.name || allCustomData.contact_person || allCustomData.customer_name || 'Unknown';
+                      const isSelected = selectedLeadPhones.includes(lead.phone_number);
+                      const temp = (allCustomData.lead_temperature || allCustomData.lead_quality || 'COLD').toUpperCase();
+
+                      const sVal = String(allCustomData.stage || lead.stage || 'new').toLowerCase();
+                      const matched = stages.find(st => st.name === sVal || st.name.toLowerCase() === sVal || st.id === sVal || st.label.toLowerCase() === sVal);
+                      const badgeColor = matched?.color || STAGE_COLORS[sVal] || 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50';
+                      const badgeLabel = matched?.label || sVal.replace(/_/g, ' ');
+
+                      const cleanP = (lead.phone_number || '').replace(/\D/g, '').slice(-10);
+
+                      return (
+                        <div
+                          key={`mobile-${lead.id}`}
+                          onClick={() => handleViewLead(lead)}
+                          className={`bg-white dark:bg-gray-900 border rounded-2xl p-3.5 shadow-xs active:scale-[0.99] transition-all cursor-pointer relative ${
+                            isSelected 
+                              ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/30 ring-1 ring-emerald-500' 
+                              : 'border-gray-200/80 dark:border-gray-800'
+                          }`}
+                        >
+                          {/* Top Header: Checkbox + Avatar + Name + Temperature */}
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    const phone = lead.phone_number;
+                                    setSelectedLeadPhones(prev => prev.includes(phone) ? prev.filter(p => p !== phone) : [...prev, phone]);
+                                  }}
+                                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
+                                />
+                              </div>
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                {(displayName || 'U').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate tracking-tight">{displayName}</h4>
+                                <p className="text-xs font-mono font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                                  <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
+                                  <span>{lead.phone_number}</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Temperature Badge */}
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 border ${
+                              temp === 'HOT' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                              temp === 'WARM' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                              'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                            }`}>
+                              {temp}
+                            </span>
+                          </div>
+
+                          {/* Middle Row: Stage Badge + Location/Tags */}
+                          <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-xs">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xs ${badgeColor}`}>
+                              <Tag className="w-2.5 h-2.5 opacity-70" />
+                              {badgeLabel}
+                            </span>
+
+                            {(allCustomData.crop || lead.crop) && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                🌾 {allCustomData.crop || lead.crop}
+                              </span>
+                            )}
+
+                            {(allCustomData.state || allCustomData.tehsil || allCustomData.district) && (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center gap-1">
+                                <MapPin className="w-2.5 h-2.5 text-gray-400" />
+                                <span>{[allCustomData.tehsil || allCustomData.district, allCustomData.state].filter(Boolean).join(', ')}</span>
+                              </span>
+                            )}
+
+                            {lead.followup_date && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5" />
+                                <span>{formatFollowupDate(lead.followup_date)}</span>
+                              </span>
+                            )}
+
+                            {lead.notes && (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 truncate max-w-[200px]">
+                                📝 {lead.notes}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Bottom Actions Row */}
+                          <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`tel:${lead.phone_number}`}
+                                className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 font-extrabold text-xs flex items-center gap-1.5 active:scale-95 transition-all"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>Call</span>
+                              </a>
+                              {cleanP && (
+                                <button
+                                  onClick={() => router.push(`/chats?phone=${cleanP}`)}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-extrabold text-xs flex items-center gap-1.5 active:scale-95 transition-all"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  <span>Chat</span>
+                                </button>
+                              )}
+                            </div>
+
+                            <button
+                              onClick={() => handleViewLead(lead)}
+                              className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-extrabold text-xs flex items-center gap-1 transition-all"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                              <span>Details</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                   
                   {/* Infinite Scroll Sentinel & Loader */}
                   <div ref={sentinelRef} className="flex justify-center p-4 pt-6 pb-8 border-t border-gray-100 dark:border-gray-800/60 relative">

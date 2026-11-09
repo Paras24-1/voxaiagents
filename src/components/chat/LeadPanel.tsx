@@ -1292,12 +1292,12 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
         </div>
       </div>
 
-      {/* Bottom Sheet Modal for Set Followup */}
+      {/* Centered Modal for Set Followup */}
       {showFollowupModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex flex-col justify-end p-0 transition-opacity duration-200">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex items-center justify-center p-3 sm:p-4 transition-opacity duration-200">
           <div className="fixed inset-0" onClick={() => setShowFollowupModal(false)} />
           
-          <div className="relative w-full bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 pb-safe shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-950 rounded-3xl border border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
               <div className="flex items-center gap-2">
@@ -1426,11 +1426,11 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
       )}
       {/* Log Activity Modal */}
       {showAddActivityModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex flex-col justify-end p-0 transition-opacity duration-200">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex items-center justify-center p-3 sm:p-4 transition-opacity duration-200">
           <div className="fixed inset-0" onClick={closeActivityModal} />
           
-          <div className="relative w-full bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 pb-safe shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-950 rounded-3xl border border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-855">
               <div className="flex items-center gap-2">
                 <button
                   onClick={closeActivityModal}
@@ -1523,10 +1523,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
 
       {/* Complete Followup Modal */}
       {showMarkDoneModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex flex-col justify-end p-0 transition-opacity duration-200">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex items-center justify-center p-3 sm:p-4 transition-opacity duration-200">
           <div className="fixed inset-0" onClick={() => setShowMarkDoneModal(false)} />
           
-          <div className="relative w-full bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 pb-safe shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-950 rounded-3xl border border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
               <div className="flex items-center gap-2">
                 <button
