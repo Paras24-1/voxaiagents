@@ -294,6 +294,7 @@ function ChatsPageContent() {
             conversation={selected}
             lead={lead}
             onLeadUpdate={handleLeadUpdate}
+            onBack={() => setMobileView('chat')}
           />
         </div>
       </div>

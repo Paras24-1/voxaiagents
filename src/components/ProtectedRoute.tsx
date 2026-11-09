@@ -20,7 +20,7 @@ export default function ProtectedRoute({
       if (!user) {
         router.push('/login')
       } else if (requireAdmin && profile?.role !== 'admin') {
-        router.push('/')
+        router.push('/dashboard')
       }
     }
   }, [user, profile, loading, requireAdmin, router])

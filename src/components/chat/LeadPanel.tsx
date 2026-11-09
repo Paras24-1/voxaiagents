@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { INDIAN_STATES } from '@/lib/constants'
-import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown, Loader2, Tag } from 'lucide-react'
+import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown, Loader2, Tag, ArrowLeft } from 'lucide-react'
 
 const getLocalDateString = (d: Date) => {
   const year = d.getFullYear();
@@ -23,10 +23,11 @@ const getLocalTimeString = (d: Date) => {
 
 import { useOrg } from '@/contexts/OrgContext'
 
-export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
+export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: {
   conversation: Conversation | null
   lead: Lead | null
   onLeadUpdate: (updates: Partial<Lead>) => void
+  onBack?: () => void
 }) {
   const { profile, org } = useOrg()
   const isOsmoRo = 
@@ -236,10 +237,13 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   const [savingActivity, setSavingActivity] = useState(false)
   const [editingActivity, setEditingActivity] = useState<LeadActivity | null>(null)
 
-  const fetchActivities = async (leadId: string) => {
+  const fetchActivities = async (leadId?: string, convId?: string) => {
     setLoadingActivities(true)
     try {
-      const res = await fetch(`/api/lead-activities?lead_id=${leadId}`)
+      const targetLeadId = leadId || lead?.id || ''
+      const targetConvId = convId || conversation?.id || ''
+      if (!targetLeadId && !targetConvId) return
+      const res = await fetch(`/api/lead-activities?lead_id=${targetLeadId}&conversation_id=${targetConvId}`)
       if (res.ok) {
         const data = await res.json()
         setActivities(Array.isArray(data) ? data : [])
@@ -252,33 +256,34 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   }
 
   useEffect(() => {
-    if (lead?.id) {
-      fetchActivities(lead.id)
+    if (lead?.id || conversation?.id) {
+      fetchActivities(lead?.id, conversation?.id)
     } else {
       setActivities([])
     }
-  }, [lead?.id])
+  }, [lead?.id, conversation?.id])
 
   useEffect(() => {
     setIsBlocked(conversation?.is_blocked || false)
   }, [conversation?.is_blocked])
 
   const handleAddManualActivity = async () => {
-    if (!lead?.id || !activityDesc.trim()) return
+    if (!activityDesc.trim()) return
     setSavingActivity(true)
     try {
       const res = await fetch('/api/lead-activities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          lead_id: lead.id,
+          lead_id: lead?.id,
+          conversation_id: conversation?.id,
           activity_type: activityType,
           description: activityDesc.trim(),
           notes: activityNotes.trim()
         })
       })
       if (res.ok) {
-        await fetchActivities(lead.id)
+        await fetchActivities(lead?.id, conversation?.id)
         setShowAddActivityModal(false)
         setActivityNotes('')
       }
@@ -290,7 +295,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   }
 
   const handleUpdateActivity = async () => {
-    if (!editingActivity || !activityDesc.trim() || !lead?.id) return
+    if (!editingActivity || !activityDesc.trim()) return
     setSavingActivity(true)
     try {
       const res = await fetch('/api/lead-activities', {
@@ -303,7 +308,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
         })
       })
       if (res.ok) {
-        await fetchActivities(lead.id)
+        await fetchActivities(lead?.id, conversation?.id)
         setShowAddActivityModal(false)
         setEditingActivity(null)
         setActivityNotes('')
@@ -317,14 +322,13 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   }
 
   const handleDeleteActivity = async (id: string) => {
-    if (!lead?.id) return
     if (!window.confirm('Are you sure you want to delete this activity?')) return
     try {
       const res = await fetch(`/api/lead-activities?id=${id}`, {
         method: 'DELETE'
       })
       if (res.ok) {
-        await fetchActivities(lead.id)
+        await fetchActivities(lead?.id, conversation?.id)
       }
     } catch (err) {
       console.error('Failed to delete activity:', err)
@@ -466,7 +470,9 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
         },
         body: JSON.stringify({
+          id: lead?.id,
           conversation_id: conversation.id,
+          phone_number: conversation.phone_number,
           followup_date: isoString,
           followup_notes: modalNotes,
           followup_notified: false
@@ -491,7 +497,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   };
 
   const handleClearFollowup = async () => {
-    if (!conversation || !lead) return;
+    if (!conversation) return;
     try {
       const { data: { session } } = await supabase.auth.getSession()
       await fetch('/api/leads', {
@@ -501,7 +507,9 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
           ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
         },
         body: JSON.stringify({
+          id: lead?.id,
           conversation_id: conversation.id,
+          phone_number: conversation.phone_number,
           followup_date: null,
           followup_notes: null,
           followup_notified: false
@@ -722,14 +730,25 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white/40 dark:bg-gray-950/40 relative border-l border-white/20 dark:border-gray-800 backdrop-blur-xl w-full min-w-0">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800/85 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] shrink-0 z-10">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/20 border border-white/20">
+      <div className="pt-safe px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-800/85 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] shrink-0 z-10 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="md:hidden p-1.5 -ml-1 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0"
+              title="Back to chat"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/20 border border-white/20 shrink-0">
             <User className="w-4.5 h-4.5 text-white" />
           </div>
-          <h3 className="text-[15px] font-extrabold text-gray-900 dark:text-white tracking-tight">Lead Details</h3>
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-[15px] font-extrabold text-gray-900 dark:text-white tracking-tight truncate">Lead Details</h3>
+            <p className="text-[10px] font-bold text-emerald-600/80 dark:text-emerald-400/80 uppercase tracking-wider truncate">Live CRM Database Sync</p>
+          </div>
         </div>
-        <p className="text-[10px] font-bold text-emerald-600/80 dark:text-emerald-400/80 ml-12 uppercase tracking-wider">Live CRM Database Sync</p>
       </div>
 
       {/* Content */}
@@ -1275,10 +1294,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
       {/* Bottom Sheet Modal for Set Followup */}
       {showFollowupModal && (
-        <div className="absolute inset-0 bg-black/40 z-20 transition-opacity duration-300">
-          <div className="absolute inset-0" onClick={() => setShowFollowupModal(false)} />
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex flex-col justify-end p-0 transition-opacity duration-200">
+          <div className="fixed inset-0" onClick={() => setShowFollowupModal(false)} />
           
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4 animate-slide-up">
+          <div className="relative w-full bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 pb-safe shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
               <div className="flex items-center gap-2">
@@ -1407,10 +1426,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
       )}
       {/* Log Activity Modal */}
       {showAddActivityModal && (
-        <div className="absolute inset-0 bg-black/40 z-20 transition-opacity duration-300">
-          <div className="absolute inset-0" onClick={closeActivityModal} />
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex flex-col justify-end p-0 transition-opacity duration-200">
+          <div className="fixed inset-0" onClick={closeActivityModal} />
           
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4 animate-slide-up">
+          <div className="relative w-full bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 pb-safe shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
               <div className="flex items-center gap-2">
                 <button
@@ -1504,10 +1523,10 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
 
       {/* Complete Followup Modal */}
       {showMarkDoneModal && (
-        <div className="absolute inset-0 bg-black/40 z-20 transition-opacity duration-300">
-          <div className="absolute inset-0" onClick={() => setShowMarkDoneModal(false)} />
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex flex-col justify-end p-0 transition-opacity duration-200">
+          <div className="fixed inset-0" onClick={() => setShowMarkDoneModal(false)} />
           
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 shadow-2xl max-h-[90%] overflow-y-auto z-30 transition-transform duration-300 transform translate-y-0 flex flex-col space-y-4 animate-slide-up">
+          <div className="relative w-full bg-white dark:bg-gray-950 rounded-t-3xl border-t border-gray-200 dark:border-gray-800 p-5 pb-safe shadow-2xl max-h-[85vh] overflow-y-auto z-10 flex flex-col space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-gray-150 dark:border-gray-850">
               <div className="flex items-center gap-2">
                 <button

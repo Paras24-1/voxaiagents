@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-// GET /api/lead-activities?lead_id=xxx
+// GET /api/lead-activities?lead_id=xxx or ?conversation_id=xxx
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
-    const leadId = searchParams.get('lead_id')
+    let leadId = searchParams.get('lead_id')
+    const conversationId = searchParams.get('conversation_id')
+
+    if (!leadId && conversationId) {
+      const { data: lead } = await supabaseAdmin
+        .from('leads')
+        .select('id')
+        .eq('conversation_id', conversationId)
+        .maybeSingle()
+      if (lead?.id) {
+        leadId = lead.id
+      }
+    }
 
     if (!leadId) {
-      return NextResponse.json({ error: 'lead_id is required' }, { status: 400 })
+      return NextResponse.json([])
     }
 
     const { data, error } = await supabaseAdmin
@@ -29,7 +41,39 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { lead_id, activity_type, description, notes } = body
+    let { lead_id, conversation_id, activity_type, description, notes } = body
+
+    if (!lead_id && conversation_id) {
+      let { data: lead } = await supabaseAdmin
+        .from('leads')
+        .select('id')
+        .eq('conversation_id', conversation_id)
+        .maybeSingle()
+
+      if (!lead) {
+        const { data: conv } = await supabaseAdmin
+          .from('conversations')
+          .select('id, phone_number, name, org_id')
+          .eq('id', conversation_id)
+          .maybeSingle()
+        if (conv) {
+          const { data: newLead } = await supabaseAdmin
+            .from('leads')
+            .insert({
+              conversation_id: conv.id,
+              phone_number: conv.phone_number,
+              customer_name: conv.name || 'Lead',
+              org_id: conv.org_id
+            })
+            .select()
+            .single()
+          lead = newLead
+        }
+      }
+      if (lead?.id) {
+        lead_id = lead.id
+      }
+    }
 
     if (!lead_id || !activity_type || !description) {
       return NextResponse.json(

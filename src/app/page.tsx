@@ -203,6 +203,7 @@ export default function LandingPage() {
       return Boolean((window as any).Capacitor?.isNativePlatform?.()) || 
              (Boolean((window as any).Capacitor) && (window as any).Capacitor?.getPlatform?.() !== 'web') ||
              navigator.userAgent.includes('Capacitor') ||
+             navigator.userAgent.includes('voxai-mobile') ||
              window.location.search.includes('app=true') ||
              document.cookie.includes('is_native_app=true')
     }
@@ -215,11 +216,12 @@ export default function LandingPage() {
       const isNative = Boolean((window as any).Capacitor?.isNativePlatform?.()) || 
                        (Boolean((window as any).Capacitor) && (window as any).Capacitor?.getPlatform?.() !== 'web') ||
                        navigator.userAgent.includes('Capacitor') ||
+                       navigator.userAgent.includes('voxai-mobile') ||
                        window.location.search.includes('app=true') ||
                        document.cookie.includes('is_native_app=true')
       if (isNative) {
         setIsAppRedirecting(true)
-        window.location.replace('/dashboard')
+        window.location.replace('/chats')
       }
     }
   }, [])

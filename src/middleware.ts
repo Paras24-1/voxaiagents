@@ -18,12 +18,13 @@ export async function middleware(req: NextRequest) {
   const requestedWith = req.headers.get('x-requested-with') || ''
   const isNativeApp = 
     userAgent.includes('Capacitor') || 
+    userAgent.includes('voxai-mobile') ||
     requestedWith.includes('com.voxai.dashboard') || 
     url.searchParams.get('app') === 'true' ||
     req.cookies.get('is_native_app')?.value === 'true'
 
   if (url.pathname === '/' && isNativeApp) {
-    const res = NextResponse.redirect(new URL('/dashboard', req.url))
+    const res = NextResponse.redirect(new URL('/chats', req.url))
     res.cookies.set('is_native_app', 'true', { path: '/', maxAge: 60 * 60 * 24 * 365 })
     return res
   }

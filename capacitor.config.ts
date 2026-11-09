@@ -11,6 +11,7 @@ const config: CapacitorConfig = {
     cleartext: true,
     androidScheme: 'https'
   },
+  appendUserAgent: 'CapacitorApp voxai-mobile',
   plugins: {
     StatusBar: {
       style: 'DARK',
@@ -28,6 +29,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
+    appendUserAgent: 'CapacitorApp voxai-mobile',
     webContentsDebuggingEnabled: process.env.NODE_ENV !== 'production'
   }
 };

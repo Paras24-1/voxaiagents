@@ -1,22 +1,26 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useOrg } from '@/contexts/OrgContext'
 import { Capacitor } from '@capacitor/core'
 
 export default function DashboardPage() {
   const { profile, loading, user } = useOrg()
+  const router = useRouter()
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        window.location.replace('/login')
+        router.replace('/login')
         return
       }
 
       const isMobileApp = typeof window !== 'undefined' && (
         Capacitor.isNativePlatform() ||
         (window as any).Capacitor?.isNativePlatform?.() ||
+        navigator.userAgent.includes('Capacitor') ||
+        navigator.userAgent.includes('voxai-mobile') ||
         window.location.search.includes('app=true') ||
         window.innerWidth < 768
       )
@@ -26,28 +30,28 @@ export default function DashboardPage() {
       if (profile) {
         // On mobile app, default to /chats for instant access; on desktop, admin/owner goes to /analytics
         if (profile.role === 'employee' || isMobileApp) {
-          window.location.replace(`/chats${search}`)
+          router.replace(`/chats${search}`)
         } else {
-          window.location.replace(search ? `/chats${search}` : '/analytics')
+          router.replace(search ? `/chats${search}` : '/analytics')
         }
       } else {
         // Fallback: If user is authenticated, send to /chats rather than leaving on spinner
-        window.location.replace(`/chats${search}`)
+        router.replace(`/chats${search}`)
       }
     }
-  }, [user, profile, loading])
+  }, [user, profile, loading, router])
 
-  // Watchdog timer: If loading takes more than 3.5 seconds, navigate forward safely
+  // Watchdog timer: If loading takes more than 2 seconds, navigate forward safely
   useEffect(() => {
     const timer = setTimeout(() => {
       if (user) {
-        window.location.replace('/chats')
+        router.replace('/chats')
       } else if (!loading) {
-        window.location.replace('/login')
+        router.replace('/login')
       }
-    }, 3500)
+    }, 2000)
     return () => clearTimeout(timer)
-  }, [user, loading])
+  }, [user, loading, router])
 
   return (
     <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">

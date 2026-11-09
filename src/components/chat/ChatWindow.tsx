@@ -654,8 +654,8 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
   const currentStageColorClass = matchedCurrentStage?.color || STAGE_COLORS[stage] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200/60 dark:border-gray-700/60'
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 min-h-0">
-      <div className="pt-safe px-2.5 md:px-5 py-2 md:py-3.5 border-b border-white/10 dark:border-gray-800/80 bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl flex items-center justify-between shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] z-10 gap-1.5 md:gap-2">
+    <div className="flex-1 flex flex-col bg-gray-50/50 dark:bg-gray-950 h-full min-h-0 overflow-hidden relative">
+      <div className="sticky top-0 z-20 shrink-0 pt-safe px-2.5 md:px-5 py-2 md:py-3.5 border-b border-white/10 dark:border-gray-800/80 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl flex items-center justify-between shadow-[0_4px_30px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.1)] gap-1.5 md:gap-2">
         <div className="flex items-center gap-1.5 sm:gap-3.5 min-w-0 flex-1">
           {onBack && (
             <button
@@ -825,7 +825,10 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
       </div>
 
       {/* Messages: WhatsApp Style Background */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 bg-[#efeae2]/60 dark:bg-[#0b141a]">
+      <div 
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-5 space-y-3 bg-[#efeae2]/60 dark:bg-[#0b141a] touch-pan-y"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
@@ -1182,7 +1185,7 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
       )}
 
       {/* Input Section */}
-      <div className="relative px-3 sm:px-5 py-2.5 sm:py-4 pb-safe bg-white/40 dark:bg-gray-950/40 backdrop-blur-xl shrink-0 z-10 border-t border-white/20 dark:border-gray-800/50">
+      <div className="sticky bottom-0 z-20 shrink-0 relative px-3 sm:px-5 py-2.5 sm:py-4 pb-safe bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-t border-white/20 dark:border-gray-800/50">
         
         {/* Hidden File Inputs */}
         <input
@@ -1337,12 +1340,19 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
           const src = String(leadObj?.source || meta?.source || (conversation as any)?.source || '').toLowerCase()
           const isBulkImport = src.includes('bulk_import') || src.includes('bulk') || src.includes('import')
 
-          const hasIncomingDate = !!conversation?.last_incoming_message_at;
-          const lastIncoming = hasIncomingDate ? new Date(conversation.last_incoming_message_at!) : null;
-          const hoursLeft = lastIncoming ? 24 - (new Date().getTime() - lastIncoming.getTime()) / (1000 * 60 * 60) : 0;
+          // Check for any incoming message in messages array or conversation object
+          const latestIncomingMsg = [...messages].reverse().find(m => m.direction === 'incoming');
+          const latestIncomingTime = latestIncomingMsg ? new Date(latestIncomingMsg.timestamp) : null;
+          const convLastIncoming = conversation?.last_incoming_message_at ? new Date(conversation.last_incoming_message_at) : null;
+          const effectiveLastIncoming = (latestIncomingTime && convLastIncoming)
+            ? (latestIncomingTime > convLastIncoming ? latestIncomingTime : convLastIncoming)
+            : (latestIncomingTime || convLastIncoming);
+
+          const hasIncomingDate = !!effectiveLastIncoming;
+          const hoursLeft = effectiveLastIncoming ? 24 - (new Date().getTime() - effectiveLastIncoming.getTime()) / (1000 * 60 * 60) : 0;
           
           // Require approved template for bulk import leads without incoming messages OR expired conversations
-          const isExpired = lastIncoming ? hoursLeft <= 0 : (isBulkImport ? true : false);
+          const isExpired = effectiveLastIncoming ? hoursLeft <= 0 : (isBulkImport ? true : false);
 
           if (isExpired) {
             const isNewBulkLead = isBulkImport && !hasIncomingDate;
