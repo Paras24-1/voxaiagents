@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Conversation, Lead, LeadActivity } from '@/types'
 import { supabase } from '@/lib/supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -236,6 +237,11 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
   const [activityNotes, setActivityNotes] = useState('')
   const [savingActivity, setSavingActivity] = useState(false)
   const [editingActivity, setEditingActivity] = useState<LeadActivity | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const fetchActivities = async (leadId?: string, convId?: string) => {
     setLoadingActivities(true)
@@ -1293,7 +1299,7 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
       </div>
 
       {/* Centered Modal for Set Followup */}
-      {showFollowupModal && (
+      {showFollowupModal && mounted && createPortal(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex items-center justify-center p-3 sm:p-4 transition-opacity duration-200">
           <div className="fixed inset-0" onClick={() => setShowFollowupModal(false)} />
           
@@ -1422,10 +1428,11 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* Log Activity Modal */}
-      {showAddActivityModal && (
+      {showAddActivityModal && mounted && createPortal(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex items-center justify-center p-3 sm:p-4 transition-opacity duration-200">
           <div className="fixed inset-0" onClick={closeActivityModal} />
           
@@ -1518,11 +1525,12 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Complete Followup Modal */}
-      {showMarkDoneModal && (
+      {showMarkDoneModal && mounted && createPortal(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[99999] flex items-center justify-center p-3 sm:p-4 transition-opacity duration-200">
           <div className="fixed inset-0" onClick={() => setShowMarkDoneModal(false)} />
           
@@ -1606,7 +1614,8 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Success Toast for Category Change */}

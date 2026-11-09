@@ -177,7 +177,7 @@ function ChatsPageContent() {
   if (!user) return null
 
   return (
-    <div className="h-[100dvh] flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950">
 
       {/* Header: Hidden on mobile when inside an active chat or lead panel (Child components display their own native headers) */}
       <header className={`bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 pt-safe px-3 md:px-6 py-2.5 md:py-4 shrink-0 shadow-[0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.1)] z-10 ${mobileView === 'list' ? 'flex' : 'hidden md:flex'} items-center justify-between gap-2`}>

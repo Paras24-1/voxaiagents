@@ -546,9 +546,15 @@ export function useSendMessage() {
             ...extraOptions
           }),
         })
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
         if (res.ok && data.success) {
           return data.message
+        }
+        if (extraOptions?.type === 'template' || data.error) {
+          console.error('[sendMessage API error]:', data.error)
+          if (extraOptions?.type === 'template') {
+            alert(`Meta Error: ${data.error || 'Failed to send template message'}`)
+          }
         }
         return null
       } catch (error) {

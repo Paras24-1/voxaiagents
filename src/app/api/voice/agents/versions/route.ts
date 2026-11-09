@@ -3,7 +3,10 @@ import { supabaseAdmin, supabaseVoiceAdmin, getOrgId } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   try {
-    const orgId = await getOrgId(req)
+    let orgId = req.nextUrl.searchParams.get('org_id') || req.headers.get('x-org-id')
+    if (!orgId) {
+      orgId = await getOrgId(req)
+    }
     if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { searchParams } = new URL(req.url)

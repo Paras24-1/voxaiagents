@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Search, FileText, Check, AlertCircle, Loader2, Send, Eye, Plus, Sparkles, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import CreateTemplateModal from '@/components/chat/CreateTemplateModal'
@@ -45,6 +46,11 @@ export default function TemplatePickerModal({
   const [variableValues, setVariableValues] = useState<{ [key: string]: string }>({})
   const [headerMediaUrl, setHeaderMediaUrl] = useState('')
   const [sending, setSending] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
@@ -166,7 +172,7 @@ export default function TemplatePickerModal({
     }
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
   const filteredTemplates = templates.filter(
     (t) =>
@@ -175,8 +181,8 @@ export default function TemplatePickerModal({
       t.body.toLowerCase().includes(search.toLowerCase())
   )
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         
         {/* Header */}
@@ -429,6 +435,7 @@ export default function TemplatePickerModal({
           fetchTemplates()
         }}
       />
-    </div>
+    </div>,
+    document.body
   )
 }

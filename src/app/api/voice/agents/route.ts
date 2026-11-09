@@ -1,45 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseVoiceAdmin, supabaseAdmin, getOrgId } from '@/lib/supabase'
 
-// GET: Fetch all voice agents for the authenticated organization
+// GET: Fetch all voice agents for the organization
 export async function GET(req: NextRequest) {
   try {
-    const orgId = await getOrgId(req)
-    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    let orgId = req.nextUrl.searchParams.get('org_id') || req.headers.get('x-org-id')
+    const sessionOrgId = await getOrgId(req)
 
-    // 1. Try local Main Supabase database first (Unified Architecture)
+    // Fall back to session orgId if not explicitly provided in params/headers
+    if (!orgId) {
+      orgId = sessionOrgId
+    }
+
+    if (!orgId) {
+      return NextResponse.json({ error: 'Unauthorized: missing org_id' }, { status: 401 })
+    }
+
+    // 1. Fetch agents from Main Supabase DB for this organization
     const { data: localAgents, error: localError } = await supabaseAdmin
       .from('agents')
       .select('*')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: false })
 
-    if (!localError && localAgents) {
+    if (!localError && localAgents && localAgents.length > 0) {
       return NextResponse.json(localAgents)
     }
 
-    // 2. Fallback to Voice Supabase (Account B) if local table is not yet migrated
-    if (supabaseVoiceAdmin) {
-      const { data: orgData } = await supabaseAdmin
-        .from('organizations')
-        .select('voice_org_id')
-        .eq('id', orgId)
-        .maybeSingle()
+    // 2. Check if the organization has a mapped voice_org_id in case agents were stored under that UUID
+    const { data: orgData } = await supabaseAdmin
+      .from('organizations')
+      .select('voice_org_id')
+      .eq('id', orgId)
+      .maybeSingle()
 
-      if (orgData?.voice_org_id) {
-        const { data: agentsData, error: agentsError } = await supabaseVoiceAdmin
+    if (orgData?.voice_org_id) {
+      // Check local agents table for voice_org_id
+      const { data: mappedAgents } = await supabaseAdmin
+        .from('agents')
+        .select('*')
+        .eq('organization_id', orgData.voice_org_id)
+        .order('created_at', { ascending: false })
+
+      if (mappedAgents && mappedAgents.length > 0) {
+        return NextResponse.json(mappedAgents)
+      }
+
+      // Check Account B fallback if configured
+      if (supabaseVoiceAdmin) {
+        const { data: voiceAgents } = await supabaseVoiceAdmin
           .from('agents')
           .select('*')
           .eq('organization_id', orgData.voice_org_id)
           .order('created_at', { ascending: false })
 
-        if (!agentsError && agentsData) {
-          return NextResponse.json(agentsData)
+        if (voiceAgents && voiceAgents.length > 0) {
+          return NextResponse.json(voiceAgents)
         }
       }
     }
 
-    return NextResponse.json([])
+    return NextResponse.json(localAgents || [])
   } catch (err: any) {
     console.error('[API/voice/agents GET]', err)
     return NextResponse.json({ error: err?.message || 'Failed to fetch voice agents' }, { status: 500 })
@@ -49,10 +70,13 @@ export async function GET(req: NextRequest) {
 // POST: Create a new voice agent in the main database
 export async function POST(req: NextRequest) {
   try {
-    const orgId = await getOrgId(req)
-    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
     const body = await req.json()
+    let orgId = body.organization_id || req.nextUrl.searchParams.get('org_id') || req.headers.get('x-org-id')
+    if (!orgId) {
+      orgId = await getOrgId(req)
+    }
+    if (!orgId) return NextResponse.json({ error: 'Unauthorized: missing org_id' }, { status: 401 })
+
     const {
       id,
       name,
@@ -145,7 +169,6 @@ export async function POST(req: NextRequest) {
           outbound_system_prompt: outbound_system_prompt || ''
         })
       } catch (verErr) {
-        // Non-critical if table not yet migrated
         console.warn('[script_versions]', verErr)
       }
     }
@@ -160,10 +183,12 @@ export async function POST(req: NextRequest) {
 // PUT: Update an existing voice agent
 export async function PUT(req: NextRequest) {
   try {
-    const orgId = await getOrgId(req)
-    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
     const body = await req.json()
+    let orgId = body.organization_id || req.nextUrl.searchParams.get('org_id') || req.headers.get('x-org-id')
+    if (!orgId) {
+      orgId = await getOrgId(req)
+    }
+
     const { id, ...updates } = body
     if (!id) return NextResponse.json({ error: 'Agent ID is required' }, { status: 400 })
 
@@ -176,12 +201,11 @@ export async function PUT(req: NextRequest) {
     }
 
     // Update in local Main DB
-    let { data: updatedAgent, error: updateErr } = await supabaseAdmin
-      .from('agents')
-      .update(updatePayload)
-      .eq('id', id)
-      .select()
-      .maybeSingle()
+    let query = supabaseAdmin.from('agents').update(updatePayload).eq('id', id)
+    if (orgId) {
+      query = query.eq('organization_id', orgId)
+    }
+    let { data: updatedAgent, error: updateErr } = await query.select().maybeSingle()
 
     // Fallback to Account B if not found locally
     if ((updateErr || !updatedAgent) && supabaseVoiceAdmin) {
@@ -210,8 +234,8 @@ export async function PUT(req: NextRequest) {
           .limit(1)
           .maybeSingle()
 
-        const nextVer = latestVer ? latestVer.version + 1 : 1;
-        const newPrompt = updates.outbound_system_prompt || updates.system_prompt || '';
+        const nextVer = latestVer ? latestVer.version + 1 : 1
+        const newPrompt = updates.outbound_system_prompt || updates.system_prompt || ''
 
         if (!latestVer || latestVer.system_prompt !== newPrompt) {
           await supabaseAdmin.from('script_versions').insert({
@@ -237,18 +261,20 @@ export async function PUT(req: NextRequest) {
 // DELETE: Remove a voice agent
 export async function DELETE(req: NextRequest) {
   try {
-    const orgId = await getOrgId(req)
-    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
     const { searchParams } = new URL(req.url)
     const agentId = searchParams.get('id')
     if (!agentId) return NextResponse.json({ error: 'Agent ID is required' }, { status: 400 })
 
-    // Delete in local DB
-    const { error: localDelErr } = await supabaseAdmin
-      .from('agents')
-      .delete()
-      .eq('id', agentId)
+    let orgId = searchParams.get('org_id') || req.headers.get('x-org-id')
+    if (!orgId) {
+      orgId = await getOrgId(req)
+    }
+
+    let delQuery = supabaseAdmin.from('agents').delete().eq('id', agentId)
+    if (orgId) {
+      delQuery = delQuery.eq('organization_id', orgId)
+    }
+    const { error: localDelErr } = await delQuery
 
     // Also delete in Account B if present
     if (supabaseVoiceAdmin) {

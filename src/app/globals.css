@@ -16,8 +16,9 @@
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
 }
 
-html {
+html, body {
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
 
 .overflow-y-auto, .overflow-x-auto {

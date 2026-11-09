@@ -27,6 +27,7 @@ import {
 import AgentConfigModal, { VoiceAgentData } from "./AgentConfigModal";
 import WebRTCCallModal from "@/components/WebRTCCallModal";
 import { useOrg } from "@/contexts/OrgContext";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function VoiceAgentsTab() {
   const { org } = useOrg();
@@ -42,7 +43,16 @@ export default function VoiceAgentsTab() {
   const fetchAgents = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/voice/agents");
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+      const orgParam = org?.id ? `?org_id=${org.id}` : '';
+      
+      const res = await fetch(`/api/voice/agents${orgParam}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-org-id': org?.id || ''
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setAgents(Array.isArray(data) ? data : []);
@@ -52,7 +62,7 @@ export default function VoiceAgentsTab() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [org?.id]);
 
   useEffect(() => {
     fetchAgents();
@@ -76,7 +86,17 @@ export default function VoiceAgentsTab() {
 
     setDeletingId(agent.id);
     try {
-      const res = await fetch(`/api/voice/agents?id=${agent.id}`, { method: "DELETE" });
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+      const orgParam = org?.id ? `&org_id=${org.id}` : '';
+
+      const res = await fetch(`/api/voice/agents?id=${agent.id}${orgParam}`, {
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-org-id': org?.id || ''
+        }
+      });
       if (res.ok) {
         setAgents((prev) => prev.filter((a) => a.id !== agent.id));
       } else {
@@ -97,10 +117,21 @@ export default function VoiceAgentsTab() {
     setAgents((prev) => prev.map((a) => (a.id === agent.id ? { ...a, active: newActive } : a)));
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+
       await fetch("/api/voice/agents", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: agent.id, active: newActive })
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "x-org-id": org?.id || ''
+        },
+        body: JSON.stringify({
+          id: agent.id,
+          active: newActive,
+          organization_id: org?.id
+        })
       });
     } catch (err) {
       console.error("Failed to toggle status:", err);

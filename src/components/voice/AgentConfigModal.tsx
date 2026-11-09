@@ -23,6 +23,8 @@ import {
   UserCheck,
   CheckCircle2
 } from "lucide-react";
+import { useOrg } from "@/contexts/OrgContext";
+import { supabase } from "@/lib/supabaseClient";
 
 export interface VoiceAgentData {
   id?: string;
@@ -85,6 +87,7 @@ export default function AgentConfigModal({
   onSaved,
   onTestCall
 }: AgentConfigModalProps) {
+  const { org } = useOrg();
   const [formData, setFormData] = useState<VoiceAgentData>({
     name: "",
     language: "English",
@@ -167,7 +170,16 @@ export default function AgentConfigModal({
   const fetchVersions = async (agentId: string) => {
     setLoadingVersions(true);
     try {
-      const res = await fetch(`/api/voice/agents/versions?agent_id=${agentId}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
+      const orgParam = org?.id ? `&org_id=${org.id}` : '';
+
+      const res = await fetch(`/api/voice/agents/versions?agent_id=${agentId}${orgParam}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-org-id': org?.id || ''
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setVersions(Array.isArray(data) ? data : []);
@@ -199,11 +211,22 @@ export default function AgentConfigModal({
     setError(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || '';
       const method = formData.id ? "PUT" : "POST";
-      const res = await fetch("/api/voice/agents", {
+      const orgParam = org?.id ? `?org_id=${org.id}` : '';
+
+      const res = await fetch(`/api/voice/agents${orgParam}`, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "x-org-id": org?.id || ''
+        },
+        body: JSON.stringify({
+          ...formData,
+          organization_id: org?.id
+        })
       });
 
       const result = await res.json();

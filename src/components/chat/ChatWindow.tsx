@@ -473,8 +473,7 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
     template_components: any[]
     previewText: string
   }) => {
-    if (!conversation) return
-    await sendWithOptimism(
+    const success = await sendWithOptimism(
       tplData.previewText,
       null,
       null,
@@ -485,6 +484,9 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
         template_components: tplData.template_components
       }
     )
+    if (!success) {
+      throw new Error('Meta failed to send template. Please check that this template is approved in your Meta WhatsApp Manager and all parameters are filled.')
+    }
   }
 
   // Select & Insert/Send Canned Reply
