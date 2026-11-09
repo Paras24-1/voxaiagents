@@ -824,8 +824,8 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50/20 dark:bg-gray-950/10">
+      {/* Messages: WhatsApp Style Background */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3 bg-[#efeae2]/60 dark:bg-[#0b141a]">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
@@ -847,8 +847,8 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
               return (
                 <Fragment key={msg.id}>
                   {showSeparator && (
-                    <div className="flex justify-center my-3 select-none">
-                      <span className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 rounded-full shadow-sm">
+                    <div className="flex justify-center my-2.5 select-none">
+                      <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 bg-white/90 dark:bg-[#182229] border border-gray-200/80 dark:border-gray-800 rounded-lg shadow-xs">
                         {formatMessageDateSeparator(msg.timestamp)}
                       </span>
                     </div>
@@ -857,7 +857,7 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
                     className={`flex items-center gap-1.5 ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'} group/msg relative`}
                   >
                     {msg.direction === 'outgoing' && (
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="hidden sm:group-hover/msg:flex items-center gap-1 shrink-0 opacity-0 group-hover/msg:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -886,12 +886,12 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
                         </button>
                       </div>
                     )}
-                    <div className={`max-w-[75%] ${msg.direction === 'outgoing' ? 'order-2' : 'order-1'}`}>
+                    <div className={`max-w-[85%] sm:max-w-[72%] ${msg.direction === 'outgoing' ? 'order-2' : 'order-1'}`}>
                       <div
-                        className={`px-4 py-3 shadow-sm text-[13px] leading-relaxed transition-all ${
+                        className={`px-3.5 py-2.5 shadow-xs text-[13.5px] leading-relaxed transition-all ${
                           msg.direction === 'outgoing'
-                            ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl rounded-br-sm shadow-emerald-500/10'
-                            : 'bg-white/90 dark:bg-gray-800/95 backdrop-blur-md border border-gray-100 dark:border-gray-700/60 text-gray-800 dark:text-gray-100 rounded-2xl rounded-bl-sm shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
+                            ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-2xl rounded-tr-xs border border-emerald-500/15 dark:border-emerald-500/20'
+                            : 'bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-2xl rounded-tl-xs border border-gray-200/60 dark:border-gray-700/50'
                         }`}
                       >
                         {(() => {
@@ -1031,7 +1031,7 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
                       </div>
                     </div>
                     {msg.direction === 'incoming' && (
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="hidden sm:group-hover/msg:flex items-center gap-1 shrink-0 opacity-0 group-hover/msg:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()

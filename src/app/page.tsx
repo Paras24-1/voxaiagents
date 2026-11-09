@@ -198,7 +198,16 @@ const faqItems = [
 export default function LandingPage() {
   const { user } = useOrg()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [isAppRedirecting, setIsAppRedirecting] = useState(false)
+  const [isAppRedirecting, setIsAppRedirecting] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return Boolean((window as any).Capacitor?.isNativePlatform?.()) || 
+             (Boolean((window as any).Capacitor) && (window as any).Capacitor?.getPlatform?.() !== 'web') ||
+             navigator.userAgent.includes('Capacitor') ||
+             window.location.search.includes('app=true') ||
+             document.cookie.includes('is_native_app=true')
+    }
+    return false
+  })
 
   // Direct app detection: Inside native mobile app, NEVER show the landing page!
   useEffect(() => {
@@ -206,13 +215,23 @@ export default function LandingPage() {
       const isNative = Boolean((window as any).Capacitor?.isNativePlatform?.()) || 
                        (Boolean((window as any).Capacitor) && (window as any).Capacitor?.getPlatform?.() !== 'web') ||
                        navigator.userAgent.includes('Capacitor') ||
-                       window.location.search.includes('app=true')
+                       window.location.search.includes('app=true') ||
+                       document.cookie.includes('is_native_app=true')
       if (isNative) {
         setIsAppRedirecting(true)
         window.location.replace('/dashboard')
       }
     }
   }, [])
+
+  if (isAppRedirecting) {
+    return (
+      <div className="h-screen bg-[#0b0f19] flex flex-col items-center justify-center text-slate-100">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs text-slate-400 font-medium">Opening workspace...</p>
+      </div>
+    )
+  }
 
   // Real Inbound Call Audio Player State
   const audioRef = useRef<HTMLAudioElement | null>(null)

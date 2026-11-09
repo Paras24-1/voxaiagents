@@ -34,6 +34,22 @@ export default function Sidebar() {
     }
   }, [])
 
+  // Lock body scroll whenever the drawer is open to prevent background scrolling
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.touchAction = ''
+    }
+  }, [isOpen])
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hostname.includes('10xyourbusiness')) {
       setPrivacyUrl('https://app.10xyourbusiness.in/privacy-policy.html')
@@ -218,15 +234,15 @@ export default function Sidebar() {
       {mounted && createPortal(
         <>
           <div 
-            className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-[99998] transition-opacity duration-300 ${
+            className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-[99998] transition-opacity duration-300 touch-none overscroll-none ${
               isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
             }`}
             onClick={closeSidebar}
           />
 
           <div className={`
-            fixed top-0 left-0 h-[100dvh] w-72 max-w-[85vw] bg-slate-900 border-r border-slate-800 text-slate-100 z-[99999]
-            transform transition-transform duration-300 ease-out flex flex-col justify-between shadow-2xl overflow-hidden
+            fixed top-0 left-0 bottom-0 h-full w-72 max-w-[85vw] bg-slate-900 border-r border-slate-800 text-slate-100 z-[99999]
+            transform transition-transform duration-300 ease-out flex flex-col justify-between shadow-2xl overflow-hidden overscroll-contain touch-pan-y
             pt-safe pb-safe
             ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           `}>
@@ -258,8 +274,11 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* Middle Section: Nav Items (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-1">
+        {/* Middle Section: Nav Items (Scrollable with min-h-0) */}
+        <div 
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-1 touch-pan-y"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           <nav className="space-y-1">
             {navItems.filter(item => item.visible).map((item) => {
               const Icon = item.icon

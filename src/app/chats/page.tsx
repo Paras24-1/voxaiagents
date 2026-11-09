@@ -297,51 +297,6 @@ function ChatsPageContent() {
           />
         </div>
       </div>
-
-      {/* MOBILE: Bottom nav */}
-      {selected && (
-        <div className="md:hidden flex border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shrink-0 pb-safe">
-
-          <button
-            onClick={() =>
-              setMobileView('list')
-            }
-            className={`flex-1 py-3 text-xs font-medium transition-colors ${
-              mobileView === 'list'
-                ? 'text-emerald-600 border-t-2 border-emerald-500'
-                : 'text-gray-500'
-            }`}
-          >
-            Inbox
-          </button>
-
-          <button
-            onClick={() =>
-              setMobileView('chat')
-            }
-            className={`flex-1 py-3 text-xs font-medium transition-colors ${
-              mobileView === 'chat'
-                ? 'text-emerald-600 border-t-2 border-emerald-500'
-                : 'text-gray-500'
-            }`}
-          >
-            Chat
-          </button>
-
-          <button
-            onClick={() =>
-              setMobileView('lead')
-            }
-            className={`flex-1 py-3 text-xs font-medium transition-colors ${
-              mobileView === 'lead'
-                ? 'text-emerald-600 border-t-2 border-emerald-500'
-                : 'text-gray-500'
-            }`}
-          >
-            Lead Info
-          </button>
-        </div>
-      )}
     </div>
   )
 }

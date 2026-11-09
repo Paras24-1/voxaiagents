@@ -736,23 +736,23 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate }: {
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3.5 min-w-0">
         {data.Phone ? (
           <>
-            {/* Quick Actions (Call & WhatsApp Buttons) */}
-            <div className="flex flex-col gap-2">
+            {/* Quick Actions (Call & WhatsApp Buttons: Native Mobile Friendly 2-Column Grid) */}
+            <div className="grid grid-cols-2 gap-2.5 mb-2 select-none">
               <a
                 href={`tel:${data.Phone}`}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+                className="flex items-center justify-center gap-2 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer"
               >
-                <Phone className="w-3.5 h-3.5" />
-                Call Lead
+                <Phone className="w-4 h-4 shrink-0" />
+                <span className="truncate">Call Lead</span>
               </a>
               <a
                 href={`https://wa.me/${(data.Phone || '').replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+                className="flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                WhatsApp Lead
+                <MessageSquare className="w-4 h-4 shrink-0" />
+                <span className="truncate">WhatsApp</span>
               </a>
             </div>
             
