@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
 
     const { data: orgSettings } = await supabaseAdmin
       .from('organization_settings')
-      .select('whatsapp_token, n8n_inbound_webhook_url')
+      .select('whatsapp_token, n8n_inbound_webhook_url, ai_system_prompt')
       .eq('org_id', orgId)
       .maybeSingle()
     
@@ -375,7 +375,7 @@ export async function POST(req: NextRequest) {
     // 1. Check if conversation already exists
     const { data: existing } = await supabaseAdmin
       .from('conversations')
-      .select('id, assigned_to, unread_count, is_blocked')
+      .select('id, assigned_to, unread_count, is_blocked, ai_mode')
       .eq('phone_number', phone_number)
       .eq('org_id', orgId)
       .maybeSingle()
@@ -383,6 +383,15 @@ export async function POST(req: NextRequest) {
     if (existing?.is_blocked) {
       console.log(`[webhook] Ignored message from blocked number ${phone_number}`)
       return NextResponse.json({ success: true, status: 'ignored_blocked' })
+    }
+
+    // Resolve tenant default AI mode for newly created conversations
+    let defaultAiMode = true
+    if (orgSettings?.ai_system_prompt && orgSettings.ai_system_prompt.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(orgSettings.ai_system_prompt)
+        if (parsed.default_ai_mode !== undefined) defaultAiMode = !!parsed.default_ai_mode
+      } catch (e) {}
     }
 
     // 2. Get next employee only for NEW conversations
@@ -403,6 +412,7 @@ export async function POST(req: NextRequest) {
           org_id: orgId,
           updated_at: new Date().toISOString(),
           platform: platform || 'whatsapp',
+          ...(!existing ? { ai_mode: defaultAiMode } : {}),
           ...(direction === 'incoming' 
             ? { unread_count: (existing?.unread_count || 0) + 1, last_incoming_message_at: new Date().toISOString() } 
             : {}),
@@ -534,9 +544,23 @@ export async function POST(req: NextRequest) {
         }
 
         const engineMode = parsedPromptObj.engine_mode || (orgSettings?.n8n_inbound_webhook_url ? 'hybrid_n8n' : 'native')
-        // If organization has an n8n webhook URL set, prioritize forwarding to n8n
-        isHybridN8n = !!orgSettings?.n8n_inbound_webhook_url && engineMode !== 'disabled_n8n'
-        console.log(`[webhook:routing] engineMode=${engineMode} | isHybridN8n=${isHybridN8n} | url=${orgSettings?.n8n_inbound_webhook_url}`)
+
+        // 🛑 AUTOMATIC GATEKEEPING: Check conversation Human Takeover & tenant global AI status
+        const isHumanTakeover = conversation?.ai_mode === false || existing?.ai_mode === false
+        const isGlobalAiDisabled = parsedPromptObj.global_ai_enabled === false || engineMode === 'disabled' || engineMode === 'disabled_n8n'
+
+        if (isHumanTakeover) {
+          console.log(`[webhook:routing] 🛑 Human takeover is ACTIVE for ${phone_number} (conv ${conversation?.id}, ai_mode=false). Bypassing AI/n8n trigger.`)
+          isHybridN8n = false
+        } else if (isGlobalAiDisabled) {
+          console.log(`[webhook:routing] 🛑 AI is GLOBALLY PAUSED for org ${orgId}. Bypassing AI/n8n trigger.`)
+          isHybridN8n = false
+        } else {
+          // If organization has an n8n webhook URL set and AI is active, prioritize forwarding to n8n
+          isHybridN8n = !!orgSettings?.n8n_inbound_webhook_url
+        }
+
+        console.log(`[webhook:routing] engineMode=${engineMode} | isHybridN8n=${isHybridN8n} | isHumanTakeover=${isHumanTakeover} | url=${orgSettings?.n8n_inbound_webhook_url}`)
 
         if (isHybridN8n && orgSettings?.n8n_inbound_webhook_url) {
           console.log(`[webhook] Forwarding Enriched Bot Brain Payload to tenant n8n: ${orgSettings.n8n_inbound_webhook_url}`)
@@ -555,11 +579,13 @@ export async function POST(req: NextRequest) {
             .replace(/\{\{assigned_employee_phone\}\}/g, assignedEmployeePhone || '')
             .replace(/\{\{stage\}\}/g, 'COLD')
 
-          // Enriched Hybrid Payload
+          // Enriched Hybrid Payload with explicit ai_mode
           const enrichedPayload = {
             ...body,
             org_id: orgId,
             conversation_id: conversation?.id,
+            ai_mode: true,
+            is_ai_mode: true,
             gemini_api_key: geminiApiKey,
             openai_api_key: openaiApiKey,
             lead: {
@@ -567,7 +593,8 @@ export async function POST(req: NextRequest) {
               name: contactName,
               assigned_to: assignedTo,
               assigned_employee_name: assignedEmployeeName,
-              assigned_employee_phone: assignedEmployeePhone
+              assigned_employee_phone: assignedEmployeePhone,
+              ai_mode: true
             },
             bot_brain: {
               engine_mode: 'hybrid_n8n',
@@ -576,7 +603,8 @@ export async function POST(req: NextRequest) {
               assigned_employee_name: assignedEmployeeName,
               assigned_employee_phone: assignedEmployeePhone,
               gemini_api_key: geminiApiKey,
-              openai_api_key: openaiApiKey
+              openai_api_key: openaiApiKey,
+              ai_mode: true
             }
           }
 

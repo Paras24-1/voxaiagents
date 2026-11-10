@@ -7,7 +7,8 @@ export async function POST(req: NextRequest) {
     let orgId = await getOrgId(req)
     
     // Allow internal webhook routing to bypass cookie auth
-    if (!orgId && req.headers.get('x-internal-secret') === (process.env.N8N_WEBHOOK_SECRET || 'internal-ai-reply')) {
+    const isInternalAuth = req.headers.get('x-internal-secret') === (process.env.N8N_WEBHOOK_SECRET || 'internal-ai-reply')
+    if (!orgId && isInternalAuth) {
       orgId = body.org_id
     }
 
@@ -24,7 +25,10 @@ export async function POST(req: NextRequest) {
       template_language, 
       template_components,
       filename,
-      location_data
+      location_data,
+      is_manual,
+      source,
+      auto_takeover
     } = body
 
     if (!conversation_id || !phone_number) {
@@ -34,13 +38,28 @@ export async function POST(req: NextRequest) {
     const timestamp = new Date().toISOString()
     const isTemplate = type === 'template' || !!template_name
 
-    // Fetch conversation platform, last incoming message time, and provider phone ID
+    // Detect if this message is from an automated AI agent vs manual human agent
+    const isInternalAi = isInternalAuth || source === 'ai' || source === 'n8n' || body.is_ai === true
+    const isManual = is_manual === true || source === 'dashboard' || (!isInternalAi && !body.is_ai)
+
+    // Fetch conversation platform, last incoming message time, provider phone ID, and ai_mode
     const { data: conv } = await supabaseAdmin
       .from('conversations')
-      .select('platform, last_incoming_message_at, provider_phone_id')
+      .select('platform, last_incoming_message_at, provider_phone_id, ai_mode')
       .eq('id', conversation_id)
       .eq('org_id', orgId)
       .maybeSingle()
+
+    // 🛑 GATEKEEPER: If Human Takeover is active, suppress automated AI/bot replies
+    if (conv && conv.ai_mode === false && !isManual) {
+      console.log(`[reply:gatekeeper] 🛑 Automated AI reply suppressed for ${phone_number} (conv ${conversation_id}) because human takeover is active.`)
+      return NextResponse.json({
+        success: true,
+        suppressed: true,
+        reason: 'human_takeover_active',
+        message: 'Automated AI reply was suppressed because human takeover is active for this conversation.'
+      })
+    }
 
     const platform = conv?.platform || 'whatsapp'
     const providerPhoneId = conv?.provider_phone_id
@@ -78,12 +97,19 @@ export async function POST(req: NextRequest) {
 
     if (msgError) throw msgError
 
-    // 2. Update conversation snippet & timestamp
+    // 2. Update conversation snippet & timestamp (and auto-switch to manual mode if a human rep replies)
+    let newAiMode = conv?.ai_mode
+    if (isManual && conv && conv.ai_mode === true && auto_takeover !== false) {
+      newAiMode = false
+      console.log(`[reply:auto-takeover] Switched conversation ${conversation_id} to Manual (Human Takeover) mode upon human staff reply.`)
+    }
+
     await supabaseAdmin
       .from('conversations')
       .update({ 
         last_message: message || (media_type?.startsWith('image') ? '📸 Image' : media_type?.startsWith('audio') ? '🎵 Voice note' : '📎 Attachment'), 
-        updated_at: timestamp
+        updated_at: timestamp,
+        ...(newAiMode !== undefined ? { ai_mode: newAiMode } : {})
       })
       .eq('id', conversation_id)
       .eq('org_id', orgId)
@@ -191,7 +217,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           message: { ...msg, provider_message_id: wamid, status: 'sent' },
-          meta_id: wamid
+          meta_id: wamid,
+          ai_mode: newAiMode
         })
       } else {
         console.error(`[reply:direct-meta] Meta API error (${metaRes.status}):`, JSON.stringify(metaData))
@@ -274,7 +301,7 @@ export async function POST(req: NextRequest) {
       throw new Error(`n8n webhook error (${n8nRes.status}): ${errText}`)
     }
 
-    return NextResponse.json({ success: true, message: msg })
+    return NextResponse.json({ success: true, message: msg, ai_mode: newAiMode })
   } catch (err: any) {
     const error = err?.message || String(err || 'Unknown error')
     return NextResponse.json({ error }, { status: 500 })

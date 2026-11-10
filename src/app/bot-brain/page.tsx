@@ -26,6 +26,9 @@ export default function BotBrainPage() {
   const [geminiApiKey, setGeminiApiKey] = useState('')
   const [openaiApiKey, setOpenaiApiKey] = useState('')
   const [n8nWebhookUrl, setN8nWebhookUrl] = useState('')
+  const [defaultAiMode, setDefaultAiMode] = useState(true)
+  const [globalAiEnabled, setGlobalAiEnabled] = useState(true)
+  const [autoTakeoverOnReply, setAutoTakeoverOnReply] = useState(true)
   const [loading, setLoading] = useState(true)
   
   // Status states
@@ -67,6 +70,9 @@ export default function BotBrainPage() {
         setGeminiApiKey(data.gemini_api_key || '')
         setOpenaiApiKey(data.openai_api_key || '')
         setN8nWebhookUrl(data.n8n_inbound_webhook_url || '')
+        if (data.default_ai_mode !== undefined) setDefaultAiMode(data.default_ai_mode)
+        if (data.global_ai_enabled !== undefined) setGlobalAiEnabled(data.global_ai_enabled)
+        if (data.auto_takeover_on_reply !== undefined) setAutoTakeoverOnReply(data.auto_takeover_on_reply)
       }
     } catch (err) {
       console.error('Fetch bot brain error:', err)
@@ -92,7 +98,10 @@ export default function BotBrainPage() {
           system_prompt: overridePrompt || systemPrompt,
           gemini_api_key: geminiApiKey,
           openai_api_key: openaiApiKey,
-          n8n_inbound_webhook_url: n8nWebhookUrl
+          n8n_inbound_webhook_url: n8nWebhookUrl,
+          default_ai_mode: defaultAiMode,
+          global_ai_enabled: globalAiEnabled,
+          auto_takeover_on_reply: autoTakeoverOnReply
         })
       })
 
@@ -322,6 +331,12 @@ export default function BotBrainPage() {
                     setOpenaiApiKey={setOpenaiApiKey}
                     n8nWebhookUrl={n8nWebhookUrl}
                     setN8nWebhookUrl={setN8nWebhookUrl}
+                    defaultAiMode={defaultAiMode}
+                    setDefaultAiMode={setDefaultAiMode}
+                    globalAiEnabled={globalAiEnabled}
+                    setGlobalAiEnabled={setGlobalAiEnabled}
+                    autoTakeoverOnReply={autoTakeoverOnReply}
+                    setAutoTakeoverOnReply={setAutoTakeoverOnReply}
                   />
                 </motion.div>
               )}

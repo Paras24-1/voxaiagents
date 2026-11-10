@@ -543,11 +543,18 @@ export function useSendMessage() {
             message: message.trim(),
             media_url: mediaUrl,
             media_type: mediaType,
+            is_manual: true,
+            source: 'dashboard',
             ...extraOptions
           }),
         })
         const data = await res.json().catch(() => ({}))
         if (res.ok && data.success) {
+          if (data.ai_mode !== undefined) {
+            window.dispatchEvent(new CustomEvent('update-conversation', { 
+              detail: { id: conversationId, ai_mode: data.ai_mode } 
+            }))
+          }
           return data.message
         }
         if (extraOptions?.type === 'template' || data.error) {

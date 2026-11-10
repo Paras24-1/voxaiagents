@@ -68,6 +68,21 @@ export default function VoiceAgentsTab() {
     fetchAgents();
   }, [fetchAgents, org?.id]);
 
+  // Deep-link check: if URL has ?agentId=..., open that agent automatically
+  useEffect(() => {
+    if (typeof window !== "undefined" && agents.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlAgentId = urlParams.get("agentId");
+      if (urlAgentId) {
+        const found = agents.find((a) => a.id === urlAgentId);
+        if (found) {
+          setSelectedAgent(found);
+          setIsConfigOpen(true);
+        }
+      }
+    }
+  }, [agents]);
+
   const handleCreateNew = () => {
     setSelectedAgent(null);
     setIsConfigOpen(true);
@@ -76,6 +91,20 @@ export default function VoiceAgentsTab() {
   const handleEdit = (agent: VoiceAgentData) => {
     setSelectedAgent(agent);
     setIsConfigOpen(true);
+    if (typeof window !== "undefined" && agent.id) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("agentId", agent.id);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  const handleCloseConfig = () => {
+    setIsConfigOpen(false);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("agentId");
+      window.history.replaceState(null, "", url.toString());
+    }
   };
 
   const handleDelete = async (agent: VoiceAgentData) => {
@@ -148,6 +177,7 @@ export default function VoiceAgentsTab() {
   const filteredAgents = agents.filter(
     (a) =>
       a.name.toLowerCase().includes(search.toLowerCase()) ||
+      (a.id || "").toLowerCase().includes(search.toLowerCase()) ||
       (a.telephone_number || "").includes(search) ||
       (a.language || "").toLowerCase().includes(search.toLowerCase())
   );
@@ -165,7 +195,7 @@ export default function VoiceAgentsTab() {
               Voice Agent Builder
             </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Manage your multilingual Gemini Live voice bots, prompts, phone numbers, and sensitivity settings.
+              Click any agent card to configure its prompts, Gemini Live voices, phone numbers, and sensitivity settings.
             </p>
           </div>
         </div>
@@ -176,7 +206,7 @@ export default function VoiceAgentsTab() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search agents or numbers..."
+              placeholder="Search by name, ID or number..."
               className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
@@ -235,20 +265,21 @@ export default function VoiceAgentsTab() {
           {filteredAgents.map((agent) => (
             <div
               key={agent.id}
-              className="bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 hover:border-blue-400 dark:hover:border-blue-600 rounded-3xl p-5 shadow-sm transition-all flex flex-col justify-between group"
+              onClick={() => handleEdit(agent)}
+              className="bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
             >
               <div>
-                {/* Card Header: Avatar, Name, Status */}
+                {/* Card Header: Avatar, Name, ID, Status */}
                 <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-extrabold text-sm border border-blue-500/20">
+                  <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-extrabold text-sm border border-blue-500/20 shrink-0 mt-0.5">
                       {agent.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <h3 className="text-sm font-extrabold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
                         {agent.name}
                       </h3>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
                           {agent.language || "English"}
                         </span>
@@ -256,14 +287,37 @@ export default function VoiceAgentsTab() {
                           {agent.voice_profile || "Aoede"}
                         </span>
                       </div>
+
+                      {/* Prominent Agent ID Field Badge */}
+                      {agent.id && (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyNumber(agent.id!, `id-${agent.id}`);
+                          }}
+                          className="mt-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-950/50 text-[10px] font-mono text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer w-fit"
+                          title="Click to copy Agent ID"
+                        >
+                          <span className="text-[9px] font-bold uppercase text-gray-400">ID:</span>
+                          <span className="truncate max-w-[140px]">{agent.id}</span>
+                          {copiedId === `id-${agent.id}` ? (
+                            <Check className="w-3 h-3 text-emerald-500 shrink-0" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-gray-400 shrink-0" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Active Toggle */}
                   <button
-                    onClick={() => handleToggleActive(agent)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleActive(agent);
+                    }}
                     title={agent.active ? "Click to deactivate" : "Click to activate"}
-                    className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full transition flex items-center gap-1 ${
+                    className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full transition flex items-center gap-1 shrink-0 ${
                       agent.active
                         ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 hover:bg-emerald-200"
                         : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200"
@@ -290,7 +344,10 @@ export default function VoiceAgentsTab() {
                     </span>
                     {agent.telephone_number ? (
                       <button
-                        onClick={() => copyNumber(agent.telephone_number, `${agent.id}-phone`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyNumber(agent.telephone_number, `${agent.id}-phone`);
+                        }}
                         className="font-mono text-xs font-bold text-gray-800 dark:text-gray-200 hover:text-blue-600 flex items-center gap-1"
                       >
                         {agent.telephone_number}
@@ -335,7 +392,10 @@ export default function VoiceAgentsTab() {
               <div className="flex items-center gap-2 pt-3 border-t border-gray-150 dark:border-gray-800">
                 <button
                   type="button"
-                  onClick={() => setActiveCallAgent(agent)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveCallAgent(agent);
+                  }}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/40 dark:hover:bg-violet-900/60 text-violet-700 dark:text-violet-300 text-xs font-bold transition shadow-sm"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
@@ -344,7 +404,10 @@ export default function VoiceAgentsTab() {
 
                 <button
                   type="button"
-                  onClick={() => handleEdit(agent)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(agent);
+                  }}
                   className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition"
                   title="Configure Agent"
                 >
@@ -353,7 +416,10 @@ export default function VoiceAgentsTab() {
 
                 <button
                   type="button"
-                  onClick={() => handleDelete(agent)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(agent);
+                  }}
                   disabled={deletingId === agent.id}
                   className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-950/40 text-gray-400 hover:text-red-600 transition disabled:opacity-50"
                   title="Delete Agent"
@@ -370,7 +436,7 @@ export default function VoiceAgentsTab() {
       <AgentConfigModal
         agent={selectedAgent}
         isOpen={isConfigOpen}
-        onClose={() => setIsConfigOpen(false)}
+        onClose={handleCloseConfig}
         onSaved={fetchAgents}
         onTestCall={(agent) => {
           setIsConfigOpen(false);

@@ -12,12 +12,28 @@ interface WebRTCCallModalProps {
 
 type CallState = "idle" | "requesting_mic" | "connecting" | "connected" | "ended" | "error";
 
-// The WebSocket server runs on port 5050 (server.js)
-const WS_SERVER_URL =
-  process.env.NEXT_PUBLIC_WS_URL ||
-  (typeof window !== "undefined"
-    ? `ws://${window.location.hostname}:5050/webRTC-stream`
-    : "ws://localhost:5050/webRTC-stream");
+// Resolves the WebSocket URL with automatic secure wss:// detection for HTTPS pages
+function getWsServerUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_WS_URL;
+  if (envUrl) {
+    let url = envUrl;
+    if (typeof window !== "undefined" && window.location.protocol === "https:" && url.startsWith("ws://")) {
+      url = url.replace("ws://", "wss://");
+    }
+    return url;
+  }
+
+  if (typeof window !== "undefined") {
+    // When served over HTTPS, must use secure wss:// to satisfy browser Mixed Content Policy
+    if (window.location.protocol === "https:") {
+      return "wss://voice-aura-production.up.railway.app/webRTC-stream";
+    }
+    // Local development over HTTP
+    return `ws://${window.location.hostname}:5050/webRTC-stream`;
+  }
+
+  return "wss://voice-aura-production.up.railway.app/webRTC-stream";
+}
 
 export default function WebRTCCallModal({ agentId, agentName, contactId, onClose }: WebRTCCallModalProps) {
   const [callState, setCallState] = useState<CallState>("idle");
@@ -177,7 +193,8 @@ export default function WebRTCCallModal({ agentId, agentName, contactId, onClose
 
     let ws: WebSocket;
     try {
-      const wsUrl = `${WS_SERVER_URL}?agentId=${agentId}${contactId ? `&contactId=${contactId}` : ""}`;
+      const baseWsUrl = getWsServerUrl();
+      const wsUrl = `${baseWsUrl}?agentId=${agentId}${contactId ? `&contactId=${contactId}` : ""}`;
       ws = new WebSocket(wsUrl);
       wsRef.current = ws;
     } catch (err: any) {

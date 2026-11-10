@@ -39,7 +39,10 @@ export async function GET(req: NextRequest) {
       system_prompt: parsedPromptObj.system_prompt || settings?.ai_system_prompt || 'You are an intelligent WhatsApp AI assistant.',
       gemini_api_key: settings?.gemini_api_key || '',
       openai_api_key: settings?.openai_api_key || '',
-      n8n_inbound_webhook_url: settings?.n8n_inbound_webhook_url || ''
+      n8n_inbound_webhook_url: settings?.n8n_inbound_webhook_url || '',
+      default_ai_mode: parsedPromptObj.default_ai_mode !== undefined ? parsedPromptObj.default_ai_mode : true,
+      global_ai_enabled: parsedPromptObj.global_ai_enabled !== undefined ? parsedPromptObj.global_ai_enabled : true,
+      auto_takeover_on_reply: parsedPromptObj.auto_takeover_on_reply !== undefined ? parsedPromptObj.auto_takeover_on_reply : true
     })
   } catch (err: any) {
     console.error('[bot-brain GET error]:', err)
@@ -63,7 +66,10 @@ export async function POST(req: NextRequest) {
       system_prompt,
       gemini_api_key,
       openai_api_key,
-      n8n_inbound_webhook_url
+      n8n_inbound_webhook_url,
+      default_ai_mode,
+      global_ai_enabled,
+      auto_takeover_on_reply
     } = body
 
     const { data: existing } = await supabaseAdmin
@@ -83,6 +89,9 @@ export async function POST(req: NextRequest) {
       ? ai_model_name
       : 'gemini-3.6-flash'
     promptObj.system_prompt = system_prompt || ''
+    if (default_ai_mode !== undefined) promptObj.default_ai_mode = !!default_ai_mode
+    if (global_ai_enabled !== undefined) promptObj.global_ai_enabled = !!global_ai_enabled
+    if (auto_takeover_on_reply !== undefined) promptObj.auto_takeover_on_reply = !!auto_takeover_on_reply
 
     const serializedPrompt = JSON.stringify(promptObj)
 

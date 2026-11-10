@@ -115,6 +115,7 @@ export default function AgentConfigModal({
   const [error, setError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
+  const [copiedAgentId, setCopiedAgentId] = useState(false);
 
   useEffect(() => {
     if (agent) {
@@ -261,8 +262,23 @@ export default function AgentConfigModal({
               <Mic className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-base font-extrabold text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">
                 {formData.id ? `Configure: ${formData.name}` : "Create New Voice Agent"}
+                {formData.id && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(formData.id!);
+                      setCopiedAgentId(true);
+                      setTimeout(() => setCopiedAgentId(false), 2000);
+                    }}
+                    className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900 flex items-center gap-1 hover:bg-blue-100 transition"
+                    title="Click to copy Agent ID"
+                  >
+                    <span>ID: {formData.id}</span>
+                    {copiedAgentId ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                )}
                 {formData.active ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
                     Live Active
@@ -347,6 +363,31 @@ export default function AgentConfigModal({
           {/* TAB 1: GENERAL VOICE & PERSONA */}
           {activeTab === "general" && (
             <div className="space-y-5 animate-in fade-in duration-150">
+              {formData.id && (
+                <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-850 border border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase font-extrabold tracking-wider text-gray-400 block mb-0.5">
+                      AI Agent ID (UUID)
+                    </label>
+                    <p className="font-mono text-xs font-bold text-gray-800 dark:text-gray-200 select-all">
+                      {formData.id}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(formData.id!);
+                      setCopiedAgentId(true);
+                      setTimeout(() => setCopiedAgentId(false), 2000);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-300 hover:text-blue-600 hover:border-blue-400 transition shrink-0"
+                  >
+                    {copiedAgentId ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedAgentId ? "Copied ID" : "Copy Agent ID"}
+                  </button>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">

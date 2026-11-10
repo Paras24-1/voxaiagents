@@ -607,6 +607,9 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
       body: JSON.stringify({ conversation_id: conversation.id, ai_mode: newMode })
     })
     onAIToggle(conversation.id, newMode)
+    window.dispatchEvent(new CustomEvent('update-conversation', { 
+      detail: { id: conversation.id, ai_mode: newMode } 
+    }))
   }
 
   const handleStageChange = async (newStage: string) => {

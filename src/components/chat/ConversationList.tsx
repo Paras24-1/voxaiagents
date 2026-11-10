@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Conversation, Stage } from '@/types'
 import { useConversations } from '@/hooks'
 import { formatDistanceToNow } from 'date-fns'
-import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown, CheckCheck, CheckSquare, Square, Send, Clock, ListChecks, Paperclip, AlertTriangle, CheckCircle2, MessageSquare, Check } from 'lucide-react'
+import { Search, Filter, Wifi, Trash2, X, UserPlus, Ban, ChevronDown, CheckCheck, CheckSquare, Square, Send, Clock, ListChecks, Paperclip, AlertTriangle, CheckCircle2, MessageSquare, Check, Bot, User } from 'lucide-react'
 import { useOrg } from '@/contexts/OrgContext'
 import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion'
@@ -140,6 +140,30 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
       else next.add(id)
       return next
     })
+  }
+
+  const [updatingBulkAi, setUpdatingBulkAi] = useState(false)
+
+  const handleBulkToggleAI = async (mode: boolean) => {
+    const ids = Array.from(selectedConvIds)
+    if (ids.length === 0) return
+    setUpdatingBulkAi(true)
+    try {
+      const res = await fetch('/api/takeover', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversation_ids: ids, ai_mode: mode })
+      })
+      if (res.ok) {
+        setIsMultiSelect(false)
+        setSelectedConvIds(new Set())
+        refetch()
+      }
+    } catch (err) {
+      console.error('Failed to bulk toggle AI:', err)
+    } finally {
+      setUpdatingBulkAi(false)
+    }
   }
 
   const { profile, org } = useOrg()
@@ -609,13 +633,33 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowBulkModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Send Message</span>
-          </button>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => handleBulkToggleAI(true)}
+              disabled={updatingBulkAi}
+              title="Switch selected chats to AI Assistant Mode"
+              className="px-2.5 sm:px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs border border-emerald-500/40 flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span>AI</span>
+            </button>
+            <button
+              onClick={() => handleBulkToggleAI(false)}
+              disabled={updatingBulkAi}
+              title="Switch selected chats to Manual (Human Takeover) Mode"
+              className="px-2.5 sm:px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Manual</span>
+            </button>
+            <button
+              onClick={() => setShowBulkModal(true)}
+              className="px-3 sm:px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Send Message</span>
+            </button>
+          </div>
         </div>
       )}
 

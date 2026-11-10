@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useRef, useState } from 'react'
-import { AlertCircle, ExternalLink, Key, Eye, EyeOff, Plus, FileCode2, Info } from 'lucide-react'
+import { AlertCircle, ExternalLink, Key, Eye, EyeOff, Plus, FileCode2, Info, Bot, UserCheck, ShieldAlert, Sparkles } from 'lucide-react'
 
 interface AdvancedEditorProps {
   systemPrompt: string
@@ -12,6 +12,12 @@ interface AdvancedEditorProps {
   setOpenaiApiKey: (val: string) => void
   n8nWebhookUrl: string
   setN8nWebhookUrl: (val: string) => void
+  defaultAiMode?: boolean
+  setDefaultAiMode?: (val: boolean) => void
+  globalAiEnabled?: boolean
+  setGlobalAiEnabled?: (val: boolean) => void
+  autoTakeoverOnReply?: boolean
+  setAutoTakeoverOnReply?: (val: boolean) => void
 }
 
 const VARIABLES = [
@@ -26,7 +32,10 @@ export default function AdvancedEditor({
   systemPrompt, setSystemPrompt,
   geminiApiKey, setGeminiApiKey,
   openaiApiKey, setOpenaiApiKey,
-  n8nWebhookUrl, setN8nWebhookUrl
+  n8nWebhookUrl, setN8nWebhookUrl,
+  defaultAiMode = true, setDefaultAiMode,
+  globalAiEnabled = true, setGlobalAiEnabled,
+  autoTakeoverOnReply = true, setAutoTakeoverOnReply
 }: AdvancedEditorProps) {
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -62,6 +71,142 @@ export default function AdvancedEditor({
           <p className="leading-relaxed text-slate-300">
             You are editing the technical prompt directly. Make sure to preserve template variables like <code className="text-emerald-400 font-mono bg-slate-950 px-1.5 py-0.5 rounded">{"{{lead_name}}"}</code> and any JSON output constraints required by your workflows.
           </p>
+        </div>
+      </div>
+
+      {/* Human Takeover & AI Automation Controls */}
+      <div className="p-5 bg-slate-950/70 border border-slate-800 rounded-2xl shadow-xl space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <ShieldAlert className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                Human Takeover & AI Mode Controls
+                <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold">
+                  Dashboard Managed
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Manage automated AI responses and human staff takeover without configuring checks in external workflows.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          {/* Control 1: Global AI Kill Switch */}
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Bot className="w-3.5 h-3.5 text-purple-400" />
+                  Global AI Status
+                </span>
+                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                  globalAiEnabled 
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                }`}>
+                  {globalAiEnabled ? 'Active' : 'Paused'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                When paused, all incoming automated AI replies are silenced across this tenant.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setGlobalAiEnabled && setGlobalAiEnabled(!globalAiEnabled)}
+              className={`w-full py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                globalAiEnabled
+                  ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/30'
+                  : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
+              }`}
+            >
+              {globalAiEnabled ? 'Pause AI Across Org' : 'Resume AI Automation'}
+            </button>
+          </div>
+
+          {/* Control 2: Default Mode for New Chats */}
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  Default New Chat Mode
+                </span>
+                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                  defaultAiMode 
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                    : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                }`}>
+                  {defaultAiMode ? 'AI First' : 'Manual First'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Choose if new incoming conversations start handled by AI or waiting for human takeover.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setDefaultAiMode && setDefaultAiMode(true)}
+                className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                  defaultAiMode 
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm' 
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                AI Mode
+              </button>
+              <button
+                type="button"
+                onClick={() => setDefaultAiMode && setDefaultAiMode(false)}
+                className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                  !defaultAiMode 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                Manual Takeover
+              </button>
+            </div>
+          </div>
+
+          {/* Control 3: Auto-Takeover on Human Staff Reply */}
+          <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+                  Auto-Takeover on Reply
+                </span>
+                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                  autoTakeoverOnReply 
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+                }`}>
+                  {autoTakeoverOnReply ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                When human staff sends a message from the chat dashboard, automatically silence AI for that customer.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAutoTakeoverOnReply && setAutoTakeoverOnReply(!autoTakeoverOnReply)}
+              className={`w-full py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                autoTakeoverOnReply
+                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30'
+                  : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+            >
+              {autoTakeoverOnReply ? '✓ Auto-Switch to Manual' : 'Keep Current AI Mode'}
+            </button>
+          </div>
         </div>
       </div>
 
