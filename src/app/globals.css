@@ -16,9 +16,9 @@
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
 }
 
-html, body {
+html {
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
+  scroll-behavior: smooth;
 }
 
 .overflow-y-auto, .overflow-x-auto {
@@ -144,13 +144,11 @@ body.hide-bottom-nav nav[aria-label="Mobile Navigation Bar"] {
     box-sizing: border-box;
   }
   html,
-body {
-  width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scroll-behavior: smooth;
-}
+  body {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: clip;
+  }
   /* Custom scrollbar */
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
