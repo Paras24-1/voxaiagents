@@ -306,10 +306,8 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
     }
   }
 
-  // Check if 24h window is expired
-  const is24hExpired = conversation?.last_incoming_message_at 
-    ? (Date.now() - new Date(conversation.last_incoming_message_at).getTime() > 24 * 60 * 60 * 1000)
-    : true
+  // 24-hour window check disabled — always allow messaging
+  const is24hExpired = false
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
@@ -1341,94 +1339,7 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
           </div>
         )}
 
-        {(() => {
-          const leadObj = Array.isArray((conversation as any)?.leads) ? (conversation as any).leads[0] : (conversation as any)?.leads || (conversation as any)?.lead || {}
-          const meta = typeof leadObj?.metadata === 'object' ? leadObj.metadata : (typeof (conversation as any)?.metadata === 'object' ? (conversation as any).metadata : {})
-          const src = String(leadObj?.source || meta?.source || (conversation as any)?.source || '').toLowerCase()
-          const isBulkImport = src.includes('bulk_import') || src.includes('bulk') || src.includes('import')
-
-          // Check for any incoming message in messages array or conversation object
-          const latestIncomingMsg = [...messages].reverse().find(m => m.direction === 'incoming');
-          const latestIncomingTime = latestIncomingMsg ? new Date(latestIncomingMsg.timestamp) : null;
-          const convLastIncoming = conversation?.last_incoming_message_at ? new Date(conversation.last_incoming_message_at) : null;
-          const effectiveLastIncoming = (latestIncomingTime && convLastIncoming)
-            ? (latestIncomingTime > convLastIncoming ? latestIncomingTime : convLastIncoming)
-            : (latestIncomingTime || convLastIncoming);
-
-          const hasIncomingDate = !!effectiveLastIncoming;
-          const hoursLeft = effectiveLastIncoming ? 24 - (new Date().getTime() - effectiveLastIncoming.getTime()) / (1000 * 60 * 60) : 0;
-          
-          // Require approved template for bulk import leads without incoming messages OR expired conversations
-          const isExpired = effectiveLastIncoming ? hoursLeft <= 0 : (isBulkImport ? true : false);
-
-          if (isExpired) {
-            const isNewBulkLead = isBulkImport && !hasIncomingDate;
-            return (
-              <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 rounded-2xl gap-3">
-                <div className="text-center sm:text-left">
-                  <span className="text-sm font-bold text-amber-800 dark:text-amber-300 block flex items-center gap-1.5 justify-center sm:justify-start">
-                    {isNewBulkLead ? '📥 Bulk Import Lead (Template Required)' : '24-Hour Messaging Window Expired'}
-                  </span>
-                  <span className="text-xs font-medium text-amber-700/90 dark:text-amber-400/90 mt-0.5 block">
-                    {isNewBulkLead
-                      ? 'Meta WhatsApp policy requires an approved Template Message to initiate contact with newly imported bulk leads.'
-                      : 'Freeform text messages are blocked by Meta. Send an approved Template Message to re-open the 24h window.'}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setShowTemplateModal(true)}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0 transition-all cursor-pointer"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Send Template</span>
-                </button>
-              </div>
-            );
-          }
-
-          return (
-            <>
-              {hasIncomingDate ? (
-                hoursLeft > 0 && (
-                  <div className="flex justify-between items-center mb-2 px-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                      24h Window Active
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setShowTemplateModal(true)}
-                        className="text-[11px] font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1 hover:underline"
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span>Send Template</span>
-                      </button>
-                      <span className={`text-[10px] font-bold ${hoursLeft < 2 ? 'text-red-500 animate-pulse' : 'text-gray-500'}`}>
-                        {Math.floor(hoursLeft)}h {Math.floor((hoursLeft % 1) * 60)}m left
-                      </span>
-                    </div>
-                  </div>
-                )
-              ) : (
-                <div className="flex justify-between items-center mb-2 px-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                    24h Window Tracking (New)
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setShowTemplateModal(true)}
-                      className="text-[11px] font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1 hover:underline"
-                    >
-                      <FileText className="w-3 h-3" />
-                      <span>Send Template</span>
-                    </button>
-                    <span className="text-[10px] font-bold text-gray-500">
-                      Waiting for next customer reply to start timer...
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200/60 dark:border-gray-700/60 rounded-full p-2 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all focus-within:ring-2 focus-within:ring-emerald-500/50 focus-within:bg-white dark:focus-within:bg-gray-900 focus-within:border-emerald-500/30 focus-within:shadow-[0_8px_30px_rgba(16,185,129,0.15)]">
+        <div className="flex items-center gap-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200/60 dark:border-gray-700/60 rounded-full p-2 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)] transition-all focus-within:ring-2 focus-within:ring-emerald-500/50 focus-within:bg-white dark:focus-within:bg-gray-900 focus-within:border-emerald-500/30 focus-within:shadow-[0_8px_30px_rgba(16,185,129,0.15)]">
                 
                 {/* Paperclip Attachment Menu Trigger (Matching Screenshot 1) */}
                 <button
@@ -1529,9 +1440,6 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
                   </>
                 )}
               </div>
-            </>
-          );
-        })()}
       </div>
 
       {/* Template Picker Modal */}

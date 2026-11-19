@@ -64,15 +64,8 @@ export async function POST(req: NextRequest) {
     const platform = conv?.platform || 'whatsapp'
     const providerPhoneId = conv?.provider_phone_id
     
-    // Calculate 24-hour messaging window status
+    // 24-hour messaging window check disabled — always allow replies
     let is24hExpired = false
-    if (conv?.last_incoming_message_at) {
-      const lastIncomingTime = new Date(conv.last_incoming_message_at).getTime()
-      const nowTime = new Date().getTime()
-      is24hExpired = (nowTime - lastIncomingTime > 24 * 60 * 60 * 1000)
-    } else {
-      is24hExpired = true
-    }
 
     const isAudioMsg = media_type?.startsWith('audio') || media_type?.includes('audio') || media_url?.endsWith('.mp3') || media_url?.endsWith('.webm') || media_url?.endsWith('.ogg')
     const finalMediaType = isAudioMsg ? 'audio/mpeg' : (media_type || null)

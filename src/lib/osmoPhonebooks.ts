@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase'
 
-export type OsmoCategoryKey = 'osmo_dealer' | 'dealer' | 'customer' | 'technician' | 'unfiltered'
+export type OsmoCategoryKey = 'osmo_dealer' | 'dealer' | 'customer' | 'technician' | 'unfiltered' | 'dead_lead'
 
 export const OSMO_PHONEBOOK_DEFINITIONS: Record<OsmoCategoryKey, { name: string; label: string; description: string }> = {
   osmo_dealer: {
@@ -27,6 +27,11 @@ export const OSMO_PHONEBOOK_DEFINITIONS: Record<OsmoCategoryKey, { name: string;
     name: 'Unfiltered Leads',
     label: 'Unfiltered',
     description: 'Auto-segregated undefined leads pending role identification'
+  },
+  dead_lead: {
+    name: 'Dead Leads',
+    label: 'Dead Lead',
+    description: 'Auto-segregated dead, inactive or unresponsive leads'
   }
 }
 
@@ -39,6 +44,7 @@ export function cleanPhone(raw: any): string {
   return cleaned
 }
 
+const DEAD_LEAD_FAST_KEYS = new Set(['dead_lead', 'dead lead', 'dead', 'deadlead', 'dead_leads', 'dead leads'])
 const OSMO_DEALER_FAST_KEYS = new Set(['osmo_dealer', 'osmo dealer', 'osmo_deler'])
 const DEALER_FAST_KEYS = new Set(['dealer', 'deler', 'distributor', 'retailer'])
 const CUSTOMER_FAST_KEYS = new Set(['customer', 'consumer', 'client', 'end_user'])
@@ -73,6 +79,7 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
   // Fast check directly on item.lead_type
   if (item.lead_type) {
     const lt = String(item.lead_type).trim().toLowerCase()
+    if (DEAD_LEAD_FAST_KEYS.has(lt)) return 'dead_lead'
     if (OSMO_DEALER_FAST_KEYS.has(lt)) return 'osmo_dealer'
     if (TECHNICIAN_FAST_KEYS.has(lt)) return 'technician'
     if (DEALER_FAST_KEYS.has(lt)) return 'dealer'
@@ -106,6 +113,7 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
   )?.toString().trim().toLowerCase()
 
   if (explicitType) {
+    if (DEAD_LEAD_FAST_KEYS.has(explicitType)) return 'dead_lead'
     if (OSMO_DEALER_FAST_KEYS.has(explicitType)) return 'osmo_dealer'
     if (TECHNICIAN_FAST_KEYS.has(explicitType)) return 'technician'
     if (DEALER_FAST_KEYS.has(explicitType)) return 'dealer'
@@ -216,6 +224,44 @@ export function classifyOsmoContact(item: any): OsmoCategoryKey {
 
   // 4. Default fallback: undefined leads that did not define what they are
   return 'unfiltered'
+}
+
+export function isOsmoRo2Org(org: { id?: string; name?: string; slug?: string } | null | undefined, email?: string | null): boolean {
+  if (org?.id === 'e7c673e9-818e-4dd3-818e-7dfb51a1007b') return true
+  const slug = org?.slug?.toLowerCase() || ''
+  if (slug === 'osmo-ro-2' || slug.includes('osmo-ro-2') || slug.includes('osmo_ro_2')) return true
+  const name = org?.name?.toLowerCase() || ''
+  if (name.includes('osmo ro 2') || name.includes('osmo ro - 2') || name.includes('osmo 2')) return true
+  if (email && email.toLowerCase() === 'paanifilter9@gmail.com') return true
+  return false
+}
+
+export async function isOsmoRo2OrgId(orgId: string): Promise<boolean> {
+  try {
+    if (orgId === 'e7c673e9-818e-4dd3-818e-7dfb51a1007b') {
+      return true
+    }
+    const { data: org } = await supabaseAdmin
+      .from('organizations')
+      .select('name, slug')
+      .eq('id', orgId)
+      .maybeSingle()
+
+    const name = org?.name?.toLowerCase() || ''
+    const slug = org?.slug?.toLowerCase() || ''
+    if (slug === 'osmo-ro-2' || slug.includes('osmo-ro-2') || name.includes('osmo ro 2') || name.includes('osmo 2')) {
+      return true
+    }
+
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('email')
+      .eq('org_id', orgId)
+
+    return (users || []).some(u => u.email?.toLowerCase() === 'paanifilter9@gmail.com')
+  } catch {
+    return false
+  }
 }
 
 export async function isOsmoOrg(orgId: string): Promise<boolean> {
@@ -333,6 +379,8 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       category = 'technician'
     } else if (explicitCat === 'customer') {
       category = 'customer'
+    } else if (explicitCat === 'dead_lead' || explicitCat === 'dead lead' || explicitCat === 'dead') {
+      category = 'dead_lead'
     } else if (explicitCat === 'unfiltered') {
       category = 'unfiltered'
     } else {
@@ -383,6 +431,8 @@ export async function fetchUnifiedOsmoContacts(orgId: string) {
       category = 'technician'
     } else if (explicitCat === 'customer') {
       category = 'customer'
+    } else if (explicitCat === 'dead_lead' || explicitCat === 'dead lead' || explicitCat === 'dead') {
+      category = 'dead_lead'
     } else if (explicitCat === 'unfiltered') {
       category = 'unfiltered'
     } else {
@@ -436,15 +486,25 @@ export async function syncOsmoPhonebooks(orgId: string) {
 
     if (pbFetchErr) throw pbFetchErr
 
-    const pbMap: Record<OsmoCategoryKey, any> = {
+    const isRo2 = await isOsmoRo2OrgId(orgId)
+
+    const categoriesToSync: OsmoCategoryKey[] = isRo2
+      ? ['osmo_dealer', 'dealer', 'customer', 'technician', 'unfiltered', 'dead_lead']
+      : ['osmo_dealer', 'dealer', 'customer', 'technician', 'unfiltered']
+
+    const pbMap: Partial<Record<OsmoCategoryKey, any>> = {
       osmo_dealer: null,
       dealer: null,
       customer: null,
       technician: null,
       unfiltered: null
     }
+    if (isRo2) {
+      pbMap.dead_lead = null
+    }
 
-    for (const [key, def] of Object.entries(OSMO_PHONEBOOK_DEFINITIONS) as [OsmoCategoryKey, any][]) {
+    for (const key of categoriesToSync) {
+      const def = OSMO_PHONEBOOK_DEFINITIONS[key]
       let found = (existingPhonebooks || []).find((p: any) => 
         p.name.toLowerCase() === def.name.toLowerCase() ||
         p.name.toLowerCase() === `[auto] ${def.name}`.toLowerCase() ||
@@ -478,7 +538,8 @@ export async function syncOsmoPhonebooks(orgId: string) {
       dealer: new Map(),
       customer: new Map(),
       technician: new Map(),
-      unfiltered: new Map()
+      unfiltered: new Map(),
+      dead_lead: new Map()
     };
 
     unifiedContacts.forEach((uc) => {

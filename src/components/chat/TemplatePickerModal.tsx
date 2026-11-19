@@ -193,7 +193,7 @@ export default function TemplatePickerModal({
             </div>
             <div className="min-w-0">
               <h2 className="text-sm sm:text-lg font-bold text-white truncate">Meta Approved Templates</h2>
-              <p className="text-[10px] sm:text-xs text-slate-400 truncate">Select & preview templates to bypass 24h limit</p>
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate">Select & preview pre-approved message templates</p>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">

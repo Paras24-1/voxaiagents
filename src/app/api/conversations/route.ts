@@ -32,6 +32,11 @@ export async function GET(req: NextRequest) {
         .from('conversations')
         .select('*, leads!inner(*)', { count: 'exact' })
         .or('osmo_category.eq.unfiltered,osmo_category.is.null', { foreignTable: 'leads' })
+    } else if (categoryFilter === 'dead_lead' || categoryFilter === 'dead lead') {
+      query = supabaseAdmin
+        .from('conversations')
+        .select('*, leads!inner(*)', { count: 'exact' })
+        .or('osmo_category.eq.dead_lead,osmo_category.eq.dead lead', { foreignTable: 'leads' })
     } else if (categoryFilter && categoryFilter !== 'all') {
       query = supabaseAdmin
         .from('conversations')
@@ -189,7 +194,10 @@ export async function GET(req: NextRequest) {
           c.category || 
           c.lead_type || 
           'unfiltered'
-        ).toLowerCase()
+        ).toLowerCase().trim()
+        if (categoryFilter === 'dead_lead' || categoryFilter === 'dead lead') {
+          return cat === 'dead_lead' || cat === 'dead lead'
+        }
         return cat === categoryFilter
       })
     }

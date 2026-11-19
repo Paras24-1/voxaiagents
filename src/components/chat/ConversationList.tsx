@@ -62,7 +62,9 @@ const extractOsmoCategory = (conv: any): string => {
     conv.category || 
     conv.lead_type || 
     'unfiltered'
-  return String(cat).toLowerCase()
+  const norm = String(cat).toLowerCase().trim()
+  if (norm === 'dead lead' || norm === 'dead_lead') return 'dead_lead'
+  return norm
 }
 
 export default function ConversationList({ selectedId, onSelect, onDelete }: Props) {
@@ -169,6 +171,15 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
   const { profile, org } = useOrg()
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
   const isOsmo = !!(profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' || org?.name?.toLowerCase().includes('osmo') || org?.slug?.toLowerCase().includes('osmo'))
+  const isOsmoRo2 = Boolean(
+    org?.id === 'e7c673e9-818e-4dd3-818e-7dfb51a1007b' ||
+    org?.slug === 'osmo-ro-2' ||
+    org?.slug?.toLowerCase().includes('osmo-ro-2') ||
+    org?.name?.toLowerCase().includes('osmo ro 2') ||
+    org?.name?.toLowerCase().includes('osmo ro - 2') ||
+    org?.name?.toLowerCase().includes('osmo 2') ||
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com'
+  )
 
   const { conversations, loading, hasMore, loadingMore, totalCount, loadMore, refetch, markAsRead, markAllAsRead } = useConversations({ 
     search, 
@@ -382,15 +393,14 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
               onClick={() => {
                 const newSet = new Set<string>()
                 conversations.forEach(c => {
-                  const is24h = c.last_incoming_message_at && (Date.now() - new Date(c.last_incoming_message_at).getTime() <= 24 * 60 * 60 * 1000)
-                  if (is24h) newSet.add(c.id)
+                  newSet.add(c.id)
                 })
                 setSelectedConvIds(newSet)
               }}
               className="text-[10px] font-extrabold px-2 py-1 rounded-lg bg-emerald-500 text-white shadow-xs whitespace-nowrap hover:bg-emerald-600 transition-colors flex items-center gap-1"
             >
-              <Clock className="w-3 h-3" />
-              Select 24h Active
+              <CheckSquare className="w-3 h-3" />
+              Select All
             </button>
             <button
               onClick={() => {
@@ -530,7 +540,10 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
         {/* Premium Animated Osmo RO Tabs */}
         {isOsmo && (
           <div className="flex bg-gray-900/5 dark:bg-black/20 p-1.5 rounded-2xl mb-4 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 shadow-inner overflow-x-auto scrollbar-hide gap-1">
-            {['unfiltered', 'osmo_dealer', 'dealer', 'customer', 'technician'].map(tab => {
+            {(isOsmoRo2
+              ? ['unfiltered', 'osmo_dealer', 'dealer', 'customer', 'technician', 'dead_lead']
+              : ['unfiltered', 'osmo_dealer', 'dealer', 'customer', 'technician']
+            ).map(tab => {
               const tabKey = tab.toLowerCase()
               const count = categoryStats?.[tabKey] ?? conversations.filter(c => extractOsmoCategory(c) === tabKey).length
               const isActive = osmoTab === tab
@@ -629,7 +642,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
             <div>
               <p className="text-xs font-bold text-white leading-none">Chats Selected</p>
               <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">
-                {conversations.filter(c => selectedConvIds.has(c.id) && c.last_incoming_message_at && (Date.now() - new Date(c.last_incoming_message_at).getTime() <= 24 * 60 * 60 * 1000)).length} 24h window active
+                Ready to send
               </p>
             </div>
           </div>
@@ -898,12 +911,6 @@ const ConversationItem = React.memo(function ConversationItem({
             </span>
           )}
 
-          {conv.last_incoming_message_at && (Date.now() - new Date(conv.last_incoming_message_at).getTime() <= 24 * 60 * 60 * 1000) && (
-            <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/50 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              24h
-            </span>
-          )}
         </div>
       </div>
 
@@ -1242,14 +1249,10 @@ function BulkBroadcastModal({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { profile } = useOrg()
 
-  // Partition conversations into 24h eligible vs expired
-  const now = Date.now()
-  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
-
+  // All WhatsApp conversations are eligible (24h window removed)
   const eligibleConvs = selectedConvs.filter(c => {
     if (c.platform === 'instagram') return false
-    if (!c.last_incoming_message_at) return false
-    return (now - new Date(c.last_incoming_message_at).getTime()) <= TWENTY_FOUR_HOURS
+    return true
   })
 
   const expiredConvs = selectedConvs.filter(c => !eligibleConvs.some(e => e.id === c.id))
@@ -1275,7 +1278,7 @@ function BulkBroadcastModal({
     }
 
     if (eligibleConvs.length === 0) {
-      setError('None of the selected chats have an active 24-hour window.')
+      setError('No eligible chats selected for broadcast.')
       return
     }
 
@@ -1360,11 +1363,11 @@ function BulkBroadcastModal({
               <div>
                 <h4 className="text-base font-extrabold text-gray-900 dark:text-white">Broadcast Dispatched!</h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Sent to <strong className="text-emerald-600 dark:text-emerald-400">{resultSummary.sentCount}</strong> active 24h chats.
+                  Sent to <strong className="text-emerald-600 dark:text-emerald-400">{resultSummary.sentCount}</strong> chats.
                 </p>
                 {resultSummary.skippedCount > 0 && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                    {resultSummary.skippedCount} chat(s) skipped (24-hour window expired).
+                    {resultSummary.skippedCount} chat(s) skipped.
                   </p>
                 )}
                 {resultSummary.errorCount > 0 && (
@@ -1399,13 +1402,15 @@ function BulkBroadcastModal({
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60">
-                    <p className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-300">🟢 24h Window Active</p>
+                    <p className="text-[10px] font-extrabold uppercase text-emerald-700 dark:text-emerald-300">🟢 Eligible</p>
                     <p className="text-lg font-black text-emerald-900 dark:text-emerald-100">{eligibleConvs.length} chats</p>
                   </div>
+                  {expiredConvs.length > 0 && (
                   <div className="flex-1 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60">
-                    <p className="text-[10px] font-extrabold uppercase text-amber-700 dark:text-amber-300">🔴 24h Expired (Skipped)</p>
+                    <p className="text-[10px] font-extrabold uppercase text-amber-700 dark:text-amber-300">⚠️ Skipped (Instagram)</p>
                     <p className="text-lg font-black text-amber-900 dark:text-amber-100">{expiredConvs.length} chats</p>
                   </div>
+                  )}
                 </div>
               </div>
 
@@ -1418,7 +1423,7 @@ function BulkBroadcastModal({
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type message to broadcast to all eligible 24h WhatsApp chats..."
+                  placeholder="Type message to broadcast to all selected WhatsApp chats..."
                   className="w-full p-3 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none"
                 />
               </div>

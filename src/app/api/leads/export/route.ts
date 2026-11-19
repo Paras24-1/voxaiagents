@@ -138,6 +138,8 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
       if (leadType && leadType !== 'all') {
         if (leadType === 'unfiltered') {
           query = query.or('osmo_category.eq.unfiltered,osmo_category.is.null') as any
+        } else if (leadType === 'dead_lead' || leadType === 'dead lead') {
+          query = query.or('osmo_category.eq.dead_lead,osmo_category.eq.dead lead') as any
         } else {
           query = query.eq('osmo_category', leadType) as any
         }

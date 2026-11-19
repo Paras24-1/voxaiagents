@@ -238,6 +238,16 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
     org?.name?.toLowerCase().includes('osmo') ||
     org?.slug?.toLowerCase().includes('osmo')
 
+  const isOsmoRo2 = Boolean(
+    org?.id === 'e7c673e9-818e-4dd3-818e-7dfb51a1007b' ||
+    org?.slug === 'osmo-ro-2' ||
+    org?.slug?.toLowerCase().includes('osmo-ro-2') ||
+    org?.name?.toLowerCase().includes('osmo ro 2') ||
+    org?.name?.toLowerCase().includes('osmo ro - 2') ||
+    org?.name?.toLowerCase().includes('osmo 2') ||
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com'
+  )
+
   const [step, setStep]                         = useState(1)
   const [allContacts, setAllContacts]           = useState<Contact[]>([])
   const [columns, setColumns]                   = useState<string[]>([])
@@ -620,13 +630,14 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                 Tap a category below to broadcast WhatsApp templates directly to segregated leads:
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+              <div className={`grid grid-cols-1 sm:grid-cols-2 ${isOsmoRo2 ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-2.5`}>
                 {(() => {
                   const osmoPb = phonebooks.find(p => p.name.toLowerCase().includes('osmo'))
                   const dealerPb = phonebooks.find(p => p.name.toLowerCase().includes('dealer') && !p.name.toLowerCase().includes('osmo'))
                   const customerPb = phonebooks.find(p => p.name.toLowerCase().includes('customer'))
                   const technicianPb = phonebooks.find(p => p.name.toLowerCase().includes('technician'))
                   const unfilteredPb = phonebooks.find(p => p.name.toLowerCase().includes('unfiltered'))
+                  const deadLeadPb = phonebooks.find(p => p.name.toLowerCase().includes('dead'))
                   
                   return [
                     {
@@ -673,7 +684,18 @@ function NewCampaign({ onCreated }: { onCreated: () => void }) {
                       count: unfilteredPb?.contact_count || 0,
                       activeBorder: 'border-gray-500 bg-gray-50/50 dark:bg-gray-800/30',
                       badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                    }
+                    },
+                    ...(isOsmoRo2 ? [
+                      {
+                        key: 'dead_lead',
+                        name: 'Dead Leads',
+                        pb: deadLeadPb,
+                        desc: 'Dead / Unresponsive Leads',
+                        count: deadLeadPb?.contact_count || 0,
+                        activeBorder: 'border-rose-500 bg-rose-50/50 dark:bg-rose-950/30',
+                        badge: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                      }
+                    ] : [])
                   ].map((cat) => {
                     const isSelected = selectedPhonebookId === cat.pb?.id
                     return (
@@ -1677,7 +1699,7 @@ function PhonebooksTab() {
 
         <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
           {phonebooks.map((pb) => {
-            const isAuto = pb.is_auto_synced || (isOsmoRo && (pb.name.toLowerCase().includes('osmo') || pb.name.toLowerCase().includes('dealer') || pb.name.toLowerCase().includes('customer') || pb.name.toLowerCase().includes('technician') || pb.name.toLowerCase().includes('unfiltered')))
+            const isAuto = pb.is_auto_synced || (isOsmoRo && (pb.name.toLowerCase().includes('osmo') || pb.name.toLowerCase().includes('dealer') || pb.name.toLowerCase().includes('customer') || pb.name.toLowerCase().includes('technician') || pb.name.toLowerCase().includes('unfiltered') || pb.name.toLowerCase().includes('dead')))
             return (
               <div
                 key={pb.id}

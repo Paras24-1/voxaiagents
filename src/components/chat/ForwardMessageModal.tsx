@@ -64,10 +64,8 @@ export default function ForwardMessageModal({ messageData, onClose }: ForwardMes
     }
   }
 
-  const is24hActive = (conv: ConvOption) => {
-    if (!conv.last_incoming_message_at) return false
-    return (Date.now() - new Date(conv.last_incoming_message_at).getTime() <= 24 * 60 * 60 * 1000)
-  }
+  // 24h window check disabled — all conversations are always active
+  const is24hActive = (conv: ConvOption) => true
 
   const filteredConvs = useMemo(() => {
     if (!search.trim()) return conversations

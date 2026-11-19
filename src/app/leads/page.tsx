@@ -211,14 +211,23 @@ const getPresets = () => {
   ]
 }
 
-function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'technician' | 'unfiltered' {
-  if (lead.osmo_category && ['osmo_dealer', 'dealer', 'customer', 'technician', 'unfiltered'].includes(lead.osmo_category)) {
-    return lead.osmo_category as any
+function classifyLead(lead: Lead): 'osmo_dealer' | 'dealer' | 'customer' | 'technician' | 'unfiltered' | 'dead_lead' {
+  const osmoCat = (lead.osmo_category || '').toLowerCase().trim()
+  if (osmoCat) {
+    if (osmoCat === 'dead lead' || osmoCat === 'dead_lead') return 'dead_lead'
+    if (['osmo_dealer', 'dealer', 'customer', 'technician', 'unfiltered'].includes(osmoCat)) {
+      return osmoCat as any
+    }
   }
-  if (lead.lead_type && ['osmo_dealer', 'dealer', 'customer', 'technician', 'unfiltered'].includes(lead.lead_type)) {
-    return lead.lead_type as any
+  const leadType = (lead.lead_type || '').toLowerCase().trim()
+  if (leadType) {
+    if (leadType === 'dead lead' || leadType === 'dead_lead') return 'dead_lead'
+    if (['osmo_dealer', 'dealer', 'customer', 'technician', 'unfiltered'].includes(leadType)) {
+      return leadType as any
+    }
   }
-  return classifyOsmoContact(lead)
+  const classified = classifyOsmoContact(lead)
+  return (classified === ('dead lead' as any) ? 'dead_lead' : classified) as any
 }
 
 function LeadsContent() {
@@ -233,6 +242,16 @@ function LeadsContent() {
     profile?.email?.toLowerCase() === 'paanifilter9@gmail.com' ||
     org?.name?.toLowerCase().includes('osmo') ||
     org?.slug?.toLowerCase().includes('osmo')
+
+  const isOsmoRo2 = Boolean(
+    org?.id === 'e7c673e9-818e-4dd3-818e-7dfb51a1007b' ||
+    org?.slug === 'osmo-ro-2' ||
+    org?.slug?.toLowerCase().includes('osmo-ro-2') ||
+    org?.name?.toLowerCase().includes('osmo ro 2') ||
+    org?.name?.toLowerCase().includes('osmo ro - 2') ||
+    org?.name?.toLowerCase().includes('osmo 2') ||
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com'
+  )
 
   const isInnoveg = 
     org?.name?.toLowerCase().includes('innoveg') ||
@@ -250,7 +269,7 @@ function LeadsContent() {
   const [loadingMore, setLoadingMore] = useState(false)
 
   // Stats
-  const [stats, setStats] = useState({ total: 0, unfiltered: 0, osmo_dealer: 0, dealer: 0, customer: 0, technician: 0, hot: 0, warm: 0, followups: 0 })
+  const [stats, setStats] = useState({ total: 0, unfiltered: 0, osmo_dealer: 0, dealer: 0, customer: 0, technician: 0, dead_lead: 0, hot: 0, warm: 0, followups: 0 })
   
   // Filters
   const [search, setSearch] = useState('')
@@ -392,6 +411,7 @@ function LeadsContent() {
     dealer: stats.dealer,
     customer: stats.customer,
     technician: stats.technician || 0,
+    dead_lead: stats.dead_lead || 0,
   }
 
   const fetchStats = async (headers: any, params: URLSearchParams) => {
@@ -510,21 +530,20 @@ function LeadsContent() {
         return {
           ...l,
           lead_type: newCategory,
-          metadata: { ...currentMeta, lead_type: newCategory, category: newCategory }
+          osmo_category: newCategory,
+          metadata: { ...currentMeta, lead_type: newCategory, category: newCategory, osmo_category: newCategory }
         }
       }
       return l
     }))
 
-    const oldCat = typeof lead.metadata === 'string' 
-      ? JSON.parse(lead.metadata || '{}').category || lead.lead_type || 'unfiltered' 
-      : (lead.metadata as any)?.category || lead.lead_type || 'unfiltered'
+    const oldCat = classifyLead(lead)
     
     if (oldCat !== newCategory) {
       setStats(prev => ({
         ...prev,
-        [oldCat]: Math.max(0, (prev[oldCat as keyof typeof prev] as number) - 1),
-        [newCategory]: (prev[newCategory as keyof typeof prev] as number) + 1
+        [oldCat]: Math.max(0, ((prev as any)[oldCat] as number || 0) - 1),
+        [newCategory]: ((prev as any)[newCategory] as number || 0) + 1
       }))
     }
 
@@ -546,7 +565,8 @@ function LeadsContent() {
             id: lead.id,
             conversation_id: lead.conversation_id,
             phone_number: lead.phone_number,
-            lead_type: newCategory
+            lead_type: newCategory,
+            osmo_category: newCategory
           })
         })
       ]
@@ -556,10 +576,10 @@ function LeadsContent() {
           fetch(`/api/conversations/${targetConvId}`, {
             method: 'PATCH',
             headers,
-            body: JSON.stringify({ lead_type: newCategory })
+            body: JSON.stringify({ lead_type: newCategory, osmo_category: newCategory })
           })
         )
-        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: newCategory, category: newCategory } }))
+        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: newCategory, category: newCategory, osmo_category: newCategory } }))
       }
 
       const results = await Promise.all(promises)
@@ -593,11 +613,15 @@ function LeadsContent() {
         lead_quality: editQuality || null,
         lead_score: editScore,
         lead_type: editCategory,
+        osmo_category: editCategory,
         state: editState,
         district: editDistrict,
         pincode: editPincode,
         metadata: {
           ...editMetadata,
+          lead_type: editCategory,
+          category: editCategory,
+          osmo_category: editCategory,
           state: editState,
           district: editDistrict,
           pincode: editPincode,
@@ -617,19 +641,19 @@ function LeadsContent() {
         fetch(`/api/conversations/${targetConvId}`, {
           method: 'PATCH',
           headers,
-          body: JSON.stringify({ lead_type: editCategory, stage: editStage, state: editState, district: editDistrict, pincode: editPincode })
+          body: JSON.stringify({ lead_type: editCategory, osmo_category: editCategory, stage: editStage, state: editState, district: editDistrict, pincode: editPincode })
         }).catch(console.error)
-        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: editCategory, category: editCategory, stage: editStage } }))
+        window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: targetConvId, lead_type: editCategory, category: editCategory, osmo_category: editCategory, stage: editStage } }))
       }
       
-      const mergedMeta = { ...editMetadata, lead_type: editCategory, category: editCategory, state: editState, district: editDistrict, pincode: editPincode }
+      const mergedMeta = { ...editMetadata, lead_type: editCategory, category: editCategory, osmo_category: editCategory, state: editState, district: editDistrict, pincode: editPincode }
       
-      const oldCat = (activeLead.metadata as any)?.category || activeLead.lead_type || 'unfiltered'
+      const oldCat = classifyLead(activeLead)
       if (oldCat !== editCategory) {
         setStats(prev => ({
           ...prev,
-          [oldCat]: Math.max(0, (prev[oldCat as keyof typeof prev] as number) - 1),
-          [editCategory]: (prev[editCategory as keyof typeof prev] as number) + 1
+          [oldCat]: Math.max(0, ((prev as any)[oldCat] as number || 0) - 1),
+          [editCategory]: ((prev as any)[editCategory] as number || 0) + 1
         }))
       }
 
@@ -1063,7 +1087,7 @@ function LeadsContent() {
   const displayedLeads = useMemo(() => {
     return leads.filter(l => {
       if (isOsmoRo && leadTypeFilter && leadTypeFilter !== 'all') {
-        const currentCategory = l.lead_type || (l.metadata as any)?.category || l.osmo_category || 'unfiltered'
+        const currentCategory = classifyLead(l)
         if (currentCategory !== leadTypeFilter) return false
       }
       if (selectedSource) {
@@ -1511,13 +1535,16 @@ function LeadsContent() {
 
           {/* Quick Tap Category Tabs (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
           {isOsmoRo && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-white dark:border-gray-800/50 shadow-sm transition-all">
+            <div className={`grid grid-cols-2 ${isOsmoRo2 ? 'sm:grid-cols-6' : 'sm:grid-cols-5'} gap-3 p-2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-white dark:border-gray-800/50 shadow-sm transition-all`}>
               {[
                 { id: 'unfiltered', label: 'Unfiltered', count: typeCounts.unfiltered, activeStyle: 'bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-md shadow-slate-500/30' },
                 { id: 'osmo_dealer', label: 'Osmo Dealer', count: typeCounts.osmo_dealer, activeStyle: 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md shadow-purple-500/30' },
                 { id: 'dealer', label: 'Dealer', count: typeCounts.dealer, activeStyle: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/30' },
                 { id: 'customer', label: 'Customer', count: typeCounts.customer, activeStyle: 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md shadow-teal-500/30' },
                 { id: 'technician', label: 'Technician', count: typeCounts.technician, activeStyle: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/30' },
+                ...(isOsmoRo2 ? [
+                  { id: 'dead_lead', label: 'Dead Lead', count: typeCounts.dead_lead, activeStyle: 'bg-gradient-to-r from-rose-600 to-rose-700 text-white shadow-md shadow-rose-500/30' }
+                ] : [])
               ].map((tab) => {
                 const active = leadTypeFilter === tab.id
                 return (
@@ -1692,6 +1719,7 @@ function LeadsContent() {
                                             classifyLead(lead) === 'dealer' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 border-amber-300 dark:border-amber-700' :
                                             classifyLead(lead) === 'customer' ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200 border-teal-300 dark:border-teal-700' :
                                             classifyLead(lead) === 'technician' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 border-blue-300 dark:border-blue-700' :
+                                            classifyLead(lead) === 'dead_lead' ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200 border-rose-300 dark:border-rose-700' :
                                             'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700'
                                           }`}
                                           title="Change Category"
@@ -1701,6 +1729,9 @@ function LeadsContent() {
                                           <option value="dealer">Dealer</option>
                                           <option value="customer">Customer</option>
                                           <option value="technician">Technician</option>
+                                          {(isOsmoRo2 || classifyLead(lead) === 'dead_lead') && (
+                                            <option value="dead_lead">Dead Lead</option>
+                                          )}
                                         </select>
                                         <ChevronDown className="w-2.5 h-2.5 absolute right-1 pointer-events-none opacity-60" />
                                       </div>
@@ -2447,6 +2478,9 @@ function LeadsContent() {
                             <option value="dealer">🟠 Dealer / Retailer</option>
                             <option value="customer">🟢 Customer</option>
                             <option value="technician">🔵 Technician</option>
+                            {(isOsmoRo2 || editCategory === 'dead_lead') && (
+                              <option value="dead_lead">🔴 Dead Lead</option>
+                            )}
                           </select>
                         </div>
                         <div>

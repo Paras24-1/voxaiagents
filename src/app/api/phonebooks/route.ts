@@ -40,7 +40,8 @@ export async function GET(req: NextRequest) {
           pb.name.toLowerCase().includes('customer') ||
           pb.name.toLowerCase().includes('osmo') ||
           pb.name.toLowerCase().includes('technician') ||
-          pb.name.toLowerCase().includes('unfiltered')
+          pb.name.toLowerCase().includes('unfiltered') ||
+          pb.name.toLowerCase().includes('dead')
         ))
 
         return {

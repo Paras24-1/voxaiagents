@@ -58,18 +58,8 @@ export async function POST(req: NextRequest) {
             ? new Date(conv.last_incoming_message_at).getTime()
             : 0
 
-          const is24hExpired = platform === 'whatsapp' && (nowTime - lastIncoming > TWENTY_FOUR_HOURS)
-
-          if (is24hExpired) {
-            results.push({
-              conversation_id: conv.id,
-              phone_number: conv.phone_number,
-              name: conv.name,
-              status: 'skipped_24h_expired',
-              error: '24-hour messaging window has expired'
-            })
-            return
-          }
+          // 24-hour window check disabled — never skip
+          const is24hExpired = false
 
           try {
             const replyRes = await fetch(replyApiUrl, {

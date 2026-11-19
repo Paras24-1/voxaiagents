@@ -36,6 +36,16 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
     org?.name?.toLowerCase().includes('osmo') ||
     org?.slug?.toLowerCase().includes('osmo')
 
+  const isOsmoRo2 = Boolean(
+    org?.id === 'e7c673e9-818e-4dd3-818e-7dfb51a1007b' ||
+    org?.slug === 'osmo-ro-2' ||
+    org?.slug?.toLowerCase().includes('osmo-ro-2') ||
+    org?.name?.toLowerCase().includes('osmo ro 2') ||
+    org?.name?.toLowerCase().includes('osmo ro - 2') ||
+    org?.name?.toLowerCase().includes('osmo 2') ||
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com'
+  )
+
   const [leadState, setLeadState] = useState<string>('')
   const [savingState, setSavingState] = useState(false)
   const [leadDistrict, setLeadDistrict] = useState<string>('')
@@ -792,99 +802,108 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
                   <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase tracking-wider">Lead Category</span>
                 </div>
                 <div className="relative z-10">
-                  <select
-                    value={(lead as any)?.osmo_category || (lead as any)?.category || (lead as any)?.lead_type || (typeof lead?.metadata === 'object' ? (lead?.metadata as any)?.osmo_category || (lead?.metadata as any)?.category || (lead?.metadata as any)?.lead_type : '') || 'unfiltered'}
-                    disabled={savingCategoryStatus === 'saving'}
-                    onChange={async (e) => {
-                      const previousVal = (lead as any)?.osmo_category || (lead as any)?.category || (lead as any)?.lead_type || (typeof lead?.metadata === 'object' ? (lead?.metadata as any)?.osmo_category || (lead?.metadata as any)?.category || (lead?.metadata as any)?.lead_type : '') || 'unfiltered'
-                      const val = e.target.value
-                      setSavingCategoryStatus('saving')
-                      setCategoryError(null)
-                      
-                      const currentMeta = typeof lead?.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead?.metadata || {})
-                      const updatedMeta = { ...currentMeta, osmo_category: val, category: val, lead_type: val }
-                      const updatedLead = { ...(lead || {}), osmo_category: val, category: val, lead_type: val, metadata: updatedMeta }
-                      
-                      if (conversation) {
-                        const updatedConv = {
-                          ...conversation,
-                          lead: updatedLead,
-                          osmo_category: val,
-                          category: val,
-                          lead_type: val
-                        }
-                        window.dispatchEvent(new CustomEvent('update-conversation', {
-                          detail: updatedConv
-                        }))
-                        if (onLeadUpdate) onLeadUpdate(updatedLead)
-                      }
-                      
-                      try {
-                        const { data: { session } } = await supabase.auth.getSession()
-                        const token = session?.access_token || ''
-                        const headers: Record<string, string> = {
-                          'Content-Type': 'application/json',
-                          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                        }
-                        const res = await fetch('/api/leads', {
-                          method: 'PATCH',
-                          headers,
-                          body: JSON.stringify({
-                            id: lead?.id,
-                            conversation_id: conversation?.id || lead?.conversation_id,
-                            phone_number: conversation?.phone_number || lead?.phone_number,
-                            osmo_category: val,
-                            lead_type: val,
-                            category: val
-                          })
-                        })
-                        const json = await res.json()
-                        if (!res.ok) {
-                          throw new Error(json.error || 'Failed to update category')
-                        }
-
-                        setSavingCategoryStatus('success')
-                        window.dispatchEvent(new CustomEvent('lead-updated'))
-                        setShowCategoryToast(true)
-                        setTimeout(() => {
-                          setSavingCategoryStatus('idle')
-                          setShowCategoryToast(false)
-                        }, 3000)
-                      } catch (err: any) {
-                        console.error('Failed to update category:', err)
-                        // Revert UI to previous category
-                        const revertedMeta = { ...currentMeta, osmo_category: previousVal, category: previousVal, lead_type: previousVal }
-                        const revertedLead = { ...(lead || {}), osmo_category: previousVal, category: previousVal, lead_type: previousVal, metadata: revertedMeta }
-                        if (conversation) {
-                          const revertedConv = {
-                            ...conversation,
-                            lead: revertedLead,
-                            osmo_category: previousVal,
-                            category: previousVal,
-                            lead_type: previousVal
+                  {(() => {
+                    const rawCategory = (lead as any)?.osmo_category || (lead as any)?.category || (lead as any)?.lead_type || (typeof lead?.metadata === 'object' ? (lead?.metadata as any)?.osmo_category || (lead?.metadata as any)?.category || (lead?.metadata as any)?.lead_type : '') || 'unfiltered'
+                    const selectedCategory = (rawCategory === 'dead lead' ? 'dead_lead' : rawCategory)
+                    return (
+                      <select
+                        value={selectedCategory}
+                        disabled={savingCategoryStatus === 'saving'}
+                        onChange={async (e) => {
+                          const previousVal = selectedCategory
+                          const val = e.target.value
+                          setSavingCategoryStatus('saving')
+                          setCategoryError(null)
+                          
+                          const currentMeta = typeof lead?.metadata === 'string' ? JSON.parse(lead.metadata || '{}') : (lead?.metadata || {})
+                          const updatedMeta = { ...currentMeta, osmo_category: val, category: val, lead_type: val }
+                          const updatedLead = { ...(lead || {}), osmo_category: val, category: val, lead_type: val, metadata: updatedMeta }
+                          
+                          if (conversation) {
+                            const updatedConv = {
+                              ...conversation,
+                              lead: updatedLead,
+                              osmo_category: val,
+                              category: val,
+                              lead_type: val
+                            }
+                            window.dispatchEvent(new CustomEvent('update-conversation', {
+                              detail: updatedConv
+                            }))
+                            if (onLeadUpdate) onLeadUpdate(updatedLead)
                           }
-                          window.dispatchEvent(new CustomEvent('update-conversation', { detail: revertedConv }))
-                          if (onLeadUpdate) onLeadUpdate(revertedLead)
-                        }
-                        setCategoryError(err.message || 'Failed to update category')
-                        setSavingCategoryStatus('error')
-                        setTimeout(() => {
-                          setSavingCategoryStatus('idle')
-                        }, 4000)
-                      }
-                    }}
-                    className={`w-full appearance-none bg-white dark:bg-black/40 border text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none transition-all cursor-pointer capitalize shadow-sm ${
-                      savingCategoryStatus === 'error'
-                        ? 'border-red-400 dark:border-red-600 text-red-900 dark:text-red-200'
-                        : 'border-emerald-200/60 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 text-emerald-900 dark:text-emerald-100'
-                    } ${savingCategoryStatus === 'saving' ? 'opacity-80 cursor-wait' : ''}`}
-                  >
-                    <option value="unfiltered">⚪ Unfiltered</option>
-                    <option value="osmo_dealer">🟢 Osmo Dealer</option>
-                    <option value="dealer">🔵 Dealer</option>
-                    <option value="customer">🟠 Customer</option>
-                    <option value="technician">🔧 Technician</option>
-                  </select>
+                          
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession()
+                            const token = session?.access_token || ''
+                            const headers: Record<string, string> = {
+                              'Content-Type': 'application/json',
+                              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            }
+                            const res = await fetch('/api/leads', {
+                              method: 'PATCH',
+                              headers,
+                              body: JSON.stringify({
+                                id: lead?.id,
+                                conversation_id: conversation?.id || lead?.conversation_id,
+                                phone_number: conversation?.phone_number || lead?.phone_number,
+                                osmo_category: val,
+                                lead_type: val,
+                                category: val
+                              })
+                            })
+                            const json = await res.json()
+                            if (!res.ok) {
+                              throw new Error(json.error || 'Failed to update category')
+                            }
+
+                            setSavingCategoryStatus('success')
+                            window.dispatchEvent(new CustomEvent('lead-updated'))
+                            setShowCategoryToast(true)
+                            setTimeout(() => {
+                              setSavingCategoryStatus('idle')
+                              setShowCategoryToast(false)
+                            }, 3000)
+                          } catch (err: any) {
+                            console.error('Failed to update category:', err)
+                            // Revert UI to previous category
+                            const revertedMeta = { ...currentMeta, osmo_category: previousVal, category: previousVal, lead_type: previousVal }
+                            const revertedLead = { ...(lead || {}), osmo_category: previousVal, category: previousVal, lead_type: previousVal, metadata: revertedMeta }
+                            if (conversation) {
+                              const revertedConv = {
+                                ...conversation,
+                                lead: revertedLead,
+                                osmo_category: previousVal,
+                                category: previousVal,
+                                lead_type: previousVal
+                              }
+                              window.dispatchEvent(new CustomEvent('update-conversation', { detail: revertedConv }))
+                              if (onLeadUpdate) onLeadUpdate(revertedLead)
+                            }
+                            setCategoryError(err.message || 'Failed to update category')
+                            setSavingCategoryStatus('error')
+                            setTimeout(() => {
+                              setSavingCategoryStatus('idle')
+                            }, 4000)
+                          }
+                        }}
+                        className={`w-full appearance-none bg-white dark:bg-black/40 border text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none transition-all cursor-pointer capitalize shadow-sm ${
+                          savingCategoryStatus === 'error'
+                            ? 'border-red-400 dark:border-red-600 text-red-900 dark:text-red-200'
+                            : 'border-emerald-200/60 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 text-emerald-900 dark:text-emerald-100'
+                        } ${savingCategoryStatus === 'saving' ? 'opacity-80 cursor-wait' : ''}`}
+                      >
+                        <option value="unfiltered">⚪ Unfiltered</option>
+                        <option value="osmo_dealer">🟢 Osmo Dealer</option>
+                        <option value="dealer">🔵 Dealer</option>
+                        <option value="customer">🟠 Customer</option>
+                        <option value="technician">🔧 Technician</option>
+                        {(isOsmoRo2 || selectedCategory === 'dead_lead') && (
+                          <option value="dead_lead">🔴 Dead Lead</option>
+                        )}
+                      </select>
+                    )
+                  })()}
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-emerald-100 dark:bg-emerald-900/60 rounded flex items-center justify-center pointer-events-none transition-all">
                     {savingCategoryStatus === 'saving' ? (
                       <Loader2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-spin" />

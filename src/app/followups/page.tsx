@@ -374,23 +374,30 @@ function FollowupsContent() {
     if (!dateStr) return { label: 'Unknown', style: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' }
     const d = new Date(dateStr)
     const now = new Date()
-    
-    // Check if past
-    if (d.getTime() < now.getTime()) {
-      return { 
-        label: 'Overdue', 
-        style: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/60' 
-      }
-    }
 
-    // Check if today
+    // Check if today FIRST (before checking overdue)
     const isToday = d.getDate() === now.getDate() && 
                     d.getMonth() === now.getMonth() && 
                     d.getFullYear() === now.getFullYear()
     if (isToday) {
+      // If today but time has passed, show "Due Now" instead of "Overdue"
+      if (d.getTime() < now.getTime()) {
+        return { 
+          label: 'Due Now', 
+          style: 'bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 border border-orange-200 dark:border-orange-900/60' 
+        }
+      }
       return { 
         label: 'Today', 
         style: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60' 
+      }
+    }
+    
+    // Check if past (only for dates BEFORE today)
+    if (d.getTime() < now.getTime()) {
+      return { 
+        label: 'Overdue', 
+        style: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/60' 
       }
     }
 
@@ -416,13 +423,19 @@ function FollowupsContent() {
     if (filterType === 'all') return true
     
     const { label } = getReminderStatus(r.followup_date)
-    return label.toLowerCase() === filterType
+    const statusLower = label.toLowerCase()
+    // "Due Now" items belong under the "today" filter
+    if (filterType === 'today') return statusLower === 'today' || statusLower === 'due now'
+    return statusLower === filterType
   })
 
   const countByStatus = (status: 'overdue' | 'today' | 'upcoming') => {
     return reminders.filter(r => {
       const { label } = getReminderStatus(r.followup_date)
-      return label.toLowerCase() === status
+      const statusLower = label.toLowerCase()
+      // "Due Now" items count under "today"
+      if (status === 'today') return statusLower === 'today' || statusLower === 'due now'
+      return statusLower === status
     }).length
   }
 

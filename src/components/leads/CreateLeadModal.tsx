@@ -34,7 +34,23 @@ export default function CreateLeadModal({
   staffList = [],
   initialCategory = 'unfiltered'
 }: CreateLeadModalProps) {
-  const { profile } = useOrg()
+  const { profile, org } = useOrg()
+  const isOsmoRo2 = Boolean(
+    org?.id === 'e7c673e9-818e-4dd3-818e-7dfb51a1007b' ||
+    org?.slug === 'osmo-ro-2' ||
+    org?.slug?.toLowerCase().includes('osmo-ro-2') ||
+    org?.name?.toLowerCase().includes('osmo ro 2') ||
+    org?.name?.toLowerCase().includes('osmo ro - 2') ||
+    org?.name?.toLowerCase().includes('osmo 2') ||
+    profile?.email?.toLowerCase() === 'paanifilter9@gmail.com'
+  )
+
+  const activeCategoryOptions = [
+    ...CATEGORY_OPTIONS.slice(0, 5),
+    ...(isOsmoRo2 ? [{ value: 'dead_lead', label: 'Dead Lead' }] : []),
+    ...CATEGORY_OPTIONS.slice(5)
+  ]
+
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [category, setCategory] = useState(initialCategory)
@@ -297,7 +313,7 @@ export default function CreateLeadModal({
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                {CATEGORY_OPTIONS.map(c => (
+                {activeCategoryOptions.map(c => (
                   <option key={c.value} value={c.value}>{c.label}</option>
                 ))}
               </select>
