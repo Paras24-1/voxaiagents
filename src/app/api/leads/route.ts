@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getOrgId } from '@/lib/supabase'
 import { isOsmoOrg, syncOsmoPhonebooks, invalidateUnifiedCache } from '@/lib/osmoPhonebooks'
 import { handleApiError } from '@/lib/apiErrors'
+import { formatLeadSerialNumber } from '@/lib/leadUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -56,6 +57,12 @@ export async function GET(req: NextRequest) {
           data.conversation_id = conversationId
         }
       }
+    }
+
+    if (data) {
+      const serialNo = formatLeadSerialNumber(data)
+      data.serial_number = serialNo
+      data.serial_no = serialNo
     }
 
     return NextResponse.json(data || {})
@@ -353,6 +360,12 @@ export async function PATCH(req: NextRequest) {
     isOsmoOrg(orgId).then((isOsmo) => {
       if (isOsmo) syncOsmoPhonebooks(orgId).catch(console.error)
     }).catch(() => {})
+
+    if (data) {
+      const serialNo = formatLeadSerialNumber(data)
+      data.serial_number = serialNo
+      data.serial_no = serialNo
+    }
 
     return NextResponse.json(data || {})
   } catch (err: unknown) {

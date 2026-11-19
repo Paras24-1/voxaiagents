@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
 import { fetchUnifiedOsmoContacts } from '@/lib/osmoPhonebooks'
+import { formatLeadSerialNumber } from '@/lib/leadUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -178,6 +179,18 @@ export async function GET(req: NextRequest) {
       console.error('[GET /api/conversations] Fallback lead lookup error:', e)
     }
 
+    // Attach serial numbers to linked leads
+    enrichedData.forEach((c: any) => {
+      const leadObj = c.lead || (Array.isArray(c.leads) ? c.leads[0] : c.leads)
+      if (leadObj) {
+        const serialNo = formatLeadSerialNumber(leadObj)
+        leadObj.serial_number = serialNo
+        leadObj.serial_no = serialNo
+        c.serial_number = serialNo
+        c.serial_no = serialNo
+      }
+    })
+
     // Filter by category if requested
     if (categoryFilter && categoryFilter !== 'all') {
       enrichedData = enrichedData.filter((c: any) => {
@@ -204,12 +217,20 @@ export async function GET(req: NextRequest) {
 
     // Apply search filter if present
     if (search) {
-      const srch = search.toLowerCase()
+      const srch = search.toLowerCase().trim()
+      const cleanSrch = srch.startsWith('#') ? srch.slice(1).trim() : srch
       enrichedData = enrichedData.filter((conv: any) => {
+        const leadObj = conv.lead || (Array.isArray(conv.leads) ? conv.leads[0] : conv.leads) || {}
+        const serial = String(conv.serial_number || leadObj.serial_number || formatLeadSerialNumber(leadObj.id ? leadObj : null) || '').toLowerCase()
         const p = (conv.phone_number || '').toLowerCase()
         const n = (conv.name || conv.lead?.name || '').toLowerCase()
         const msg = (conv.last_message || '').toLowerCase()
-        return p.includes(srch) || n.includes(srch) || msg.includes(srch)
+        return (
+          p.includes(srch) ||
+          n.includes(srch) ||
+          msg.includes(srch) ||
+          (serial && (serial.includes(cleanSrch) || `#${serial}`.includes(srch)))
+        )
       })
     }
 

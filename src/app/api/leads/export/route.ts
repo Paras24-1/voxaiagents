@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
 import { getCropDbFilterClauses, isCropMatch, normalizeCrop, PRIMARY_CROP_KEYS, extractLeadCrop } from '@/lib/cropUtils'
+import { formatLeadSerialNumber } from '@/lib/leadUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -357,7 +358,10 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
       }
     })
 
+    const serialNo = formatLeadSerialNumber({ ...l, metadata: parsedMetadata })
+
     return {
+      serial_number: serialNo ? `#${serialNo}` : '',
       name: displayName,
       phone_number: p || '',
       stage: stg,
@@ -378,6 +382,7 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
   const sortedMetaKeys = Array.from(metadataKeys).sort((a, b) => a.localeCompare(b))
 
   const standardHeaders = [
+    'Serial Number',
     'Name',
     'Phone Number',
     'Stage',
@@ -402,6 +407,7 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
   // Data rows
   enrichedLeads.forEach((lead: any) => {
     const row = [
+      lead.serial_number || '',
       lead.name,
       lead.phone_number,
       lead.stage,

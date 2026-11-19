@@ -12,6 +12,7 @@ import TemplatePickerModal from '@/components/chat/TemplatePickerModal'
 import LocationPickerModal from '@/components/chat/LocationPickerModal'
 import { CannedReplyItem } from '@/components/chat/CannedRepliesModal'
 import ForwardMessageModal, { ForwardMessageData } from './ForwardMessageModal'
+import { formatLeadSerialNumber } from '@/lib/leadUtils'
 
 function formatMessageDateSeparator(dateString: string): string {
   const date = new Date(dateString)
@@ -732,6 +733,16 @@ export default function ChatWindow({ conversation, onAIToggle, onBack, onViewLea
                     </button>
                   </div>
                 )}
+                {(() => {
+                  const leadObj = Array.isArray((conversation as any).leads) ? (conversation as any).leads[0] : (conversation as any).leads || (conversation as any).lead || {}
+                  const serial = formatLeadSerialNumber(leadObj.id || leadObj.serial_number ? leadObj : null)
+                  if (!serial) return null
+                  return (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 shadow-2xs" title={`Lead #${serial}`}>
+                      <span className="text-slate-400 dark:text-slate-500 font-normal">#</span>{serial}
+                    </span>
+                  )
+                })()}
               <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
                 conversation.platform === 'instagram'
                   ? 'bg-pink-100 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300 border border-pink-200/50'

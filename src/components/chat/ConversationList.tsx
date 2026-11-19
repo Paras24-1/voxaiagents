@@ -10,6 +10,7 @@ import { supabase, fetchWithAuth } from '@/lib/supabaseClient'
 import { motion } from 'framer-motion'
 import { useLeadStages } from '@/hooks/useLeadStages'
 import CreateLeadModal from '@/components/leads/CreateLeadModal'
+import { formatLeadSerialNumber } from '@/lib/leadUtils'
 
 const STAGES: Stage[] = ['new', 'interested', 'booking', 'confirmed', 'cancelled', 'completed', 'followup', 'not_interested', 'call_done', 'low_budget', 'hot_customer', 'not_connected', 'joined', 'not_joined', 'contact_save', 'contact_not_save', 'unknown']
 
@@ -872,6 +873,16 @@ const ConversationItem = React.memo(function ConversationItem({
           <span className={`text-sm font-bold truncate transition-colors ${isSelected ? 'text-emerald-900 dark:text-emerald-200' : 'text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400'}`}>
             {conv.name || conv.phone_number}
           </span>
+          {(() => {
+            const leadObj = Array.isArray((conv as any).leads) ? (conv as any).leads[0] : (conv as any).leads || (conv as any).lead || {}
+            const serial = formatLeadSerialNumber(leadObj.id || leadObj.serial_number ? leadObj : null)
+            if (!serial) return null
+            return (
+              <span className="text-[10px] font-mono font-semibold px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 shrink-0">
+                #{serial}
+              </span>
+            )
+          })()}
           {conv.platform === 'instagram' && (
             <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-md uppercase bg-pink-100 text-pink-700 dark:bg-pink-950/50 dark:text-pink-300 shrink-0">
               IG

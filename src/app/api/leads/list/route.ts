@@ -8,6 +8,7 @@ import {
   PRIMARY_CROP_KEYS, 
   extractLeadCrop 
 } from '@/lib/cropUtils'
+import { formatLeadSerialNumber } from '@/lib/leadUtils'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -140,10 +141,13 @@ export async function GET(req: NextRequest) {
     // Push text search to DB (name, phone_number, customer_name, and metadata fields)
     if (search) {
       const s = search.trim()
+      const sClean = s.replace(/^#/, '').trim()
       const searchClauses = [
         `name.ilike.%${s}%`,
         `phone_number.ilike.%${s}%`,
         `customer_name.ilike.%${s}%`,
+        `metadata->>serial_number.ilike.%${sClean}%`,
+        `metadata->>serial_no.ilike.%${sClean}%`,
         `metadata->>crop.ilike.%${s}%`,
         `metadata->>Crop.ilike.%${s}%`,
         `metadata->>crop_choice.ilike.%${s}%`,
@@ -345,11 +349,14 @@ export async function GET(req: NextRequest) {
 
       const displayName = c.name || l.name || l.customer_name || parsedMetadata.Name || parsedMetadata.name || parsedMetadata.contact_person || 'Unknown'
       const assignedAt = c.updated_at || l.created_at
+      const serialNo = formatLeadSerialNumber({ ...l, metadata: parsedMetadata })
 
       return {
         ...l,
         ...parsedMetadata,
         id: l.id,
+        serial_number: serialNo,
+        serial_no: serialNo,
         conversation_id: l.conversation_id || c.id || null,
         phone_number: p,
         name: displayName,

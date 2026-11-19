@@ -44,6 +44,8 @@ import { CANONICAL_CROP_LIST, isCropMatch, normalizeCrop } from '@/lib/cropUtils
 interface Lead {
   id: string
   conversation_id: string
+  serial_number?: string | number | null
+  serial_no?: string | number | null
   phone_number: string
   customer_name?: string | null
   name?: string | null
@@ -114,6 +116,7 @@ export default function LeadsPage() {
 
 import { classifyOsmoContact } from '@/lib/osmoPhonebooks'
 import { INDIAN_STATES } from '@/lib/constants'
+import { formatLeadSerialNumber } from '@/lib/leadUtils'
 
 
 function formatISTDate(dateStr: string | null | undefined): string {
@@ -1692,7 +1695,10 @@ function LeadsContent() {
                             className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
                           />
                         </th>
-                        <th className="px-6 py-4 whitespace-nowrap md:sticky md:left-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 md:shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.08)] md:dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.08)] font-black text-slate-900 dark:text-white">
+                        <th className="px-3 py-4 whitespace-nowrap md:sticky md:left-10 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 w-16 text-center font-black text-slate-700 dark:text-slate-300">
+                          <span className="text-[10px] tracking-wider uppercase font-black text-slate-500 dark:text-slate-400"># ID</span>
+                        </th>
+                        <th className="px-6 py-4 whitespace-nowrap md:sticky md:left-26 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-xl z-30 md:shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.08)] md:dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.08)] font-black text-slate-900 dark:text-white">
                           <span className="inline-flex items-center gap-1.5">
                             <User className="w-4 h-4 text-emerald-500" />
                             Lead Contact
@@ -1763,14 +1769,22 @@ function LeadsContent() {
                                 className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
                               />
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap md:sticky md:left-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 md:shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.06)] md:dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
+                            <td className="px-3 py-4 whitespace-nowrap md:sticky md:left-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 text-center font-mono text-[11px] font-extrabold text-slate-600 dark:text-slate-300">
+                              <span className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 px-1.5 py-0.5 rounded text-[11px] shadow-2xs">
+                                #{formatLeadSerialNumber(lead)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap md:sticky md:left-26 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 md:shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.06)] md:dark:shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.06)]">
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0 ring-2 ring-emerald-500/20">
                                   {(displayName || 'U').charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex flex-col">
-                                  <div className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 text-sm tracking-tight">
+                                  <div className="font-extrabold text-gray-900 dark:text-white flex items-center gap-2 text-sm tracking-tight flex-wrap">
                                     <span>{displayName}</span>
+                                    <span className="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700/60 shadow-2xs">
+                                      #{formatLeadSerialNumber(lead)}
+                                    </span>
                                     {isOsmoRo && (
                                       <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
                                         <select
@@ -2217,7 +2231,12 @@ function LeadsContent() {
                                 {(displayName || 'U').charAt(0).toUpperCase()}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate tracking-tight">{displayName}</h4>
+                                <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate tracking-tight flex items-center gap-1.5">
+                                  <span>{displayName}</span>
+                                  <span className="text-[10px] font-mono font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700 shrink-0">
+                                    #{formatLeadSerialNumber(lead)}
+                                  </span>
+                                </h4>
                                 <p className="text-xs font-mono font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
                                   <Phone className="w-3 h-3 text-emerald-500 shrink-0" />
                                   <span>{lead.phone_number}</span>
@@ -2341,7 +2360,14 @@ function LeadsContent() {
                   <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/20 flex items-center justify-center">
                     <User className="w-5 h-5 text-white" />
                   </div>
-                  <span className="font-black tracking-tight text-gray-900 dark:text-white text-lg">Lead Summary</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-black tracking-tight text-gray-900 dark:text-white text-lg">Lead Summary</span>
+                      <span className="text-xs font-mono font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-md shadow-2xs">
+                        #{formatLeadSerialNumber(activeLead)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <button 
                   onClick={() => setActiveLead(null)}
@@ -2366,8 +2392,8 @@ function LeadsContent() {
 
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="p-3 bg-gray-50/50 dark:bg-gray-900/50 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
-                      <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Database ID</span>
-                      <p className="text-xs text-gray-900 dark:text-gray-100 font-mono truncate mt-1">{activeLead.id}</p>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Serial Number</span>
+                      <p className="text-sm text-emerald-600 dark:text-emerald-400 font-mono font-black mt-1">#{formatLeadSerialNumber(activeLead)}</p>
                     </div>
                     <div className="p-3 bg-gray-50/50 dark:bg-gray-900/50 rounded-2xl border border-gray-200/60 dark:border-gray-800/60 shadow-sm">
                       <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Created Date</span>

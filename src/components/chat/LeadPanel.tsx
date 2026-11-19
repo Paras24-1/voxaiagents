@@ -7,7 +7,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { INDIAN_STATES } from '@/lib/constants'
-import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown, Loader2, Tag, ArrowLeft } from 'lucide-react'
+import { formatLeadSerialNumber } from '@/lib/leadUtils'
+import { RefreshCw, Phone, User, Target, MapPin, Wrench, Star, CheckCircle, MessageSquare, TrendingUp, StickyNote, Save, Calendar, Clock, Trash2, X, Plus, Check, Edit2, Ban, ChevronDown, Loader2, Tag, ArrowLeft, Hash } from 'lucide-react'
 
 const getLocalDateString = (d: Date) => {
   const year = d.getFullYear();
@@ -760,8 +761,15 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/20 border border-white/20 shrink-0">
             <User className="w-4.5 h-4.5 text-white" />
           </div>
-          <div className="min-w-0">
-            <h3 className="text-sm sm:text-[15px] font-extrabold text-gray-900 dark:text-white tracking-tight truncate">Lead Details</h3>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className="text-sm sm:text-[15px] font-extrabold text-gray-900 dark:text-white tracking-tight truncate">Lead Details</h3>
+              {lead && (
+                <span className="text-[10px] font-mono font-extrabold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 shadow-2xs">
+                  #{formatLeadSerialNumber(lead)}
+                </span>
+              )}
+            </div>
             <p className="text-[10px] font-bold text-emerald-600/80 dark:text-emerald-400/80 uppercase tracking-wider truncate">Live CRM Database Sync</p>
           </div>
         </div>
@@ -924,6 +932,9 @@ export default function LeadPanel({ conversation, lead, onLeadUpdate, onBack }: 
               </div>
             )}
 
+            {lead && (
+              <InfoCard icon={Hash} label="Lead Serial #" value={`#${formatLeadSerialNumber(lead)}`} />
+            )}
             <InfoCard icon={Phone} label="Phone Number" value={data.Phone} />
             {conversation?.receiver_phone_number && (
               <InfoCard icon={Target} label="Source API Number" value={conversation.receiver_phone_number} />
