@@ -120,7 +120,6 @@ function AnalyticsContent() {
   const [inspectorLoading, setInspectorLoading] = useState(false)
   const [inspectorSearch, setInspectorSearch] = useState('')
 
-  useEffect(() => { fetchStats() }, [])
 
   const fetchInspectorLeads = async () => {
     if (!org?.id || !inspectorDate) return
@@ -163,8 +162,8 @@ function AnalyticsContent() {
     return nameStr.includes(searchStr) || phoneStr.includes(searchStr)
   })
 
-  const fetchStats = async () => {
-    setLoading(true)
+  const fetchStats = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token || ''
@@ -179,9 +178,26 @@ function AnalyticsContent() {
     } catch (err) {
       console.error('Failed to fetch stats:', err)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchStats()
+    const handleRefresh = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      fetchStats(true)
+      fetchInspectorLeads()
+    }
+    const interval = setInterval(handleRefresh, 15000)
+    window.addEventListener('focus', handleRefresh)
+    document.addEventListener('visibilitychange', handleRefresh)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleRefresh)
+      document.removeEventListener('visibilitychange', handleRefresh)
+    }
+  }, [])
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">

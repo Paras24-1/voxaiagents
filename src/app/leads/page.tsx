@@ -426,14 +426,14 @@ function LeadsContent() {
     }
   }
 
-  const fetchLeads = async (loadMore = false) => {
+  const fetchLeads = async (loadMore = false, silent = false) => {
     if (loadMore) {
       setLoadingMore(true)
-    } else {
+    } else if (!silent) {
       setLoading(true)
       setPage(1)
     }
-    setError(null)
+    if (!silent) setError(null)
     
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -474,15 +474,27 @@ function LeadsContent() {
       if (loadMore) {
         setLeads(prev => [...prev, ...data])
         setPage(currentPage)
+      } else if (silent) {
+        setLeads(prev => {
+          if (!Array.isArray(data)) return prev
+          // If at the initial page (page === 1), replace to smoothly show new incoming leads at top
+          if (page === 1) return data
+          // Otherwise merge
+          const existingIds = new Set(data.map((l: Lead) => l.id))
+          const oldKept = prev.filter(l => !existingIds.has(l.id))
+          return [...data, ...oldKept]
+        })
       } else {
         setLeads(data)
       }
       setHasMore(more)
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'An error occurred while loading leads.')
+      if (!silent) {
+        setError(err.message || 'An error occurred while loading leads.')
+      }
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
       setLoadingMore(false)
     }
   }
@@ -490,6 +502,56 @@ function LeadsContent() {
   useEffect(() => {
     fetchLeads(false)
   }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter, selectedCustomField, customFilterValue])
+
+  // Auto-refresh leads CRM: Periodic background polling + Focus & Tab Visibility listeners
+  useEffect(() => {
+    const handleAutoRefresh = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      // Don't auto-refresh if user is actively typing in a text field
+      const activeEl = typeof document !== 'undefined' ? document.activeElement : null
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return
+      fetchLeadsRef.current(false, true)
+    }
+
+    const interval = setInterval(handleAutoRefresh, 10000)
+    window.addEventListener('focus', handleAutoRefresh)
+    document.addEventListener('visibilitychange', handleAutoRefresh)
+    window.addEventListener('refresh-leads', handleAutoRefresh)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleAutoRefresh)
+      document.removeEventListener('visibilitychange', handleAutoRefresh)
+      window.removeEventListener('refresh-leads', handleAutoRefresh)
+    }
+  }, [])
+
+  // Real-time Supabase subscription for leads table
+  useEffect(() => {
+    if (!profile?.org_id) return
+
+    const channel = supabase
+      .channel(`leads-realtime-${profile.org_id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads'
+        },
+        (payload) => {
+          if (payload.new && (payload.new as any).org_id && (payload.new as any).org_id !== profile.org_id) {
+            return
+          }
+          fetchLeadsRef.current(false, true)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [profile?.org_id])
 
   // Infinite Scroll Observer — automatically loads next 50 leads when scrolling near bottom
   const sentinelRef = useRef<HTMLDivElement | null>(null)

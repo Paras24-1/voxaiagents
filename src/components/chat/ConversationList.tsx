@@ -91,6 +91,18 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
 
   useEffect(() => {
     fetchCategoryStats()
+    const handleRefresh = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      fetchCategoryStats()
+    }
+    const interval = setInterval(handleRefresh, 12000)
+    window.addEventListener('focus', handleRefresh)
+    document.addEventListener('visibilitychange', handleRefresh)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleRefresh)
+      document.removeEventListener('visibilitychange', handleRefresh)
+    }
   }, [fetchCategoryStats, osmoTab])
 
   const [confirmId, setConfirmId] = useState<string | null>(null)

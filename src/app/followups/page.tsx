@@ -99,6 +99,21 @@ function FollowupsContent() {
 
     fetchUsers()
     fetchFollowups()
+
+    const handleRefresh = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      fetchFollowups(true)
+    }
+
+    const interval = setInterval(handleRefresh, 15000)
+    window.addEventListener('focus', handleRefresh)
+    document.addEventListener('visibilitychange', handleRefresh)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleRefresh)
+      document.removeEventListener('visibilitychange', handleRefresh)
+    }
   }, [profile?.id, profile?.role])
 
   const fetchUsers = async () => {
@@ -124,8 +139,8 @@ function FollowupsContent() {
     }
   }
 
-  const fetchFollowups = async () => {
-    setLoading(true)
+  const fetchFollowups = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/followups', {
@@ -142,7 +157,7 @@ function FollowupsContent() {
     } catch (err) {
       console.error('Failed to fetch follow-ups:', err)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 

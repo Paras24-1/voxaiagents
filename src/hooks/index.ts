@@ -183,6 +183,10 @@ export function useConversations(filters: {
         setConversations(normalized)
       } else {
         setConversations(prev => {
+          // If within first page (<= 300 items), replace directly so new conversations appear at top immediately
+          if (prev.length <= 300) {
+            return normalized
+          }
           const map = new Map(prev.map(c => [c.id, c]))
           normalized.forEach(c => map.set(c.id, c))
           return Array.from(map.values()).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
@@ -264,11 +268,24 @@ export function useConversations(filters: {
     fetchConversations()
   }, [fetchConversations])
 
-  // Focus listener only — Realtime socket handles all live updates, no polling needed
+  // Active polling + focus & visibility listeners to ensure conversations auto-refresh live
   useEffect(() => {
-    const handleFocus = () => fetchConversations(false)
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+    const handleRefresh = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      fetchConversations(false)
+    }
+
+    const interval = setInterval(handleRefresh, 5000)
+    window.addEventListener('focus', handleRefresh)
+    document.addEventListener('visibilitychange', handleRefresh)
+    window.addEventListener('refresh-conversations', handleRefresh)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleRefresh)
+      document.removeEventListener('visibilitychange', handleRefresh)
+      window.removeEventListener('refresh-conversations', handleRefresh)
+    }
   }, [fetchConversations])
 
   useEffect(() => {
@@ -409,7 +426,11 @@ export function useMessages(conversationId: string | null) {
           // Keep optimistic messages that aren't in the DB yet
           const pendingMessages = prev.filter(m => m.pending || m.failed)
           
+          let hasNewIncoming = false
           data.forEach((newMsg: Message) => {
+            if (!existingMap.has(newMsg.id) && newMsg.direction === 'incoming') {
+              hasNewIncoming = true
+            }
             existingMap.set(newMsg.id, newMsg)
           })
           
@@ -419,10 +440,25 @@ export function useMessages(conversationId: string | null) {
             }
           })
           
+          const prevCount = prev.length
           // STRICT FILTER: Only keep messages that belong to the active conversation
-          return Array.from(existingMap.values())
+          const nextList = Array.from(existingMap.values())
             .filter(m => m.conversation_id === conversationId)
             .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+          if (nextList.length > prevCount) {
+            setTimeout(() => {
+              if (bottomRef.current) {
+                bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+              }
+            }, 50)
+          }
+
+          if (hasNewIncoming) {
+            window.dispatchEvent(new CustomEvent('update-conversation', { detail: { id: conversationId, unread_count: 0 } }))
+          }
+
+          return nextList
         })
       }
     } catch (error) {
@@ -438,12 +474,24 @@ export function useMessages(conversationId: string | null) {
     fetchMessages(true)
   }, [conversationId, fetchMessages])
 
-  // Focus listener only — Realtime socket handles all live updates, no polling needed
+  // Active polling + focus & visibility listeners for instant message auto-refresh
   useEffect(() => {
     if (!conversationId) return
-    const handleFocus = () => fetchMessages(false)
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
+
+    const handleRefresh = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      fetchMessages(false)
+    }
+
+    const interval = setInterval(handleRefresh, 3500)
+    window.addEventListener('focus', handleRefresh)
+    document.addEventListener('visibilitychange', handleRefresh)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleRefresh)
+      document.removeEventListener('visibilitychange', handleRefresh)
+    }
   }, [conversationId, fetchMessages])
 
   // Real-time message subscription

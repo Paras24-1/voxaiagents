@@ -95,6 +95,23 @@ export default function Sidebar() {
       }
     }
     fetchUnread()
+
+    const handleRefresh = () => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      fetchUnread()
+    }
+
+    const interval = setInterval(handleRefresh, 8000)
+    window.addEventListener('focus', handleRefresh)
+    document.addEventListener('visibilitychange', handleRefresh)
+    window.addEventListener('update-conversation', handleRefresh)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleRefresh)
+      document.removeEventListener('visibilitychange', handleRefresh)
+      window.removeEventListener('update-conversation', handleRefresh)
+    }
   }, [profile?.org_id])
 
   const navItems = [
