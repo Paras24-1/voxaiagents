@@ -372,3 +372,69 @@ export async function PATCH(req: NextRequest) {
     return handleApiError('PATCH /api/leads', err)
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const orgId = await getOrgId(req)
+    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { searchParams } = new URL(req.url)
+    let id = searchParams.get('id')
+    let permanent = searchParams.get('permanent') === 'true'
+    let ids: string[] = []
+
+    if (!id) {
+      try {
+        const body = await req.json()
+        if (body.id) id = body.id
+        if (Array.isArray(body.ids)) ids = body.ids
+        if (body.permanent !== undefined) permanent = Boolean(body.permanent)
+      } catch {}
+    }
+
+    if (id) ids.push(id)
+    ids = Array.from(new Set(ids.filter(Boolean)))
+
+    if (ids.length === 0) {
+      return NextResponse.json({ error: 'lead id or ids required' }, { status: 400 })
+    }
+
+    if (permanent) {
+      // Hard delete: remove child activities first, then remove lead records
+      await supabaseAdmin.from('lead_activities').delete().in('lead_id', ids)
+      const { error } = await supabaseAdmin.from('leads').delete().in('id', ids).eq('org_id', orgId)
+      if (error) throw error
+
+      invalidateUnifiedCache(orgId)
+      return NextResponse.json({ success: true, count: ids.length, permanent: true })
+    } else {
+      // Soft delete: archive into Deleted Leads by updating metadata.is_deleted = true
+      const { data: leads, error: fetchErr } = await supabaseAdmin
+        .from('leads')
+        .select('id, metadata')
+        .in('id', ids)
+        .eq('org_id', orgId)
+      if (fetchErr) throw fetchErr
+
+      const now = new Date().toISOString()
+      const updatePromises = (leads || []).map((l: any) => {
+        let meta = l.metadata || {}
+        if (typeof meta === 'string') {
+          try { meta = JSON.parse(meta) } catch { meta = {} }
+        }
+        meta = { ...meta, is_deleted: true, deleted_at: now }
+        return supabaseAdmin
+          .from('leads')
+          .update({ metadata: meta })
+          .eq('id', l.id)
+          .eq('org_id', orgId)
+      })
+      await Promise.all(updatePromises)
+
+      invalidateUnifiedCache(orgId)
+      return NextResponse.json({ success: true, count: leads?.length || 0, permanent: false })
+    }
+  } catch (err: unknown) {
+    return handleApiError('DELETE /api/leads', err)
+  }
+}

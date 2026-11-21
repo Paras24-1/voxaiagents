@@ -35,6 +35,9 @@ export async function GET(req: NextRequest) {
             .select('*', { count: 'exact', head: true })
             .eq('org_id', orgId)
 
+      // Exclude soft-deleted leads from active counts
+      q = q.or('metadata->>is_deleted.is.null,metadata->>is_deleted.neq.true') as any
+
       if (startDate) q = q.gte('created_at', startDate) as any
       if (endDate) q = q.lte('created_at', `${endDate}T23:59:59.999Z`) as any
       if (assignedToday) {
@@ -204,6 +207,19 @@ export async function GET(req: NextRequest) {
       return 0
     }
 
+    let deletedQ = isStaffEmployee
+      ? supabaseAdmin
+          .from('leads')
+          .select('id, conversations!inner(assigned_to)', { count: 'exact', head: true })
+          .eq('org_id', orgId)
+          .eq('conversations.assigned_to', userId)
+          .eq('metadata->>is_deleted', 'true')
+      : supabaseAdmin
+          .from('leads')
+          .select('*', { count: 'exact', head: true })
+          .eq('org_id', orgId)
+          .eq('metadata->>is_deleted', 'true')
+
     // Execute count queries concurrently in parallel at DB level
     const [
       { count: totalCount },
@@ -214,6 +230,7 @@ export async function GET(req: NextRequest) {
       { count: deadLeadCount },
       { count: unfilteredCount },
       { count: followupCount },
+      { count: deletedCount },
       hotCount,
       warmCount
     ] = await Promise.all([
@@ -225,6 +242,7 @@ export async function GET(req: NextRequest) {
       buildCount(q => q.or('osmo_category.eq.dead_lead,osmo_category.eq.dead lead')),
       buildCount(q => q.or('osmo_category.eq.unfiltered,osmo_category.is.null')),
       buildCount(q => q.not('followup_date', 'is', null)),
+      deletedQ,
       getHotCount(),
       getWarmCount()
     ])
@@ -361,7 +379,8 @@ export async function GET(req: NextRequest) {
       unfiltered,
       hot: finalHot,
       warm: finalWarm,
-      followups: followupCount || 0
+      followups: followupCount || 0,
+      deleted: deletedCount || 0
     }, {
       headers: {
         'Cache-Control': 'private, no-cache, no-store, max-age=0, must-revalidate'

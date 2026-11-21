@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
     const customField = searchParams.get('custom_field') || ''
     const customValue = searchParams.get('custom_value') || ''
     const distinctField = searchParams.get('distinct_field') || ''
+    const isDeleted = searchParams.get('deleted') === 'true'
 
     // Return distinct values for a custom metadata key across recent leads
     if (distinctField) {
@@ -111,6 +112,13 @@ export async function GET(req: NextRequest) {
       .eq('org_id', orgId)
       .order('created_at', { ascending: false })
       .range(from, from + fetchLimit - 1)
+
+    // Filter by deletion state
+    if (isDeleted) {
+      query = query.eq('metadata->>is_deleted', 'true') as any
+    } else {
+      query = query.or('metadata->>is_deleted.is.null,metadata->>is_deleted.neq.true') as any
+    }
 
     // Staff employees only see leads belonging to their assigned conversations
     if (isStaffEmployee) {
@@ -237,6 +245,11 @@ export async function GET(req: NextRequest) {
         if (startDate) fallbackQuery = fallbackQuery.gte('created_at', startDate)
         if (endDate) fallbackQuery = fallbackQuery.lte('created_at', `${endDate}T23:59:59.999Z`)
         if (isStaffEmployee) fallbackQuery = fallbackQuery.eq('conversations.assigned_to', userId)
+        if (isDeleted) {
+          fallbackQuery = fallbackQuery.eq('metadata->>is_deleted', 'true')
+        } else {
+          fallbackQuery = fallbackQuery.or('metadata->>is_deleted.is.null,metadata->>is_deleted.neq.true')
+        }
 
         const { data: fallbackData } = await fallbackQuery.limit(1000)
         if (fallbackData && fallbackData.length > 0) {
@@ -379,7 +392,9 @@ export async function GET(req: NextRequest) {
         state: parsedMetadata.state,
         city: parsedMetadata.city,
         crop: leadCrop || parsedMetadata.crop || null,
-        source: parsedMetadata.source || l.source || 'Direct'
+        source: parsedMetadata.source || l.source || 'Direct',
+        is_deleted: Boolean(parsedMetadata.is_deleted === true || parsedMetadata.is_deleted === 'true'),
+        deleted_at: parsedMetadata.deleted_at || null
       }
     }).filter(Boolean)
 

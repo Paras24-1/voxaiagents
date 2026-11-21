@@ -86,6 +86,7 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
   const assignedToday = params.assigned_today === true || params.assigned_today === 'true'
   const customField = params.custom_field || ''
   const customValue = params.custom_value || ''
+  const isDeleted = params.deleted === true || params.deleted === 'true'
 
   const convJoin = isStaffEmployee
     ? 'conversations!inner(id, stage, name, assigned_to, updated_at)'
@@ -134,6 +135,12 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
 
       if (isStaffEmployee) {
         query = query.eq('conversations.assigned_to', userId) as any
+      }
+
+      if (isDeleted) {
+        query = query.eq('metadata->>is_deleted', 'true') as any
+      } else {
+        query = query.or('metadata->>is_deleted.is.null,metadata->>is_deleted.neq.true') as any
       }
 
       if (leadType && leadType !== 'all') {

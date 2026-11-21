@@ -16,6 +16,7 @@ import {
   User, 
   Check, 
   Trash2,
+  RotateCcw,
   RefreshCw,
   AlertCircle,
   ChevronDown,
@@ -46,6 +47,8 @@ interface Lead {
   conversation_id: string
   serial_number?: string | number | null
   serial_no?: string | number | null
+  is_deleted?: boolean
+  deleted_at?: string | null
   phone_number: string
   customer_name?: string | null
   name?: string | null
@@ -272,7 +275,13 @@ function LeadsContent() {
   const [loadingMore, setLoadingMore] = useState(false)
 
   // Stats
-  const [stats, setStats] = useState({ total: 0, unfiltered: 0, osmo_dealer: 0, dealer: 0, customer: 0, technician: 0, dead_lead: 0, hot: 0, warm: 0, followups: 0 })
+  const [stats, setStats] = useState({ total: 0, unfiltered: 0, osmo_dealer: 0, dealer: 0, customer: 0, technician: 0, dead_lead: 0, hot: 0, warm: 0, followups: 0, deleted: 0 })
+  
+  // Deleted Leads (Trash) State
+  const [isDeletedView, setIsDeletedView] = useState(false)
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState<{ isOpen: boolean; lead?: Lead | null; ids?: string[]; permanent?: boolean }>({ isOpen: false })
+  const [isProcessingDelete, setIsProcessingDelete] = useState(false)
+  const [toastMessage, setToastMessage] = useState<{ text: string; lead?: Lead | null; type: 'success' | 'info' | 'error' } | null>(null)
   
   // Filters
   const [search, setSearch] = useState('')
@@ -465,6 +474,7 @@ function LeadsContent() {
 
       const params = new URLSearchParams(statsParams)
       if (leadTypeFilter !== 'all') params.set('lead_type', leadTypeFilter)
+      if (isDeletedView) params.set('deleted', 'true')
 
       const currentPage = loadMore ? page + 1 : 1
       params.set('page', currentPage.toString())
@@ -504,7 +514,7 @@ function LeadsContent() {
 
   useEffect(() => {
     fetchLeads(false)
-  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter, selectedCustomField, customFilterValue])
+  }, [selectedStage, selectedQuality, selectedState, startDate, endDate, leadTypeFilter, assignedTodayFilter, selectedCustomField, customFilterValue, isDeletedView])
 
   // Auto-refresh leads CRM: Periodic background polling + Focus & Tab Visibility listeners
   useEffect(() => {
@@ -583,6 +593,179 @@ function LeadsContent() {
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       fetchLeads(false)
+    }
+  }
+
+  // Delete lead (soft delete or permanent purge)
+  const handleDeleteLead = async (lead: Lead, permanent = false) => {
+    try {
+      setIsProcessingDelete(true)
+      const res = await fetch(`/api/leads?id=${lead.id}&permanent=${permanent ? 'true' : 'false'}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to delete lead')
+      }
+
+      setLeads(prev => prev.filter(l => l.id !== lead.id))
+      setSelectedLeadPhones(prev => prev.filter(p => p !== lead.phone_number))
+      if (activeLead?.id === lead.id) setActiveLead(null)
+
+      if (!permanent) {
+        setStats(prev => ({
+          ...prev,
+          total: Math.max(0, prev.total - 1),
+          deleted: (prev.deleted || 0) + 1
+        }))
+        setToastMessage({
+          text: `Lead #${formatLeadSerialNumber(lead)} moved to Deleted Leads.`,
+          lead,
+          type: 'success'
+        })
+      } else {
+        setStats(prev => ({
+          ...prev,
+          deleted: Math.max(0, (prev.deleted || 0) - 1)
+        }))
+        setToastMessage({
+          text: `Lead #${formatLeadSerialNumber(lead)} permanently deleted.`,
+          type: 'info'
+        })
+      }
+    } catch (err: any) {
+      console.error('Error deleting lead:', err)
+      alert(err.message || 'Error deleting lead')
+    } finally {
+      setIsProcessingDelete(false)
+      setConfirmDeleteModal({ isOpen: false })
+    }
+  }
+
+  // Restore soft-deleted lead back to active CRM
+  const handleRestoreLead = async (lead: Lead) => {
+    try {
+      setIsProcessingDelete(true)
+      const res = await fetch('/api/leads/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: lead.id }),
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to restore lead')
+      }
+
+      setLeads(prev => prev.filter(l => l.id !== lead.id))
+      setSelectedLeadPhones(prev => prev.filter(p => p !== lead.phone_number))
+      if (activeLead?.id === lead.id) setActiveLead(null)
+
+      setStats(prev => ({
+        ...prev,
+        total: prev.total + 1,
+        deleted: Math.max(0, (prev.deleted || 0) - 1)
+      }))
+
+      setToastMessage({
+        text: `Lead #${formatLeadSerialNumber(lead)} restored to Active Leads.`,
+        type: 'success'
+      })
+    } catch (err: any) {
+      console.error('Error restoring lead:', err)
+      alert(err.message || 'Error restoring lead')
+    } finally {
+      setIsProcessingDelete(false)
+    }
+  }
+
+  // Bulk delete selected leads
+  const handleBulkDelete = async (permanent = false) => {
+    if (selectedLeadPhones.length === 0) return
+    const targetLeads = leads.filter(l => selectedLeadPhones.includes(l.phone_number))
+    const ids = targetLeads.map(l => l.id).filter(Boolean)
+    if (ids.length === 0) return
+
+    try {
+      setIsProcessingDelete(true)
+      const res = await fetch('/api/leads', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, permanent }),
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to delete selected leads')
+      }
+
+      setLeads(prev => prev.filter(l => !ids.includes(l.id)))
+      setSelectedLeadPhones([])
+
+      if (!permanent) {
+        setStats(prev => ({
+          ...prev,
+          total: Math.max(0, prev.total - ids.length),
+          deleted: (prev.deleted || 0) + ids.length
+        }))
+        setToastMessage({
+          text: `${ids.length} leads moved to Deleted Leads.`,
+          type: 'success'
+        })
+      } else {
+        setStats(prev => ({
+          ...prev,
+          deleted: Math.max(0, (prev.deleted || 0) - ids.length)
+        }))
+        setToastMessage({
+          text: `${ids.length} leads permanently deleted.`,
+          type: 'info'
+        })
+      }
+    } catch (err: any) {
+      console.error('Error bulk deleting leads:', err)
+      alert(err.message || 'Error bulk deleting leads')
+    } finally {
+      setIsProcessingDelete(false)
+      setConfirmDeleteModal({ isOpen: false })
+    }
+  }
+
+  // Bulk restore selected leads
+  const handleBulkRestore = async () => {
+    if (selectedLeadPhones.length === 0) return
+    const targetLeads = leads.filter(l => selectedLeadPhones.includes(l.phone_number))
+    const ids = targetLeads.map(l => l.id).filter(Boolean)
+    if (ids.length === 0) return
+
+    try {
+      setIsProcessingDelete(true)
+      const res = await fetch('/api/leads/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to restore selected leads')
+      }
+
+      setLeads(prev => prev.filter(l => !ids.includes(l.id)))
+      setSelectedLeadPhones([])
+
+      setStats(prev => ({
+        ...prev,
+        total: prev.total + ids.length,
+        deleted: Math.max(0, (prev.deleted || 0) - ids.length)
+      }))
+
+      setToastMessage({
+        text: `${ids.length} leads restored to Active Leads.`,
+        type: 'success'
+      })
+    } catch (err: any) {
+      console.error('Error bulk restoring leads:', err)
+      alert(err.message || 'Error bulk restoring leads')
+    } finally {
+      setIsProcessingDelete(false)
     }
   }
 
@@ -1351,6 +1534,55 @@ function LeadsContent() {
           <span className="hidden sm:inline-flex text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-900/30 border border-emerald-200/50 dark:border-emerald-800/50 rounded-full px-2.5 py-0.5 ml-2 tracking-wider truncate max-w-[120px]">
             {org?.name || 'Tenant System'}
           </span>
+
+          {/* Active vs Deleted Leads View Switcher */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-850 p-0.5 rounded-xl border border-gray-200/80 dark:border-gray-700/80 ml-1 sm:ml-2">
+            <button
+              onClick={() => {
+                if (isDeletedView) {
+                  setIsDeletedView(false)
+                  setSelectedLeadPhones([])
+                }
+              }}
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                !isDeletedView
+                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-xs'
+                  : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <User className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="hidden xs:inline">Active</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-extrabold">
+                {totalLeads.toLocaleString()}
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                if (!isDeletedView) {
+                  setIsDeletedView(true)
+                  setSelectedLeadPhones([])
+                }
+              }}
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                isDeletedView
+                  ? 'bg-rose-500 text-white shadow-xs'
+                  : 'text-gray-500 hover:text-rose-600 dark:hover:text-rose-400'
+              }`}
+              title="View soft-deleted leads in Trash"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Deleted</span>
+              {(stats.deleted || 0) > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
+                  isDeletedView
+                    ? 'bg-white/20 text-white'
+                    : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
+                }`}>
+                  {(stats.deleted || 0).toLocaleString()}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
@@ -1404,13 +1636,42 @@ function LeadsContent() {
       <main className="flex-1 flex overflow-hidden relative z-0">
         <div className="flex-1 flex flex-col p-3 md:p-6 pb-20 md:pb-6 overflow-y-auto space-y-3.5 md:space-y-6">
           
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-5">
-            <MetricCard label="Total CRM Leads" value={totalLeads} bgGradient="from-blue-500 to-indigo-600" shadowColor="shadow-blue-500/20" icon={<User className="w-5 h-5 text-blue-100" />} />
-            <MetricCard label="Hot Status Leads" value={hotLeads} bgGradient="from-rose-500 to-red-600" shadowColor="shadow-rose-500/20" icon={<TrendingUp className="w-5 h-5 text-rose-100" />} />
-            <MetricCard label="Warm Status Leads" value={warmLeads} bgGradient="from-amber-400 to-orange-500" shadowColor="shadow-amber-500/20" icon={<AlertCircle className="w-5 h-5 text-amber-100" />} />
-            <MetricCard label="Active Follow-ups" value={followupLeads} bgGradient="from-emerald-400 to-teal-500" shadowColor="shadow-teal-500/20" icon={<Calendar className="w-5 h-5 text-emerald-100" />} />
-          </div>
+          {/* Quick Metrics / Deleted Banner */}
+          {!isDeletedView ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-5">
+              <MetricCard label="Total CRM Leads" value={totalLeads} bgGradient="from-blue-500 to-indigo-600" shadowColor="shadow-blue-500/20" icon={<User className="w-5 h-5 text-blue-100" />} />
+              <MetricCard label="Hot Status Leads" value={hotLeads} bgGradient="from-rose-500 to-red-600" shadowColor="shadow-rose-500/20" icon={<TrendingUp className="w-5 h-5 text-rose-100" />} />
+              <MetricCard label="Warm Status Leads" value={warmLeads} bgGradient="from-amber-400 to-orange-500" shadowColor="shadow-amber-500/20" icon={<AlertCircle className="w-5 h-5 text-amber-100" />} />
+              <MetricCard label="Active Follow-ups" value={followupLeads} bgGradient="from-emerald-400 to-teal-500" shadowColor="shadow-teal-500/20" icon={<Calendar className="w-5 h-5 text-emerald-100" />} />
+            </div>
+          ) : (
+            <div className="p-4 bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 dark:from-rose-950/40 dark:via-red-950/30 dark:to-orange-950/30 border border-rose-200/80 dark:border-rose-900/60 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-md shadow-rose-500/30 shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-extrabold text-rose-950 dark:text-rose-100">
+                      Deleted Leads Section (Trash)
+                    </h3>
+                    <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-200/70 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200">
+                      {leads.length} archived
+                    </span>
+                  </div>
+                  <p className="text-xs text-rose-700/90 dark:text-rose-300/80 font-medium mt-0.5">
+                    Leads removed from your active CRM are preserved here safely. You can restore any lead back to the CRM or permanently purge them.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDeletedView(false)}
+                className="px-4 py-2 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-extrabold text-xs rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xs transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
+              >
+                ← Return to Active Leads
+              </button>
+            </div>
+          )}
 
           {/* Filtering Controls */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md p-4 rounded-2xl border border-white dark:border-gray-800/50 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between transition-all">
@@ -1599,7 +1860,7 @@ function LeadsContent() {
           </div>
 
           {/* Quick Tap Category Tabs (Osmo RO Dashboard: Paanifilter9@gmail.com) */}
-          {isOsmoRo && (
+          {isOsmoRo && !isDeletedView && (
             <div className={`grid grid-cols-2 ${isOsmoRo2 ? 'sm:grid-cols-6' : 'sm:grid-cols-5'} gap-3 p-2 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-white dark:border-gray-800/50 shadow-sm transition-all`}>
               {[
                 { id: 'unfiltered', label: 'Unfiltered', count: typeCounts.unfiltered, activeStyle: 'bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-md shadow-slate-500/30' },
@@ -2143,25 +2404,56 @@ function LeadsContent() {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-xs md:sticky md:right-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl group-hover:bg-emerald-50/70 dark:group-hover:bg-emerald-950/50 transition-colors z-10 md:shadow-[inset_1px_0_0_0_rgba(0,0,0,0.06)] md:dark:shadow-[inset_1px_0_0_0_rgba(255,255,255,0.06)]" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => {
-                                    const cleanP = (lead.phone_number || '').replace(/\D/g, '').slice(-10)
-                                    if (cleanP) router.push(`/chats?phone=${cleanP}`)
-                                  }}
-                                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-extrabold text-xs shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
-                                  title="Open chat conversation for this lead"
-                                >
-                                  <MessageSquare className="w-3.5 h-3.5" />
-                                  Chat
-                                </button>
-                                <button
-                                  onClick={() => handleViewLead(lead)}
-                                  className="px-3 py-1.5 bg-white dark:bg-gray-800 text-slate-700 hover:text-emerald-600 dark:text-slate-200 dark:hover:text-emerald-400 rounded-xl border border-gray-200 dark:border-gray-700 font-extrabold text-xs shadow-2xs hover:bg-gray-50 dark:hover:bg-gray-750 transition-all flex items-center gap-1.5 cursor-pointer"
-                                >
-                                  <Eye className="w-3.5 h-3.5 text-emerald-500" />
-                                  View
-                                </button>
+                              <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                                {!isDeletedView ? (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        const cleanP = (lead.phone_number || '').replace(/\D/g, '').slice(-10)
+                                        if (cleanP) router.push(`/chats?phone=${cleanP}`)
+                                      }}
+                                      className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-extrabold text-xs shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+                                      title="Open chat conversation for this lead"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5" />
+                                      Chat
+                                    </button>
+                                    <button
+                                      onClick={() => handleViewLead(lead)}
+                                      className="px-3 py-1.5 bg-white dark:bg-gray-800 text-slate-700 hover:text-emerald-600 dark:text-slate-200 dark:hover:text-emerald-400 rounded-xl border border-gray-200 dark:border-gray-700 font-extrabold text-xs shadow-2xs hover:bg-gray-50 dark:hover:bg-gray-750 transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                                      View
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmDeleteModal({ isOpen: true, lead, permanent: false })}
+                                      className="p-1.5 rounded-xl bg-white dark:bg-gray-800 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-gray-200 dark:border-gray-700 font-extrabold text-xs shadow-2xs transition-all cursor-pointer"
+                                      title="Delete lead (move to Deleted Leads)"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleRestoreLead(lead)}
+                                      disabled={isProcessingDelete}
+                                      className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-extrabold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+                                      title="Restore lead back to Active CRM"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5" />
+                                      Restore
+                                    </button>
+                                    <button
+                                      onClick={() => setConfirmDeleteModal({ isOpen: true, lead, permanent: true })}
+                                      disabled={isProcessingDelete}
+                                      className="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/80 border border-rose-200 dark:border-rose-900/60 font-extrabold text-xs shadow-2xs transition-all cursor-pointer"
+                                      title="Permanently delete lead"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -2309,13 +2601,42 @@ function LeadsContent() {
                               )}
                             </div>
 
-                            <button
-                              onClick={() => handleViewLead(lead)}
-                              className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-extrabold text-xs flex items-center gap-1 transition-all"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-emerald-500" />
-                              <span>Details</span>
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleViewLead(lead)}
+                                className="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-extrabold text-xs flex items-center gap-1 transition-all"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>Details</span>
+                              </button>
+                              {!isDeletedView ? (
+                                <button
+                                  onClick={() => setConfirmDeleteModal({ isOpen: true, lead, permanent: false })}
+                                  className="p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-rose-500 border border-gray-200 dark:border-gray-700 transition-colors"
+                                  title="Delete lead"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleRestoreLead(lead)}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-xs"
+                                    title="Restore lead"
+                                  >
+                                    <RotateCcw className="w-3 h-3" />
+                                    <span>Restore</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmDeleteModal({ isOpen: true, lead, permanent: true })}
+                                    className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-200 dark:border-rose-900/60"
+                                    title="Permanently purge"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -2756,6 +3077,25 @@ function LeadsContent() {
                   <MessageSquare className="w-4 h-4" />
                   Open Conversation Chat
                 </Link>
+                {!isDeletedView ? (
+                  <button
+                    onClick={() => setConfirmDeleteModal({ isOpen: true, lead: activeLead, permanent: false })}
+                    className="py-3.5 px-4 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-300 text-sm font-bold rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    title="Delete lead (move to Deleted Leads)"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Delete</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => activeLead && handleRestoreLead(activeLead)}
+                    className="py-3.5 px-4 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                    title="Restore lead back to Active CRM"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Restore</span>
+                  </button>
+                )}
               </div>
 
             </div>
@@ -2804,28 +3144,65 @@ function LeadsContent() {
           <div className="h-4 w-px bg-slate-700" />
 
           <div className="flex items-center gap-3">
-            <select
-              value={bulkAssignEmployeeId}
-              onChange={(e) => setBulkAssignEmployeeId(e.target.value)}
-              className="px-3 py-1.5 text-xs rounded-xl bg-slate-800 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-w-[200px]"
-            >
-              <option value="">-- Assign to Employee --</option>
-              {staffList.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name || emp.email} ({emp.role})
-                </option>
-              ))}
-            </select>
+            {!isDeletedView ? (
+              <>
+                <select
+                  value={bulkAssignEmployeeId}
+                  onChange={(e) => setBulkAssignEmployeeId(e.target.value)}
+                  className="px-3 py-1.5 text-xs rounded-xl bg-slate-800 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-w-[200px]"
+                >
+                  <option value="">-- Assign to Employee --</option>
+                  {staffList.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name || emp.email} ({emp.role})
+                    </option>
+                  ))}
+                </select>
 
-            <button
-              type="button"
-              onClick={executeBulkAssignment}
-              disabled={!bulkAssignEmployeeId || bulkAssigning}
-              className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-            >
-              {bulkAssigning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
-              Apply Bulk Assignment
-            </button>
+                <button
+                  type="button"
+                  onClick={executeBulkAssignment}
+                  disabled={!bulkAssignEmployeeId || bulkAssigning}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {bulkAssigning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
+                  Apply Bulk Assignment
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteModal({ isOpen: true, ids: leads.filter(l => selectedLeadPhones.includes(l.phone_number)).map(l => l.id), permanent: false })}
+                  disabled={bulkAssigning || isProcessingDelete}
+                  className="px-3.5 py-1.5 text-xs font-bold text-rose-300 hover:text-white bg-rose-950/60 hover:bg-rose-900 border border-rose-700/60 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Move selected leads to Deleted Leads"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Selected
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleBulkRestore}
+                  disabled={isProcessingDelete}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Restore Selected
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteModal({ isOpen: true, ids: leads.filter(l => selectedLeadPhones.includes(l.phone_number)).map(l => l.id), permanent: true })}
+                  disabled={isProcessingDelete}
+                  className="px-3.5 py-1.5 text-xs font-bold text-rose-300 hover:text-white bg-rose-950/70 hover:bg-rose-900 border border-rose-700/60 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Permanently Delete
+                </button>
+              </>
+            )}
 
             <button
               type="button"
@@ -3091,6 +3468,95 @@ function LeadsContent() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Lead Modal */}
+      {confirmDeleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                confirmDeleteModal.permanent 
+                  ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400' 
+                  : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+              }`}>
+                {confirmDeleteModal.permanent ? <AlertCircle className="w-6 h-6" /> : <Trash2 className="w-6 h-6" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-extrabold text-gray-900 dark:text-white">
+                  {confirmDeleteModal.permanent ? 'Permanently Delete Lead?' : 'Move to Deleted Leads?'}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                  {confirmDeleteModal.permanent 
+                    ? 'This action is irreversible. All activity logs and contact data will be permanently wiped from the database.'
+                    : 'The lead will be removed from your active CRM operations and archived in the "Deleted Leads" section where you can review or restore it at any time.'}
+                </p>
+                {confirmDeleteModal.lead && (
+                  <div className="mt-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 text-xs font-mono flex items-center justify-between">
+                    <span className="font-bold text-gray-800 dark:text-gray-200 truncate">{confirmDeleteModal.lead.name || confirmDeleteModal.lead.phone_number}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">#{formatLeadSerialNumber(confirmDeleteModal.lead)}</span>
+                  </div>
+                )}
+                {confirmDeleteModal.ids && confirmDeleteModal.ids.length > 0 && (
+                  <div className="mt-3 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 text-xs font-bold text-gray-700 dark:text-gray-300">
+                    {confirmDeleteModal.ids.length} leads selected for deletion
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteModal({ isOpen: false })}
+                disabled={isProcessingDelete}
+                className="px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirmDeleteModal.lead) {
+                    handleDeleteLead(confirmDeleteModal.lead, confirmDeleteModal.permanent)
+                  } else if (confirmDeleteModal.ids && confirmDeleteModal.ids.length > 0) {
+                    handleBulkDelete(confirmDeleteModal.permanent)
+                  }
+                }}
+                disabled={isProcessingDelete}
+                className="px-4 py-2 text-xs font-bold text-white rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
+              >
+                {isProcessingDelete ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                {confirmDeleteModal.permanent ? 'Confirm Permanent Delete' : 'Move to Deleted Leads'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900/95 dark:bg-slate-950/95 text-white border border-slate-700 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in slide-in-from-bottom-3 duration-200 max-w-md">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-xs font-semibold flex-1">{toastMessage.text}</span>
+          {toastMessage.lead && (
+            <button
+              onClick={() => {
+                if (toastMessage.lead) handleRestoreLead(toastMessage.lead)
+                setToastMessage(null)
+              }}
+              className="text-xs font-extrabold text-emerald-400 hover:text-emerald-300 underline cursor-pointer shrink-0"
+            >
+              Undo
+            </button>
+          )}
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-slate-400 hover:text-white p-0.5 rounded cursor-pointer shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
     </div>
