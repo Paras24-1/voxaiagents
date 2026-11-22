@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest) {
 
     const { error } = await supabaseAdmin
       .from('conversations')
-      .update({ ai_mode, updated_at: new Date().toISOString() })
+      .update({ ai_mode })
       .in('id', idsToUpdate)
 
     if (error) throw error

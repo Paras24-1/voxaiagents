@@ -148,40 +148,47 @@ export async function GET(req: NextRequest) {
 
     // Push text search to DB (name, phone_number, customer_name, and metadata fields)
     if (search) {
-      const s = search.trim()
+      // Sanitize input to prevent PostgREST syntax errors from special characters
+      const s = search.replace(/[,()"]/g, ' ').trim()
       const sClean = s.replace(/^#/, '').trim()
-      const searchClauses = [
-        `name.ilike.%${s}%`,
-        `phone_number.ilike.%${s}%`,
-        `customer_name.ilike.%${s}%`,
-        `metadata->>serial_number.ilike.%${sClean}%`,
-        `metadata->>serial_no.ilike.%${sClean}%`,
-        `metadata->>crop.ilike.%${s}%`,
-        `metadata->>Crop.ilike.%${s}%`,
-        `metadata->>crop_choice.ilike.%${s}%`,
-        `metadata->>Crop_Choice.ilike.%${s}%`,
-        `metadata->>Crop_Requirement.ilike.%${s}%`,
-        `metadata->>crop_requirement.ilike.%${s}%`,
-        `metadata->>crops.ilike.%${s}%`,
-        `metadata->>Crops.ilike.%${s}%`,
-        `metadata->>crop_name.ilike.%${s}%`,
-        `metadata->>Crop_Name.ilike.%${s}%`,
-        `metadata->>farm_crop.ilike.%${s}%`,
-        `metadata->>city.ilike.%${s}%`,
-        `metadata->>City.ilike.%${s}%`,
-        `metadata->>district.ilike.%${s}%`,
-        `metadata->>District.ilike.%${s}%`,
-        `metadata->>tehsil.ilike.%${s}%`,
-        `metadata->>Tehsil.ilike.%${s}%`,
-        `metadata->>state.ilike.%${s}%`,
-        `metadata->>State.ilike.%${s}%`,
-        `metadata->>business_name.ilike.%${s}%`,
-        `metadata->>notes.ilike.%${s}%`,
-        `metadata->>lead_type.ilike.%${s}%`,
-        `metadata->>source.ilike.%${s}%`
-      ]
+      if (s) {
+        const searchClauses = [
+          `name.ilike.%${s}%`,
+          `phone_number.ilike.%${s}%`,
+          `customer_name.ilike.%${s}%`,
+          `metadata->>serial_number.ilike.%${sClean}%`,
+          `metadata->>serial_no.ilike.%${sClean}%`,
+          `metadata->>crop.ilike.%${s}%`,
+          `metadata->>Crop.ilike.%${s}%`,
+          `metadata->>crop_choice.ilike.%${s}%`,
+          `metadata->>Crop_Choice.ilike.%${s}%`,
+          `metadata->>Crop_Requirement.ilike.%${s}%`,
+          `metadata->>crop_requirement.ilike.%${s}%`,
+          `metadata->>crops.ilike.%${s}%`,
+          `metadata->>Crops.ilike.%${s}%`,
+          `metadata->>crop_name.ilike.%${s}%`,
+          `metadata->>Crop_Name.ilike.%${s}%`,
+          `metadata->>farm_crop.ilike.%${s}%`,
+          `metadata->>city.ilike.%${s}%`,
+          `metadata->>City.ilike.%${s}%`,
+          `metadata->>district.ilike.%${s}%`,
+          `metadata->>District.ilike.%${s}%`,
+          `metadata->>tehsil.ilike.%${s}%`,
+          `metadata->>Tehsil.ilike.%${s}%`,
+          `metadata->>state.ilike.%${s}%`,
+          `metadata->>State.ilike.%${s}%`,
+          `metadata->>business_name.ilike.%${s}%`,
+          `metadata->>notes.ilike.%${s}%`,
+          `metadata->>lead_type.ilike.%${s}%`,
+          `metadata->>source.ilike.%${s}%`
+        ]
 
-      query = query.or(searchClauses.join(',')) as any
+        try {
+          query = query.or(searchClauses.join(',')) as any
+        } catch (e) {
+          console.warn('[leads-list search query error]:', e)
+        }
+      }
     }
 
     // Custom tenant metadata filter (e.g. crop, city, district, budget, etc.)

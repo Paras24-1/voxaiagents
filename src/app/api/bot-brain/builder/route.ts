@@ -90,7 +90,7 @@ Return ONLY a valid JSON object matching this structure:
 
       let response = null;
       let errorData = null;
-      const fallbackModels = ['gemini-3.6-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-flash-lite-latest'];
+      const fallbackModels = ['gemini-3.6-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash'];
       
       for (const model of fallbackModels) {
         console.log(`[bot-brain-builder] Trying model: ${model}...`);

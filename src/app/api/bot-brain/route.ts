@@ -28,9 +28,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const currentModel = (parsedPromptObj.ai_model_name && !['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.7-flash'].includes(parsedPromptObj.ai_model_name))
+    const currentModel = (parsedPromptObj.ai_model_name && !parsedPromptObj.ai_model_name.includes('3.6'))
       ? parsedPromptObj.ai_model_name
-      : 'gemini-3.6-flash'
+      : 'gemini-1.5-flash'
 
     return NextResponse.json({
       engine_mode: parsedPromptObj.engine_mode || (settings?.n8n_inbound_webhook_url ? 'hybrid_n8n' : 'native'),
@@ -85,15 +85,25 @@ export async function POST(req: NextRequest) {
 
     promptObj.engine_mode = engine_mode || 'native'
     promptObj.ai_provider = ai_provider || 'gemini'
-    promptObj.ai_model_name = (ai_model_name && !['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3.7-flash'].includes(ai_model_name))
+    promptObj.ai_model_name = (ai_model_name && !ai_model_name.includes('3.6'))
       ? ai_model_name
-      : 'gemini-3.6-flash'
+      : 'gemini-1.5-flash'
     promptObj.system_prompt = system_prompt || ''
     if (default_ai_mode !== undefined) promptObj.default_ai_mode = !!default_ai_mode
     if (global_ai_enabled !== undefined) promptObj.global_ai_enabled = !!global_ai_enabled
     if (auto_takeover_on_reply !== undefined) promptObj.auto_takeover_on_reply = !!auto_takeover_on_reply
 
-    const serializedPrompt = JSON.stringify(promptObj)
+    let serializedPrompt = JSON.stringify(promptObj)
+    if (existing?.ai_system_prompt) {
+      if (existing.ai_system_prompt.includes('__CALENDAR_APPOINTMENTS_STORE__=')) {
+        const calTag = existing.ai_system_prompt.match(/__CALENDAR_APPOINTMENTS_STORE__=[\s\S]*?__END_STORE__/)
+        if (calTag) serializedPrompt += `\n${calTag[0]}`
+      }
+      if (existing.ai_system_prompt.includes('__N8N_CALENDAR_WEBHOOK__=')) {
+        const whTag = existing.ai_system_prompt.match(/__N8N_CALENDAR_WEBHOOK__=[\s\S]*?__END_WEBHOOK__/)
+        if (whTag) serializedPrompt += `\n${whTag[0]}`
+      }
+    }
 
     const payload: any = {
       ai_system_prompt: serializedPrompt,

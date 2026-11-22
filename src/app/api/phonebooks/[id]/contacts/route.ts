@@ -89,15 +89,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'No valid contacts provided' }, { status: 400 })
     }
 
-    // Batch insert
-    const { data, error } = await supabaseAdmin
-      .from('phonebook_contacts')
-      .insert(contactRows)
-      .select()
+    // Batch insert in chunks of 500 to prevent statement timeouts and payload size limits
+    const CHUNK_SIZE = 500
+    for (let i = 0; i < contactRows.length; i += CHUNK_SIZE) {
+      const chunk = contactRows.slice(i, i + CHUNK_SIZE)
+      const { error } = await supabaseAdmin
+        .from('phonebook_contacts')
+        .insert(chunk)
 
-    if (error) throw error
+      if (error) throw error
+    }
 
-    return NextResponse.json({ success: true, count: contactRows.length, data })
+    return NextResponse.json({ success: true, count: contactRows.length })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
   }

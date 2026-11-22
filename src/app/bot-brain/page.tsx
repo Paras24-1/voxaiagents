@@ -19,7 +19,7 @@ export default function BotBrainPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('builder')
   const [engineMode, setEngineMode] = useState<'native' | 'hybrid_n8n'>('hybrid_n8n')
   const [aiProvider, setAiProvider] = useState('gemini')
-  const [aiModelName, setAiModelName] = useState('gemini-3.6-flash')
+  const [aiModelName, setAiModelName] = useState('gemini-1.5-flash')
   const [systemPrompt, setSystemPrompt] = useState(
     'You are a helpful and polite WhatsApp AI sales consultant for Kataria Herbal Remedies.\n\nUse the Knowledge Base price list below to answer user queries accurately. Keep answers concise.'
   )
@@ -61,9 +61,9 @@ export default function BotBrainPage() {
         const data = await res.json()
         setEngineMode(data.engine_mode === 'native' ? 'hybrid_n8n' : (data.engine_mode || 'hybrid_n8n'))
         setAiProvider(data.ai_provider || 'gemini')
-        let model = data.ai_model_name || 'gemini-3.6-flash'
-        if (model.includes('1.5') || model.includes('2.5') || model.includes('3.7') || model.includes('2.0')) {
-          model = 'gemini-3.6-flash' 
+        let model = data.ai_model_name || 'gemini-1.5-flash'
+        if (model.includes('3.6') || model.includes('3.5') || model.includes('3.8')) {
+          model = 'gemini-1.5-flash' 
         }
         setAiModelName(model)
         if (data.system_prompt) setSystemPrompt(data.system_prompt)

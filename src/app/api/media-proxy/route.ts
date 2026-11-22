@@ -29,13 +29,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 })
     }
 
-    // 1. If it's an old Supabase project URL, rewrite domain to current active project
-    if (targetUrl.includes('jncmizoejeaclpnfxazg.supabase.co')) {
-      targetUrl = targetUrl.replace('jncmizoejeaclpnfxazg.supabase.co', 'jadyvppkmxhsnrmqshbr.supabase.co')
-    }
-
-    // 2. If it's already a public active Supabase URL, redirect directly
-    if (targetUrl.includes('jadyvppkmxhsnrmqshbr.supabase.co') && !targetUrl.includes('lookaside') && !targetUrl.includes('fbsbx')) {
+    // 1. If it's a Supabase storage URL that is not from Meta lookaside/fbsbx, redirect directly
+    if (targetUrl.includes('.supabase.co') && !targetUrl.includes('lookaside') && !targetUrl.includes('fbsbx')) {
       return NextResponse.redirect(targetUrl)
     }
 

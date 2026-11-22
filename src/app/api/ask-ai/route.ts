@@ -61,9 +61,9 @@ export async function POST(req: NextRequest) {
     })
 
     const candidateModels = [
+      "gemini-3.6-flash",
+      "gemini-flash-lite-latest",
       "gemini-3.5-flash",
-      "gemini-3.5-flash-lite",
-      "gemini-3.8-flash",
     ]
 
     let replyText = ""

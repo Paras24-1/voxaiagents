@@ -61,15 +61,18 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Deduplicate by message content + timestamp (within 2s window) to avoid showing
-    // the same bot message that may have been logged in multiple conversation records
-    const seen = new Map<string, boolean>()
+    // Deduplicate by provider_message_id or unique message ID, preventing identical duplicates
+    // while preserving legitimate rapid consecutive customer messages
+    const seen = new Set<string>()
     const deduped = finalMsgs.filter(msg => {
-      // Create a fingerprint: direction + message content + rounded timestamp (2s window)
-      const ts = Math.floor(new Date(msg.timestamp).getTime() / 2000)
-      const key = `${msg.direction}|${(msg.message || '').trim()}|${ts}`
-      if (seen.has(key)) return false
-      seen.set(key, true)
+      if (msg.provider_message_id) {
+        if (seen.has(`p_${msg.provider_message_id}`)) return false
+        seen.add(`p_${msg.provider_message_id}`)
+      }
+      if (msg.id) {
+        if (seen.has(`id_${msg.id}`)) return false
+        seen.add(`id_${msg.id}`)
+      }
       return true
     })
 

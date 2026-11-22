@@ -120,8 +120,8 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
     }
   } else {
     // Case 2: All filtered leads across the entire database
-    const BATCH_SIZE = 1000
-    const MAX_EXPORT_LIMIT = 60000
+    const BATCH_SIZE = 2500
+    const MAX_EXPORT_LIMIT = 30000
     let offset = 0
     let keepFetching = true
 
@@ -162,7 +162,7 @@ async function handleExport(req: NextRequest, profile: any, params: any) {
       }
 
       if (search) {
-        const s = search.trim()
+        const s = search.replace(/[,()"]/g, ' ').trim()
         const isOnion = /onion|pyaz|pyaaz|kanda|कांदा|प्याज/i.test(s)
         const isChana = /chana|channa|gram|chickpea|चना/i.test(s)
 

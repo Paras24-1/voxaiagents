@@ -10,7 +10,8 @@ interface ModelSelectProps {
 
 const MODELS = [
   { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', provider: 'Google (Recommended)' },
-  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google' },
+  { id: 'gemini-flash-lite-latest', name: 'Gemini Flash Lite', provider: 'Google (Ultra Fast)' },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', provider: 'Google' },
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
   { id: 'openai/gpt-oss-120b', name: 'Llama 3 70B (Groq)', provider: 'Groq' }
 ]
