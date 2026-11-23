@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
+import { supabaseAdmin, getUserProfile, getOrgId } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0

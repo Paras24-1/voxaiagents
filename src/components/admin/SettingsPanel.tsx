@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Settings, Database, Cpu, User, Mail, Shield, Save, RefreshCw, Key, Bot } from 'lucide-react'
+import { X, Settings, Database, Cpu, User, Mail, Shield, Save, RefreshCw, Key, Bot, CheckCircle2, Smartphone, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { useOrg } from '@/contexts/OrgContext'
 
@@ -38,6 +38,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [isEditable, setIsEditable] = useState(false)
   const [devPassword, setDevPassword] = useState('')
   const [showUnlockForm, setShowUnlockForm] = useState(false)
+  const [connectingWhatsApp, setConnectingWhatsApp] = useState(false)
 
   const [formData, setFormData] = useState<SettingsData>({
     whatsapp_token: '',
@@ -96,6 +97,139 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setLoading(false)
     }
   }, [isAdmin])
+
+  const loadFbSdk = (): Promise<void> => {
+    return new Promise((resolve) => {
+      if (typeof window === 'undefined') return resolve()
+      if ((window as any).FB) {
+        resolve()
+        return
+      }
+      const existing = document.getElementById('facebook-jssdk')
+      if (existing) {
+        existing.onload = () => resolve()
+        return
+      }
+      const script = document.createElement('script')
+      script.id = 'facebook-jssdk'
+      script.src = 'https://connect.facebook.net/en_US/sdk.js'
+      script.async = true
+      script.defer = true
+      script.crossOrigin = 'anonymous'
+      script.onload = () => {
+        try {
+          ;(window as any).FB.init({
+            appId: process.env.NEXT_PUBLIC_META_APP_ID || '1605865680887764',
+            cookie: true,
+            xfbml: true,
+            version: 'v21.0'
+          })
+        } catch (e) {
+          console.error('[FB.init error]', e)
+        }
+        resolve()
+      }
+      document.body.appendChild(script)
+    })
+  }
+
+  const completeEmbeddedSignup = async (code: string, wabaId: string, phoneId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/whatsapp/embedded-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
+        body: JSON.stringify({
+          code,
+          waba_id: wabaId,
+          phone_number_id: phoneId
+        })
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to complete WhatsApp onboarding')
+
+      setFormData(prev => ({
+        ...prev,
+        whatsapp_phone_id: data.whatsapp_phone_id || prev.whatsapp_phone_id,
+        whatsapp_waba_id: data.whatsapp_waba_id || prev.whatsapp_waba_id,
+        whatsapp_token: data.has_token ? (data.whatsapp_token || '••••••••••••••••') : prev.whatsapp_token
+      }))
+
+      setSuccess('WhatsApp Coexistence connected successfully!')
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to save WhatsApp credentials')
+    } finally {
+      setConnectingWhatsApp(false)
+    }
+  }
+
+  const handleConnectWhatsApp = async () => {
+    if (!isAdmin) return
+    setConnectingWhatsApp(true)
+    setError('')
+    try {
+      if (typeof window !== 'undefined' && window.location.protocol !== 'https:') {
+        throw new Error('Meta requires an HTTPS connection to launch Embedded Signup. Please run the app over HTTPS (e.g. `npm run dev -- --experimental-https` or via ngrok/tunnel).')
+      }
+
+      await loadFbSdk()
+
+      if (!(window as any).FB) {
+        throw new Error('Meta Facebook SDK could not be loaded. Please disable any ad-blockers.')
+      }
+
+      let capturedWabaId = ''
+      let capturedPhoneId = ''
+
+      const messageHandler = (event: MessageEvent) => {
+        if (!event.origin.includes('facebook.com')) return
+        try {
+          const parsed = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+          if (parsed && (parsed.type === 'WA_EMBEDDED_SIGNUP' || parsed.event === 'FINISH')) {
+            if (parsed.data?.waba_id) capturedWabaId = parsed.data.waba_id
+            if (parsed.data?.phone_number_id) capturedPhoneId = parsed.data.phone_number_id
+          }
+        } catch (e) {}
+      }
+
+      window.addEventListener('message', messageHandler)
+
+      try {
+        ;(window as any).FB.login((response: any) => {
+          window.removeEventListener('message', messageHandler)
+          if (response?.authResponse?.code) {
+            completeEmbeddedSignup(response.authResponse.code, capturedWabaId, capturedPhoneId)
+          } else {
+            setConnectingWhatsApp(false)
+            if (capturedWabaId || capturedPhoneId) {
+              completeEmbeddedSignup('', capturedWabaId, capturedPhoneId)
+            }
+          }
+        }, {
+          config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID || '1430799388868142',
+          response_type: 'code',
+          override_default_response_type: true,
+          extras: {
+            setup: {},
+            featureType: 'whatsapp_business_app_onboarding',
+            sessionInfoVersion: '3',
+            coex: true
+          }
+        })
+      } catch (fbErr: any) {
+        window.removeEventListener('message', messageHandler)
+        throw new Error(fbErr?.message || 'Meta login failed to execute.')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to launch Meta Embedded Signup')
+      setConnectingWhatsApp(false)
+    }
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -205,11 +339,52 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             <form onSubmit={handleSave} className="space-y-6">
               
               {/* WhatsApp Channel Setup */}
-              <div className="space-y-3.5">
+              <div className="space-y-4">
+                {/* WhatsApp Coexistence Onboarding Action Card */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/40 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-white">WhatsApp Coexistence (Hybrid Mode)</h4>
+                        {formData.whatsapp_phone_id && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                            <CheckCircle2 className="w-3 h-3" /> Connected
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Link your active WhatsApp Business mobile app and Cloud API together on the exact same phone number.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleConnectWhatsApp}
+                    disabled={connectingWhatsApp}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-xs rounded-xl shadow-md hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-60"
+                  >
+                    {connectingWhatsApp ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Connecting with Meta...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        {formData.whatsapp_phone_id ? 'Reconnect WhatsApp' : 'Connect with Meta'}
+                      </>
+                    )}
+                  </button>
+                </div>
+
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                   <div className="flex items-center gap-2">
                     <Key className="w-4 h-4 text-emerald-400" />
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">WhatsApp API Credentials</h4>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">WhatsApp API Credentials (Manual / Auto-Filled)</h4>
                   </div>
                   {!isEditable && (
                     <button

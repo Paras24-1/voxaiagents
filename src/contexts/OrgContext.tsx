@@ -135,11 +135,6 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
           json = { profile: directProfile, org: orgData }
         }
       }
-          const orgData = (directProfile as any).organization || null
-          delete (directProfile as any).organization
-          json = { profile: directProfile, org: orgData }
-        }
-      }
 
       if (json?.profile) {
         setProfile(json.profile)
