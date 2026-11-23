@@ -425,7 +425,7 @@ export async function DELETE(req: NextRequest) {
         meta = { ...meta, is_deleted: true, deleted_at: now }
         return supabaseAdmin
           .from('leads')
-          .update({ metadata: meta })
+          .update({ is_deleted: true, deleted_at: now, metadata: meta })
           .eq('id', l.id)
           .eq('org_id', orgId)
       })

@@ -113,11 +113,11 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
       .range(from, from + fetchLimit - 1)
 
-    // Filter by deletion state
+    // Filter by deletion state using indexed is_deleted column
     if (isDeleted) {
-      query = query.eq('metadata->>is_deleted', 'true') as any
+      query = query.eq('is_deleted', true) as any
     } else {
-      query = query.or('metadata->>is_deleted.is.null,metadata->>is_deleted.neq.true') as any
+      query = query.or('is_deleted.is.null,is_deleted.eq.false') as any
     }
 
     // Staff employees only see leads belonging to their assigned conversations
@@ -253,9 +253,9 @@ export async function GET(req: NextRequest) {
         if (endDate) fallbackQuery = fallbackQuery.lte('created_at', `${endDate}T23:59:59.999Z`)
         if (isStaffEmployee) fallbackQuery = fallbackQuery.eq('conversations.assigned_to', userId)
         if (isDeleted) {
-          fallbackQuery = fallbackQuery.eq('metadata->>is_deleted', 'true')
+          fallbackQuery = fallbackQuery.eq('is_deleted', true)
         } else {
-          fallbackQuery = fallbackQuery.or('metadata->>is_deleted.is.null,metadata->>is_deleted.neq.true')
+          fallbackQuery = fallbackQuery.or('is_deleted.is.null,is_deleted.eq.false')
         }
 
         const { data: fallbackData } = await fallbackQuery.limit(1000)

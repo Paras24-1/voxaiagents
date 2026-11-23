@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       }
       return supabaseAdmin
         .from('leads')
-        .update({ metadata: meta })
+        .update({ is_deleted: false, deleted_at: null, metadata: meta })
         .eq('id', l.id)
         .eq('org_id', orgId)
     })

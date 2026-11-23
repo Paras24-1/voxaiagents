@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
             .select('*', { count: 'exact', head: true })
             .eq('org_id', orgId)
 
-      // Exclude soft-deleted leads from active counts
-      q = q.or('metadata->>is_deleted.is.null,metadata->>is_deleted.neq.true') as any
+      // Exclude soft-deleted leads from active counts using indexed is_deleted column
+      q = q.or('is_deleted.is.null,is_deleted.eq.false') as any
 
       if (startDate) q = q.gte('created_at', startDate) as any
       if (endDate) q = q.lte('created_at', `${endDate}T23:59:59.999Z`) as any
@@ -213,12 +213,12 @@ export async function GET(req: NextRequest) {
           .select('id, conversations!inner(assigned_to)', { count: 'exact', head: true })
           .eq('org_id', orgId)
           .eq('conversations.assigned_to', userId)
-          .eq('metadata->>is_deleted', 'true')
+          .eq('is_deleted', true)
       : supabaseAdmin
           .from('leads')
           .select('*', { count: 'exact', head: true })
           .eq('org_id', orgId)
-          .eq('metadata->>is_deleted', 'true')
+          .eq('is_deleted', true)
 
     // Execute count queries concurrently in parallel at DB level
     const [

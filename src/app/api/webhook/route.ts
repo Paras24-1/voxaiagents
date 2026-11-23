@@ -3,16 +3,113 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { isOsmoOrg, syncOsmoPhonebooks, invalidateUnifiedCache } from '@/lib/osmoPhonebooks'
 import { recalcCampaign } from '@/lib/campaigns'
 
-async function getNextEmployee(orgId: string): Promise<string | null> {
-  const { data: employees } = await supabaseAdmin
-    .from('users')
-    .select('id')
-    .eq('org_id', orgId)
-    .eq('role', 'employee')
-    .eq('is_active', true)
-    .order('created_at', { ascending: true })
+// In-memory caching layer to eliminate repeated database queries during webhook traffic bursts
+interface CacheEntry<T> {
+  value: T
+  expiresAt: number
+}
 
-  if (!employees || employees.length === 0) return null
+const orgLookupCache = new Map<string, CacheEntry<string | null>>()
+const orgSettingsCache = new Map<string, CacheEntry<any>>()
+const employeesCache = new Map<string, CacheEntry<string[]>>()
+
+const CACHE_TTL_MS = 120_000 // 2 minutes
+
+function getCached<T>(map: Map<string, CacheEntry<T>>, key: string): T | undefined {
+  const item = map.get(key)
+  if (!item) return undefined
+  if (Date.now() > item.expiresAt) {
+    map.delete(key)
+    return undefined
+  }
+  return item.value
+}
+
+function setCached<T>(map: Map<string, CacheEntry<T>>, key: string, value: T, ttl = CACHE_TTL_MS) {
+  if (map.size > 2000) {
+    const firstKey = map.keys().next().value
+    if (firstKey) map.delete(firstKey)
+  }
+  map.set(key, { value, expiresAt: Date.now() + ttl })
+}
+
+async function resolveOrgId(orgSlug: string, phoneId?: string, wabaId?: string): Promise<string | null> {
+  if (orgSlug) {
+    const cached = getCached(orgLookupCache, `slug:${orgSlug}`)
+    if (cached !== undefined) return cached
+
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(orgSlug)
+    const { data: org } = await (isUuid
+      ? supabaseAdmin.from('organizations').select('id').eq('id', orgSlug).maybeSingle()
+      : supabaseAdmin.from('organizations').select('id').eq('slug', orgSlug).maybeSingle())
+    const id = org?.id || null
+    setCached(orgLookupCache, `slug:${orgSlug}`, id)
+    return id
+  }
+
+  if (phoneId) {
+    const cached = getCached(orgLookupCache, `phoneId:${phoneId}`)
+    if (cached !== undefined) return cached
+
+    const { data: settings } = await supabaseAdmin
+      .from('organization_settings')
+      .select('org_id')
+      .eq('whatsapp_phone_id', phoneId)
+      .maybeSingle()
+    if (settings?.org_id) {
+      setCached(orgLookupCache, `phoneId:${phoneId}`, settings.org_id)
+      return settings.org_id
+    }
+  }
+
+  if (wabaId) {
+    const cached = getCached(orgLookupCache, `wabaId:${wabaId}`)
+    if (cached !== undefined) return cached
+
+    const { data: settings } = await supabaseAdmin
+      .from('organization_settings')
+      .select('org_id')
+      .eq('whatsapp_waba_id', wabaId)
+      .maybeSingle()
+    if (settings?.org_id) {
+      setCached(orgLookupCache, `wabaId:${wabaId}`, settings.org_id)
+      return settings.org_id
+    }
+  }
+
+  return null
+}
+
+async function getOrgSettingsCached(orgId: string) {
+  const cached = getCached(orgSettingsCache, orgId)
+  if (cached !== undefined) return cached
+
+  const { data: orgSettings } = await supabaseAdmin
+    .from('organization_settings')
+    .select('whatsapp_token, n8n_inbound_webhook_url, ai_system_prompt, ai_knowledge_base_sheet_id, ai_knowledge_base_range, gemini_api_key, openai_api_key')
+    .eq('org_id', orgId)
+    .maybeSingle()
+
+  setCached(orgSettingsCache, orgId, orgSettings)
+  return orgSettings
+}
+
+async function getNextEmployee(orgId: string): Promise<string | null> {
+  let employeeIds = getCached(employeesCache, orgId)
+  if (!employeeIds) {
+    const { data: employees } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('org_id', orgId)
+      .eq('role', 'employee')
+      .eq('is_active', true)
+      .order('created_at', { ascending: true })
+
+    employeeIds = (employees || []).map(e => e.id)
+    setCached(employeesCache, orgId, employeeIds, 60_000) // 1 minute cache
+  }
+
+  if (!employeeIds || employeeIds.length === 0) return null
 
   // Get the last assigned conversation to find who was assigned last
   const { data: lastAssigned } = await supabaseAdmin
@@ -25,10 +122,10 @@ async function getNextEmployee(orgId: string): Promise<string | null> {
     .maybeSingle()
 
   const lastEmployeeId = lastAssigned?.assigned_to
-  const lastIndex = employees.findIndex(e => e.id === lastEmployeeId)
-  const nextIndex = (lastIndex + 1) % employees.length
+  const lastIndex = employeeIds.findIndex(id => id === lastEmployeeId)
+  const nextIndex = (lastIndex + 1) % employeeIds.length
 
-  return employees[nextIndex].id
+  return employeeIds[nextIndex]
 }
 
 // Handle Meta Webhook Verification
@@ -53,53 +150,18 @@ export async function POST(req: NextRequest) {
     let orgId: string | null = null
     const body = await req.json()
 
-    // Priority 1: Explicit query parameter slug/id from Meta webhook URL
-    if (orgSlug) {
-      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(orgSlug)
-      const { data: org } = await (isUuid
-        ? supabaseAdmin.from('organizations').select('id').eq('id', orgSlug).maybeSingle()
-        : supabaseAdmin.from('organizations').select('id').eq('slug', orgSlug).maybeSingle())
-      orgId = org?.id || null
-    }
+    // Resolve orgId efficiently using in-memory cache
+    const phoneId = body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id
+    const wabaId = body.entry?.[0]?.id
 
-    // Priority 2: Resolve by Meta phone_number_id or waba_id if not resolved by URL parameter
-    if (!orgId && body.object === 'whatsapp_business_account') {
-      const phoneId = body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id
-      const wabaId = body.entry?.[0]?.id
-
-      if (phoneId) {
-        const { data: settings } = await supabaseAdmin
-          .from('organization_settings')
-          .select('org_id')
-          .eq('whatsapp_phone_id', phoneId)
-          .maybeSingle()
-        if (settings?.org_id) {
-          orgId = settings.org_id
-        }
-      }
-
-      if (!orgId && wabaId) {
-        const { data: settings } = await supabaseAdmin
-          .from('organization_settings')
-          .select('org_id')
-          .eq('whatsapp_waba_id', wabaId)
-          .maybeSingle()
-        if (settings?.org_id) {
-          orgId = settings.org_id
-        }
-      }
-    }
+    orgId = await resolveOrgId(orgSlug, phoneId, wabaId)
 
     if (!orgId) {
       console.warn('[webhook] Could not resolve orgId from request URL or payload phone_number_id')
       return NextResponse.json({ error: 'Invalid org' }, { status: 400 })
     }
 
-    const { data: orgSettings } = await supabaseAdmin
-      .from('organization_settings')
-      .select('whatsapp_token, n8n_inbound_webhook_url, ai_system_prompt')
-      .eq('org_id', orgId)
-      .maybeSingle()
+    const orgSettings = await getOrgSettingsCached(orgId)
     
     // Check if this is a native Meta WhatsApp Webhook Payload
     let parsedPhone = body.phone_number || body.phone || body.from || body.sender
@@ -524,26 +586,22 @@ export async function POST(req: NextRequest) {
     let isHybridN8n = false
     if (direction === 'incoming') {
       try {
-        const { data: orgSettings } = await supabaseAdmin
-          .from('organization_settings')
-          .select('n8n_inbound_webhook_url, ai_system_prompt, ai_knowledge_base_sheet_id, ai_knowledge_base_range, gemini_api_key, openai_api_key')
-          .eq('org_id', orgId)
-          .maybeSingle()
+        const activeOrgSettings = orgSettings || await getOrgSettingsCached(orgId)
 
-        console.log(`[webhook:routing] OrgID=${orgId} | hasPrompt=${!!orgSettings?.ai_system_prompt} | hasGeminiKey=${!!orgSettings?.gemini_api_key} | hasN8nUrl=${!!orgSettings?.n8n_inbound_webhook_url}`)
+        console.log(`[webhook:routing] OrgID=${orgId} | hasPrompt=${!!activeOrgSettings?.ai_system_prompt} | hasGeminiKey=${!!activeOrgSettings?.gemini_api_key} | hasN8nUrl=${!!activeOrgSettings?.n8n_inbound_webhook_url}`)
 
         let parsedPromptObj: any = {}
-        if (orgSettings?.ai_system_prompt) {
+        if (activeOrgSettings?.ai_system_prompt) {
           try {
-            if (orgSettings.ai_system_prompt.startsWith('{')) {
-              parsedPromptObj = JSON.parse(orgSettings.ai_system_prompt)
+            if (activeOrgSettings.ai_system_prompt.startsWith('{')) {
+              parsedPromptObj = JSON.parse(activeOrgSettings.ai_system_prompt)
             }
           } catch (e) {
-            parsedPromptObj = { system_prompt: orgSettings.ai_system_prompt }
+            parsedPromptObj = { system_prompt: activeOrgSettings.ai_system_prompt }
           }
         }
 
-        const engineMode = parsedPromptObj.engine_mode || (orgSettings?.n8n_inbound_webhook_url ? 'hybrid_n8n' : 'native')
+        const engineMode = parsedPromptObj.engine_mode || (activeOrgSettings?.n8n_inbound_webhook_url ? 'hybrid_n8n' : 'native')
 
         // 🛑 AUTOMATIC GATEKEEPING: Check conversation Human Takeover & tenant global AI status
         const isHumanTakeover = conversation?.ai_mode === false || existing?.ai_mode === false
@@ -557,18 +615,17 @@ export async function POST(req: NextRequest) {
           isHybridN8n = false
         } else {
           // If organization has an n8n webhook URL set and AI is active, prioritize forwarding to n8n
-          isHybridN8n = !!orgSettings?.n8n_inbound_webhook_url
+          isHybridN8n = !!activeOrgSettings?.n8n_inbound_webhook_url
         }
 
-        console.log(`[webhook:routing] engineMode=${engineMode} | isHybridN8n=${isHybridN8n} | isHumanTakeover=${isHumanTakeover} | url=${orgSettings?.n8n_inbound_webhook_url}`)
+        console.log(`[webhook:routing] engineMode=${engineMode} | isHybridN8n=${isHybridN8n} | isHumanTakeover=${isHumanTakeover} | url=${activeOrgSettings?.n8n_inbound_webhook_url}`)
 
-        if (isHybridN8n && orgSettings?.n8n_inbound_webhook_url) {
-          console.log(`[webhook] Forwarding Enriched Bot Brain Payload to tenant n8n: ${orgSettings.n8n_inbound_webhook_url}`)
-          
+        if (isHybridN8n && activeOrgSettings?.n8n_inbound_webhook_url) {
+          console.log(`[webhook] Forwarding Enriched Bot Brain Payload to tenant n8n: ${activeOrgSettings.n8n_inbound_webhook_url}`)
 
           const rawSystemPrompt = parsedPromptObj.system_prompt || 'You are a helpful AI assistant.'
-          const geminiApiKey = orgSettings.gemini_api_key || process.env.GEMINI_API_KEY || ''
-          const openaiApiKey = orgSettings.openai_api_key || process.env.OPENAI_API_KEY || ''
+          const geminiApiKey = activeOrgSettings.gemini_api_key || process.env.GEMINI_API_KEY || ''
+          const openaiApiKey = activeOrgSettings.openai_api_key || process.env.OPENAI_API_KEY || ''
 
           // Replace prompt template variables so n8n receives the fully rendered system prompt!
           const processedSystemPrompt = rawSystemPrompt
