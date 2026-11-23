@@ -29,23 +29,26 @@ export async function generateMetadata(): Promise<Metadata> {
   let icon = '/vox_ai_favicon.svg'
 
   try {
-    // Check specific domains first
-    if (host.includes('10xyourbusiness')) {
-      icon = '/10x_favicon.jpeg'
-    } else if (host.includes('iwebmagics')) {
-      icon = '/iwebmagics_favicon.png' // fallback if we have it
-    }
+    // Only query database if this is an actual custom white-label domain
+    const isPrimary = host.includes('voxaiagents.com') || host.includes('localhost') || host.includes('vercel.app')
 
-    // Look up custom domain in organizations
-    const { data: org } = await supabaseAdmin
-      .from('organizations')
-      .select('brand_title')
-      .ilike('custom_domain', `%${host}%`) // use ilike to be forgiving
-      .maybeSingle()
-      
-    if (org && org.brand_title) {
-      title = org.brand_title
-      // If we add custom favicon support later, we can set icon = org.favicon_url here
+    if (!isPrimary && host) {
+      if (host.includes('10xyourbusiness')) {
+        icon = '/10x_favicon.jpeg'
+      } else if (host.includes('iwebmagics')) {
+        icon = '/iwebmagics_favicon.png'
+      }
+
+      // Look up custom domain in organizations
+      const { data: org } = await supabaseAdmin
+        .from('organizations')
+        .select('brand_title')
+        .ilike('custom_domain', `%${host}%`)
+        .maybeSingle()
+
+      if (org && org.brand_title) {
+        title = org.brand_title
+      }
     }
   } catch (err) {
     console.error('Failed to fetch metadata for domain', host, err)
