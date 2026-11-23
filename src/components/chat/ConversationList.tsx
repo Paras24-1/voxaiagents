@@ -96,7 +96,7 @@ export default function ConversationList({ selectedId, onSelect, onDelete }: Pro
       if (typeof document !== 'undefined' && document.hidden) return
       fetchCategoryStats()
     }
-    const interval = setInterval(handleRefresh, 12000)
+    const interval = setInterval(handleRefresh, 45000)
     window.addEventListener('focus', handleRefresh)
     document.addEventListener('visibilitychange', handleRefresh)
     return () => {

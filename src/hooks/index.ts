@@ -275,7 +275,7 @@ export function useConversations(filters: {
       fetchConversations(false)
     }
 
-    const interval = setInterval(handleRefresh, 5000)
+    const interval = setInterval(handleRefresh, 45000)
     window.addEventListener('focus', handleRefresh)
     document.addEventListener('visibilitychange', handleRefresh)
     window.addEventListener('refresh-conversations', handleRefresh)
@@ -483,7 +483,7 @@ export function useMessages(conversationId: string | null) {
       fetchMessages(false)
     }
 
-    const interval = setInterval(handleRefresh, 3500)
+    const interval = setInterval(handleRefresh, 30000)
     window.addEventListener('focus', handleRefresh)
     document.addEventListener('visibilitychange', handleRefresh)
 

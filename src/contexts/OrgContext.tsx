@@ -101,12 +101,6 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
         }
       }
 
-      if (res.status === 401) {
-        console.warn('[OrgContext] Session expired/unauthorized. Redirecting to login...')
-        await signOut()
-        return
-      }
-
       let json: any = null
       if (res.ok) {
         json = await res.json()

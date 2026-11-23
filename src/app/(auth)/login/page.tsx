@@ -24,10 +24,18 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    const timer = setTimeout(() => {
+      setLoading(false)
+      setError('Signing in took too long. Please try again.')
+    }, 15000)
+
     try {
       await signIn(email, password)
+      clearTimeout(timer)
       window.location.replace('/dashboard')
     } catch (err: any) {
+      clearTimeout(timer)
       setError(err.message || 'Invalid email or password')
       setLoading(false)
     }

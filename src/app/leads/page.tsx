@@ -526,7 +526,7 @@ function LeadsContent() {
       fetchLeadsRef.current(false, true)
     }
 
-    const interval = setInterval(handleAutoRefresh, 10000)
+    const interval = setInterval(handleAutoRefresh, 45000)
     window.addEventListener('focus', handleAutoRefresh)
     document.addEventListener('visibilitychange', handleAutoRefresh)
     window.addEventListener('refresh-leads', handleAutoRefresh)

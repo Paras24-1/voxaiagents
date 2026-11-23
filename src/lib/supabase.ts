@@ -100,16 +100,27 @@ export async function getUserProfile(req: Request): Promise<UserProfile | null> 
       return cached.profile
     }
 
-    const { data, error } = await supabaseAdmin.auth.getUser(rawToken)
-    const userId = data?.user?.id
+    let userId: string | null = null
+    try {
+      const parts = rawToken.split('.')
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'))
+        if (payload.exp && (payload.exp * 1000 + 60000) > Date.now()) {
+          userId = payload.sub || null
+        }
+      }
+    } catch {}
 
-    if (error || !userId) {
-      // Fast Negative Cache: cache invalid/expired tokens for 15s to avoid hammering Supabase Auth API
-      profileCache.set(cacheKey, {
-        profile: null,
-        expiresAt: Date.now() + NEGATIVE_CACHE_TTL_MS
-      })
-      return null
+    if (!userId) {
+      const { data, error } = await supabaseAdmin.auth.getUser(rawToken)
+      userId = data?.user?.id || null
+      if (error || !userId) {
+        profileCache.set(cacheKey, {
+          profile: null,
+          expiresAt: Date.now() + NEGATIVE_CACHE_TTL_MS
+        })
+        return null
+      }
     }
 
     const { data: profile } = await supabaseAdmin

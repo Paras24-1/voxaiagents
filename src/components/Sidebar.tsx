@@ -82,6 +82,11 @@ export default function Sidebar() {
     if (!profile?.org_id) return
     const fetchUnread = async () => {
       try {
+        const { data, error } = await supabase.rpc('get_unread_count', { p_org_id: profile.org_id })
+        if (!error && typeof data === 'number') {
+          setUnreadCount(data)
+          return
+        }
         const { count } = await supabase
           .from('conversations')
           .select('id', { count: 'exact', head: true })
@@ -101,7 +106,7 @@ export default function Sidebar() {
       fetchUnread()
     }
 
-    const interval = setInterval(handleRefresh, 8000)
+    const interval = setInterval(handleRefresh, 30000)
     window.addEventListener('focus', handleRefresh)
     document.addEventListener('visibilitychange', handleRefresh)
     window.addEventListener('update-conversation', handleRefresh)

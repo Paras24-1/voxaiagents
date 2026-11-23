@@ -36,17 +36,17 @@ export async function GET(req: NextRequest) {
     } else if (categoryFilter === 'dead_lead' || categoryFilter === 'dead lead') {
       query = supabaseAdmin
         .from('conversations')
-        .select('*, leads!inner(*)', { count: 'exact' })
+        .select('*, leads!inner(*)')
         .or('osmo_category.eq.dead_lead,osmo_category.eq.dead lead', { foreignTable: 'leads' })
     } else if (categoryFilter && categoryFilter !== 'all') {
       query = supabaseAdmin
         .from('conversations')
-        .select('*, leads!inner(*)', { count: 'exact' })
+        .select('*, leads!inner(*)')
         .eq('leads.osmo_category', categoryFilter)
     } else {
       query = supabaseAdmin
         .from('conversations')
-        .select('*, leads(*)', { count: 'exact' })
+        .select('*, leads(*)')
     }
 
     query = query.eq('org_id', orgId)

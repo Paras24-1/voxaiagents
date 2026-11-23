@@ -189,7 +189,7 @@ function AnalyticsContent() {
       fetchStats(true)
       fetchInspectorLeads()
     }
-    const interval = setInterval(handleRefresh, 15000)
+    const interval = setInterval(handleRefresh, 60000)
     window.addEventListener('focus', handleRefresh)
     document.addEventListener('visibilitychange', handleRefresh)
     return () => {
