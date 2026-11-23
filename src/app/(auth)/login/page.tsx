@@ -28,7 +28,7 @@ export default function LoginPage() {
     const timer = setTimeout(() => {
       setLoading(false)
       setError('Signing in took too long. Please try again.')
-    }, 15000)
+    }, 45000)
 
     try {
       await signIn(email, password)
