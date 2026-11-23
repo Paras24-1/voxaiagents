@@ -106,7 +106,7 @@ export default function FollowupNotifier() {
     if (!profile?.id) return
 
     checkDueFollowups()
-    const interval = setInterval(checkDueFollowups, 25000)
+    const interval = setInterval(checkDueFollowups, 120000)
 
     // Listen to manual update events across tabs / components
     const handleFollowupUpdate = () => {

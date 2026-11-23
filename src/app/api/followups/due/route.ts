@@ -1,36 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, getOrgId } from '@/lib/supabase'
+import { supabaseAdmin, getUserProfile } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET(req: NextRequest) {
   try {
-    const orgId = await getOrgId(req)
-    if (!orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const userProf = await getUserProfile(req)
+    if (!userProf) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Decode token to get user ID
-    const authHeader = req.headers.get('authorization')
-    let userId: string | null = null
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '')
-      const { data } = await supabaseAdmin.auth.getUser(token)
-      userId = data.user?.id || null
-    }
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile role
-    const { data: profile } = await supabaseAdmin
-      .from('users')
-      .select('role')
-      .eq('id', userId)
-      .eq('org_id', orgId)
-      .maybeSingle()
-
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+    const orgId = userProf.orgId
+    const userId = userProf.userId
+    const isAdmin = userProf.role === 'admin' || userProf.role === 'owner'
 
     // Fetch followups due now or within the last 24 hours that haven't been dismissed yet
     const nowIso = new Date().toISOString()

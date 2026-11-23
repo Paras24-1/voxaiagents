@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { User } from '@supabase/supabase-js'
 
@@ -46,6 +46,7 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [org, setOrg] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
+  const fetchingProfileRef = useRef<string | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -72,6 +73,9 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
   }, [])
 
   const fetchProfileAndOrg = async (userId: string) => {
+    if (fetchingProfileRef.current === userId) return
+    fetchingProfileRef.current = userId
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       console.log('[OrgContext] session:', session?.access_token ? 'exists' : 'null')
@@ -82,30 +86,43 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
 
       let activeToken = session.access_token
 
-      let res = await fetch('/api/me', {
-        headers: {
-          'Authorization': `Bearer ${activeToken}`
-        }
-      })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 6000)
 
-      if (res.status === 401) {
+      let res: Response | null = null
+      try {
+        res = await fetch('/api/me', {
+          headers: {
+            'Authorization': `Bearer ${activeToken}`
+          },
+          signal: controller.signal
+        })
+      } catch (fetchErr) {
+        console.warn('[OrgContext] /api/me timed out or failed, falling back to direct query')
+      } finally {
+        clearTimeout(timeoutId)
+      }
+
+      if (res && res.status === 401) {
         console.warn('[OrgContext] /api/me returned 401. Attempting session refresh...')
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
         if (refreshData?.session?.access_token && !refreshError) {
           activeToken = refreshData.session.access_token
-          res = await fetch('/api/me', {
-            headers: {
-              'Authorization': `Bearer ${activeToken}`
-            }
-          })
+          try {
+            res = await fetch('/api/me', {
+              headers: {
+                'Authorization': `Bearer ${activeToken}`
+              }
+            })
+          } catch {}
         }
       }
 
       let json: any = null
-      if (res.ok) {
+      if (res && res.ok) {
         json = await res.json()
       } else {
-        console.warn('[OrgContext] /api/me returned', res.status, '- attempting direct Supabase query fallback')
+        console.warn('[OrgContext] /api/me not ok, attempting direct Supabase query fallback')
         const { data: directProfile } = await supabase
           .from('users')
           .select('*, organization:organizations(*)')
@@ -113,6 +130,11 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
           .maybeSingle()
 
         if (directProfile) {
+          const orgData = (directProfile as any).organization || null
+          delete (directProfile as any).organization
+          json = { profile: directProfile, org: orgData }
+        }
+      }
           const orgData = (directProfile as any).organization || null
           delete (directProfile as any).organization
           json = { profile: directProfile, org: orgData }
@@ -140,6 +162,7 @@ export default function OrgProvider({ children }: { children: React.ReactNode })
         }
       } catch {}
     } finally {
+      fetchingProfileRef.current = null
       setLoading(false)
     }
   }
