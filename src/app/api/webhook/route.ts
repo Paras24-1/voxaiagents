@@ -34,19 +34,7 @@ function setCached<T>(map: Map<string, CacheEntry<T>>, key: string, value: T, tt
 }
 
 async function resolveOrgId(orgSlug: string, phoneId?: string, wabaId?: string): Promise<string | null> {
-  if (orgSlug) {
-    const cached = getCached(orgLookupCache, `slug:${orgSlug}`)
-    if (cached !== undefined) return cached
-
-    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(orgSlug)
-    const { data: org } = await (isUuid
-      ? supabaseAdmin.from('organizations').select('id').eq('id', orgSlug).maybeSingle()
-      : supabaseAdmin.from('organizations').select('id').eq('slug', orgSlug).maybeSingle())
-    const id = org?.id || null
-    setCached(orgLookupCache, `slug:${orgSlug}`, id)
-    return id
-  }
-
+  // Prefer phone_number_id / waba_id so a single master Meta webhook URL routes every tenant accurately
   if (phoneId) {
     const cached = getCached(orgLookupCache, `phoneId:${phoneId}`)
     if (cached !== undefined) return cached
@@ -75,6 +63,19 @@ async function resolveOrgId(orgSlug: string, phoneId?: string, wabaId?: string):
       setCached(orgLookupCache, `wabaId:${wabaId}`, settings.org_id)
       return settings.org_id
     }
+  }
+
+  if (orgSlug) {
+    const cached = getCached(orgLookupCache, `slug:${orgSlug}`)
+    if (cached !== undefined) return cached
+
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(orgSlug)
+    const { data: org } = await (isUuid
+      ? supabaseAdmin.from('organizations').select('id').eq('id', orgSlug).maybeSingle()
+      : supabaseAdmin.from('organizations').select('id').eq('slug', orgSlug).maybeSingle())
+    const id = org?.id || null
+    setCached(orgLookupCache, `slug:${orgSlug}`, id)
+    return id
   }
 
   return null
